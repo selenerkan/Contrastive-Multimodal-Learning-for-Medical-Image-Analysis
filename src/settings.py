@@ -10,7 +10,9 @@ TRAIN_SIZE = 4
 VAL_SIZE = 1
 TEST_SIZE = 1
 
-training_transformations = transforms.Compose([
+# transformation for the input images
+transformation = transforms.Compose([
     transforms.ToTensor()])
 
+# transformation for the labels
 target_transformations = None

@@ -5,16 +5,13 @@ from torch.nn import functional as F
 
 
 class AdniModel(LightningModule):
+    '''
+    3Dconv Model Class including the training, validation and testing steps
+    '''
 
     def __init__(self):
 
         super().__init__()
-
-        """
-
-    The convolutions are arranged in such a way that the image maintain the x and y dimensions. only the channels change
-
-    """
 
         self.layer_1 = nn.Conv3d(in_channels=1, out_channels=3, kernel_size=(
             3, 3, 3), stride=(1, 1, 1))  # input (256, 256, 170) output (3, 254, 254, 168)
@@ -71,12 +68,6 @@ class AdniModel(LightningModule):
         optimizer = torch.optim.Adam(self.parameters(), lr=1e-7)
 
         return optimizer
-
-    """
-
-The Pytorch-Lightning module handles all the iterations of the epoch
-
-"""
 
     def training_step(self, batch, batch_idx):
 

@@ -8,22 +8,22 @@ import pytorch_lightning as pl
 
 import torch
 
-from settings import CSV_FILE, IMAGE_PATH, TRAIN_SIZE, VAL_SIZE, TEST_SIZE, training_transformations, target_transformations
+from settings import CSV_FILE, IMAGE_PATH, TRAIN_SIZE, VAL_SIZE, TEST_SIZE, transformation, target_transformations
 from torch.utils.data import DataLoader
 
 
 class Adni_Dataset(Dataset):
 
-    def __init__(self, csv_dir, image_base_dir, training_transform=None, target_transform=None):
+    def __init__(self, csv_dir, image_base_dir, transform=None, target_transform=None):
         """
 
         csv_dir: The directiry for the .csv file holding the name of the images and the labels
 
         image_base_dir:The directory of the folders containing the images
 
-        transform:The trasformations for the Images
+        transform:The trasformations for the input images
 
-        Target_transform:The trasformations for the target
+        Target_transform:The trasformations for the target(label)
 
         """
 
@@ -32,7 +32,7 @@ class Adni_Dataset(Dataset):
 
         self.imge_base_dir = image_base_dir
 
-        self.training_transform = training_transform
+        self.transform = transform
 
         self.target_transform = target_transform
 
@@ -54,9 +54,9 @@ class Adni_Dataset(Dataset):
         # get the label
         label = self.img_list['label'][idx]
 
-        if self.training_transform:
+        if self.transform:
 
-            image = self.training_transform(image)
+            image = self.transform(image)
 
         if self.target_transform:
 
@@ -74,7 +74,7 @@ class AdniDataModule(pl.LightningDataModule):
     def prepare_data(self):
 
         self.train = Adni_Dataset(CSV_FILE + '\labels.csv', IMAGE_PATH,
-                                  training_transformations, target_transformations)
+                                  transformation, target_transformations)
 
         self.train, self.valid = torch.utils.data.random_split(
             self.train, [TRAIN_SIZE, VAL_SIZE + TEST_SIZE])
