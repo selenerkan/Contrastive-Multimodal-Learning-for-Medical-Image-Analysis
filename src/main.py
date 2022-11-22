@@ -18,22 +18,6 @@ model = AdniModel()
 
 module = AdniDataModule()
 
-# Don't go over 10000 - 100000 or it will take 5 - 53+ hours to iterate
 trainer = Trainer(max_epochs=1)
 
 trainer.fit(model, module)
-
-# training_transformations = transforms.Compose([
-#     # transforms.ToPILImage(),
-#     transforms.ToTensor()])
-
-# target_transformations = None
-
-# train = Adni_Dataset(CSV_FILE + '\labels.csv', IMAGE_PATH,
-#                      training_transformations, target_transformations)
-
-# dataloader = DataLoader(train, batch_size=1, shuffle=True)
-
-# inputs, classes = next(iter(dataloader))
-
-# print(inputs, classes)
