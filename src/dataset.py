@@ -4,8 +4,6 @@ import pandas as pd
 import nibabel as nib
 import numpy as np
 
-import PIL
-import PIL.Image as Image
 import pytorch_lightning as pl
 
 import torch

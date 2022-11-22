@@ -1,8 +1,3 @@
-import numpy as np
-import os
-import nibabel as nib
-
-
 import torchvision.transforms as transforms
 
 IMAGE_PATH = r'C:\Users\Selen\Desktop\LMU\multimodal_network\data\adni\images'
