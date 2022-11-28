@@ -51,6 +51,9 @@ class Adni_Dataset(Dataset):
         # change to numpy
         image = np.array(image, dtype=np.float32)
 
+        # scale images between [0,1]
+        image = image / image.max()
+
         # get the label
         label = self.img_list['label'][idx]
 
@@ -73,20 +76,20 @@ class AdniDataModule(pl.LightningDataModule):
 
     def prepare_data(self):
 
-        self.train = Adni_Dataset(CSV_FILE + '\labels.csv', IMAGE_PATH,
+        self.train = Adni_Dataset(CSV_FILE + r'\train.csv', IMAGE_PATH,
                                   transformation, target_transformations)
 
-        self.train, self.valid = torch.utils.data.random_split(
-            self.train, [TRAIN_SIZE, VAL_SIZE + TEST_SIZE])
+        self.valid = Adni_Dataset(CSV_FILE + r'\val.csv', IMAGE_PATH,
+                                  transformation, target_transformations)
 
-        self.valid, self.test = torch.utils.data.random_split(
-            self.valid, [VAL_SIZE, TEST_SIZE])
+        self.test = Adni_Dataset(CSV_FILE + r'\test.csv', IMAGE_PATH,
+                                 transformation, target_transformations)
 
-        # self.valid = Adni_Dataset(CSV_FILE + '\labels.csv', IMAGE_PATH,
-        #                           training_transformations, target_transformations)
+        # self.train, self.valid = torch.utils.data.random_split(
+        #     self.train, [TRAIN_SIZE, VAL_SIZE + TEST_SIZE])
 
-        # self.test = Adni_Dataset(CSV_FILE + '\labels.csv', IMAGE_PATH,
-        #                          training_transformations, target_transformations)
+        # self.valid, self.test = torch.utils.data.random_split(
+        #     self.valid, [VAL_SIZE, TEST_SIZE])
 
     def train_dataloader(self):
 
@@ -94,8 +97,8 @@ class AdniDataModule(pl.LightningDataModule):
 
     def val_dataloader(self):
 
-        return DataLoader(self.valid, batch_size=1, shuffle=True)
+        return DataLoader(self.valid, batch_size=1, shuffle=False)
 
     def test_dataloader(self):
 
-        return DataLoader(self.test, batch_size=1, shuffle=True)
+        return DataLoader(self.test, batch_size=1, shuffle=False)

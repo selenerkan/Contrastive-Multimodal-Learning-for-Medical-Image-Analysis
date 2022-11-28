@@ -36,7 +36,7 @@ class AdniModel(LightningModule):
 
         self.layer_5 = nn.Linear(1000, 100)
 
-        self.layer_6 = nn.Linear(100, 3)
+        self.layer_6 = nn.Linear(100, 1)
 
     def forward(self, x):
         """
@@ -65,37 +65,46 @@ class AdniModel(LightningModule):
 
     def configure_optimizers(self):
 
-        optimizer = torch.optim.Adam(self.parameters(), lr=1e-7)
+        optimizer = torch.optim.Adam(self.parameters(), lr=1e-4)
 
         return optimizer
 
     def training_step(self, batch, batch_idx):
 
         x, y = batch
+        y = y.to(torch.float32)
 
         y_pred = self(x)
 
-        loss = F.cross_entropy(y_pred, y.squeeze())
+        loss = F.binary_cross_entropy(torch.sigmoid(y_pred), y.squeeze())
+
+        # Log loss
+        self.log('train_loss', loss)
 
         return loss
 
     def validation_step(self, batch, batch_idx):
 
         x, y = batch
+        y = y.to(torch.float32)
 
         y_pred = self(x)
 
-        loss = F.cross_entropy(y_pred, y.squeeze())
+        loss = F.binary_cross_entropy(torch.sigmoid(y_pred), y.squeeze())
+
+        # Log loss
+        self.log('val_loss', loss)
 
         return loss
 
     def test_step(self, batch, batch_idx):
 
         x, y = batch
+        y = y.to(torch.float32)
 
         y_pred = self(x)
 
-        loss = F.cross_entropy(y_pred, y.squeeze())
+        loss = F.binary_cross_entropy(torch.sigmoid(y_pred), y.squeeze())
 
         self.log("loss", loss)
 
