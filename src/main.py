@@ -5,19 +5,13 @@ from pytorch_lightning.loggers import WandbLogger
 from conv3D.model import AdniModel
 from dataset import AdniDataModule
 
+from ResNet.model import ResNetModel
 
-def main_conv3d():
+
+def main_conv3d(wandb, wandb_logger):
     '''
     main function to run the conv3d architecture
     '''
-
-    wandb.init(project="multimodal-network-test")
-    wandb.config = {
-        "learning_rate": 1e-4,
-        "epochs": 9,
-        "batch_size": 1
-    }
-
     # ge tthe model
     model = AdniModel()
 
@@ -28,10 +22,42 @@ def main_conv3d():
     wandb.watch(model, log="all")
 
     # train the network
-    wandb_logger = WandbLogger()
+    trainer = Trainer(max_epochs=9, logger=wandb_logger, log_every_n_steps=1)
+    trainer.fit(model, data)
+
+
+def main_resnet(wandb, wandb_logger):
+    '''
+    main function to run the resnet architecture
+    '''
+    # ge the model
+    model = ResNetModel()
+
+    # load the data
+    data = AdniDataModule()
+
+    # Optional
+    wandb.watch(model, log="all")
+
+    # train the network
     trainer = Trainer(max_epochs=9, logger=wandb_logger, log_every_n_steps=1)
     trainer.fit(model, data)
 
 
 if __name__ == '__main__':
-    main_conv3d()
+
+    # create wandb objects to track runs
+    wandb.init(project="multimodal-network-test")
+    wandb.config = {
+        "learning_rate": 1e-4,
+        "epochs": 9,
+        "batch_size": 1
+    }
+
+    wandb_logger = WandbLogger()
+
+    # run conv3d
+    main_conv3d(wandb, wandb_logger)
+
+    # # run resnet
+    # main_resnet(wandb, wandb_logger)
