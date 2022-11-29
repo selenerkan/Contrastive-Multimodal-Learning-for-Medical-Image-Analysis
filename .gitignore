@@ -1,7 +1,11 @@
-data/
-venv/
-logs/
-__pycache__/
-wandb/
-lightning_logs/
+data
+venv
+logs
+__pycache__
+wandb
+lightning_logs
+MedicalNet_pytorch_files2
+MedicalNet_pytorch_files2.zip
+testing.ipynb
+scripts.bash
 
