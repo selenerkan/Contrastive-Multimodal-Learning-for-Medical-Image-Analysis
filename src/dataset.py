@@ -6,9 +6,7 @@ import numpy as np
 
 import pytorch_lightning as pl
 
-import torch
-
-from settings import CSV_FILE, IMAGE_PATH, TRAIN_SIZE, VAL_SIZE, TEST_SIZE, transformation, target_transformations
+from conv3D.settings import CSV_FILE, IMAGE_PATH, TRAIN_SIZE, VAL_SIZE, TEST_SIZE, transformation, target_transformations
 from torch.utils.data import DataLoader
 
 
