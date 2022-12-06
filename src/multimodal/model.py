@@ -45,6 +45,9 @@ class MultiModModel(LightningModule):
 
         img = self.resnet(img)
 
+        # change the dtype of the tabular data
+        tab = tab.to(torch.float32)
+
         # forward tabular data
         tab = F.relu(self.fc1(tab))
 
@@ -55,13 +58,13 @@ class MultiModModel(LightningModule):
 
         out = self.fc3(x)
 
-        # out = torch.squeeze(out)
+        out = torch.squeeze(out)
 
         return out
 
     def configure_optimizers(self):
 
-        optimizer = torch.optim.Adam(self.parameters(), lr=1e-4)
+        optimizer = torch.optim.Adam(self.parameters(), lr=1e-3)
 
         return optimizer
 

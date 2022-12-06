@@ -4,8 +4,10 @@ from pytorch_lightning.loggers import WandbLogger
 
 from conv3D.model import AdniModel
 from dataset import AdniDataModule
+from multimodal_dataset import MultimodalDataModule
 
 from ResNet.model import ResNetModel
+from multimodal.model import MultiModModel
 
 
 def main_conv3d(wandb, wandb_logger):
@@ -44,20 +46,41 @@ def main_resnet(wandb, wandb_logger):
     trainer.fit(model, data)
 
 
+def main_multimodal(wandb, wandb_logger):
+    '''
+    main function to run the multimodal architecture
+    '''
+    # ge the model
+    model = MultiModModel()
+
+    # load the data
+    data = MultimodalDataModule()
+
+    # Optional
+    wandb.watch(model, log="all")
+
+    # train the network
+    trainer = Trainer(max_epochs=20, logger=wandb_logger, log_every_n_steps=1)
+    trainer.fit(model, data)
+
+
 if __name__ == '__main__':
 
     # create wandb objects to track runs
     wandb.init(project="multimodal-network-test")
-    wandb.config = {
-        "learning_rate": 1e-4,
-        "epochs": 15,
-        "batch_size": 1
-    }
+    # wandb.config = {
+    #     "learning_rate": 1e-4,
+    #     "epochs": 5,
+    #     "batch_size": 1
+    # }
 
     wandb_logger = WandbLogger()
 
-    # run conv3d
-    main_conv3d(wandb, wandb_logger)
+    # # run conv3d
+    # main_conv3d(wandb, wandb_logger)
 
     # run resnet
     # main_resnet(wandb, wandb_logger)
+
+    # run multimodal
+    main_multimodal(wandb, wandb_logger)
