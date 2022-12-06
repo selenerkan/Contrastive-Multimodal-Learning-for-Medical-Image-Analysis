@@ -22,7 +22,7 @@ def main_conv3d(wandb, wandb_logger):
     wandb.watch(model, log="all")
 
     # train the network
-    trainer = Trainer(max_epochs=9, logger=wandb_logger, log_every_n_steps=1)
+    trainer = Trainer(max_epochs=15, logger=wandb_logger, log_every_n_steps=1)
     trainer.fit(model, data)
 
 
@@ -40,7 +40,7 @@ def main_resnet(wandb, wandb_logger):
     wandb.watch(model, log="all")
 
     # train the network
-    trainer = Trainer(max_epochs=9, logger=wandb_logger, log_every_n_steps=1)
+    trainer = Trainer(max_epochs=15, logger=wandb_logger, log_every_n_steps=1)
     trainer.fit(model, data)
 
 
@@ -50,7 +50,7 @@ if __name__ == '__main__':
     wandb.init(project="multimodal-network-test")
     wandb.config = {
         "learning_rate": 1e-4,
-        "epochs": 9,
+        "epochs": 15,
         "batch_size": 1
     }
 
@@ -59,5 +59,5 @@ if __name__ == '__main__':
     # run conv3d
     main_conv3d(wandb, wandb_logger)
 
-    # # run resnet
+    # run resnet
     # main_resnet(wandb, wandb_logger)
