@@ -68,12 +68,6 @@ if __name__ == '__main__':
 
     # create wandb objects to track runs
     wandb.init(project="multimodal-network-test")
-    # wandb.config = {
-    #     "learning_rate": 1e-4,
-    #     "epochs": 5,
-    #     "batch_size": 1
-    # }
-
     wandb_logger = WandbLogger()
 
     # # run conv3d

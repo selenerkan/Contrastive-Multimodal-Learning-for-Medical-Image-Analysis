@@ -6,6 +6,7 @@ import nibabel as nib
 
 import pytorch_lightning as pl
 import numpy as np
+from sklearn.model_selection import train_test_split
 
 from settings import CSV_FILE, IMAGE_PATH, TRAIN_SIZE, VAL_SIZE, TEST_SIZE, FEATURES, TARGET, transformation, target_transformations
 from torch.utils.data import DataLoader
@@ -95,20 +96,25 @@ class MultimodalDataModule(pl.LightningDataModule):
                                        target=TARGET, features=FEATURES,
                                        transform=transformation, target_transform=target_transformations)
 
-        # self.train, self.valid = torch.utils.data.random_split(
-        #     self.train, [TRAIN_SIZE, VAL_SIZE + TEST_SIZE])
+        # self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(self.train.X, self.train.y,
+        #                                                                         stratify=self.train.y,
+        #                                                                         test_size=0.2)
 
-        # self.valid, self.test = torch.utils.data.random_split(
-        #     self.valid, [VAL_SIZE, TEST_SIZE])
+        # self.X_train, self.self.X_val, self.y_train, self.y_val = train_test_split(self.X_train, self.y_train,
+        #                                                                            stratify=self.train.y,
+        #                                                                            test_size=0.25)
 
     def train_dataloader(self):
 
         return DataLoader(self.train, batch_size=1, shuffle=True)
+        # return DataLoader(self.X_train, batch_size=1, shuffle=True)
 
     def val_dataloader(self):
 
         return DataLoader(self.valid, batch_size=1, shuffle=False)
+        # return DataLoader(self.X_valid, batch_size=1, shuffle=False)
 
     def test_dataloader(self):
 
         return DataLoader(self.test, batch_size=1, shuffle=False)
+        # return DataLoader(self.X_test, batch_size=1, shuffle=False)
