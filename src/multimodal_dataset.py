@@ -29,31 +29,18 @@ class Multimodal_Dataset(Dataset):
         # read .csv to load the data
         self.multimodal = pd.read_csv(csv_dir)
 
-        # save categorical features in a variable
-        self.categorical = categorical
-
-        # set the target variable name
-        self.target = target
-
-        # set the dummy variables
+        # keep relevant features in the tabular data
         self.features = features
-
-        # keep relevant features
         self.tabular = self.multimodal[self.features]
 
-        # # one-hot encoding of the categorical variables
-        # self.tabular_processed = pd.get_dummies(
-        #     self.tabular, prefix=self.categorical)
-
         # Save target and predictors
+        self.target = target
         self.X = self.tabular.drop(self.target, axis=1)
         self.y = self.tabular[self.target]
 
         # IMAGE DATA
         self.imge_base_dir = image_base_dir
-
         self.transform = transform
-
         self.target_transform = target_transform
 
     def __len__(self):
@@ -71,10 +58,10 @@ class Multimodal_Dataset(Dataset):
         tab = self.X.iloc[idx].values
 
         # get image name in the given index
-        img_folder_name = self.multimodal['Image_id'][idx]
+        img_folder_name = self.multimodal['image_id'][idx]
 
         img_path = os.path.join(
-            self.imge_base_dir, img_folder_name, 'image.nii.gz')
+            self.imge_base_dir, img_folder_name + '.nii.gz')
 
         image = nib.load(img_path)
         image = image.get_fdata()

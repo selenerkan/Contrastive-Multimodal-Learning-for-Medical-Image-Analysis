@@ -1,19 +1,17 @@
 import torchvision.transforms as transforms
 
-# IMAGE_PATH = r'C:\Users\Selen\Desktop\LMU\multimodal_network\data\adni\images\init_test_images'
-IMAGE_PATH = r'C:\Users\Selen\Desktop\LMU\multimodal_network\data\adni\images\nifti_images_tabular'
-
-# CSV_FILE = r'C:\Users\Selen\Desktop\LMU\multimodal_network\data\adni\labels'
+IMAGE_PATH = r'C:\Users\Selen\Desktop\LMU\multimodal_network\data\adni\images\preprocessed\Combined'
 CSV_FILE = r'C:\Users\Selen\Desktop\LMU\multimodal_network\data\adni\labels\tabular_image_labels'
+TABULAR_DATA_FILE = r'C:\Users\Selen\Desktop\LMU\multimodal_network\data\adni\tabular'
 
-TABULAR_DATA_FILE = r'C:\Users\Selen\Desktop\LMU\multimodal_network\data\adni\tabular\adni_tabular_images'
+FEATURES = ['age', 'gender_numeric', 'education', 'APOE4',
+            'FDG', 'AV45', 'TAU', 'PTAU', 'MMSE', 'label_numeric']
 
-FEATURES = ['age', 'gender_encoded', 'education', 'APOE4',
-            'FDG', 'AV45', 'TAU', 'PTAU', 'MMSE', 'label_encoded']
+TARGET = 'label_numeric'
 
-TARGET = 'label_encoded'
-
-IMAGE_SIZE = (256, 256, 170)
+IMAGE_SIZE = (182, 218, 182)
+# image_spacing = (1.0, 1.0, 1.0)
+# image_origin = (-90.0, 126.0, -72.0)
 
 TRAIN_SIZE = 1
 VAL_SIZE = 1
