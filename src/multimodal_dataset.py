@@ -14,7 +14,7 @@ from torch.utils.data import DataLoader
 
 class Multimodal_Dataset(Dataset):
 
-    def __init__(self, csv_dir, image_base_dir, target, features, categorical=None, transform=None, target_transform=None):
+    def __init__(self, csv_dir, image_base_dir, target, features, categorical=None, transform=None, target_transform=None, age=None):
         """
 
         csv_dir: The directiry for the .csv file (tabular data) including the labels
@@ -33,6 +33,11 @@ class Multimodal_Dataset(Dataset):
         # keep relevant features in the tabular data
         self.features = features
         self.tabular = self.multimodal[self.features]
+
+        # filter the dataset by age
+        if age is not None:
+            self.tabular = self.tabular[self.tabular.age == age]
+            self.tabular = self.tabular.reset_index()
 
         # Save target and predictors
         self.target = target
@@ -78,23 +83,27 @@ class Multimodal_Dataset(Dataset):
 
 class MultimodalDataModule(pl.LightningDataModule):
 
-    def __init__(self):
+    def __init__(self, age=None):
 
         super().__init__()
+        self.age = age
 
     def prepare_data(self):
 
         self.train = Multimodal_Dataset(csv_dir=CSV_FILE + r'\train.csv', image_base_dir=IMAGE_PATH,
                                         target=TARGET, features=FEATURES,
-                                        transform=transformation, target_transform=target_transformations)
+                                        transform=transformation, target_transform=target_transformations, age=self.age)
 
-        self.valid = Multimodal_Dataset(csv_dir=CSV_FILE + r'\val.csv', image_base_dir=IMAGE_PATH,
-                                        target=TARGET, features=FEATURES,
-                                        transform=transformation, target_transform=target_transformations)
+        # self.valid = Multimodal_Dataset(csv_dir=CSV_FILE + r'\train.csv', image_base_dir=IMAGE_PATH,
+        #                                 target=TARGET, features=FEATURES,
+        #                                 transform=transformation, target_transform=target_transformations, age=self.age)
 
-        self.test = Multimodal_Dataset(csv_dir=CSV_FILE + r'\test.csv', image_base_dir=IMAGE_PATH,
-                                       target=TARGET, features=FEATURES,
-                                       transform=transformation, target_transform=target_transformations)
+        # self.test = Multimodal_Dataset(csv_dir=CSV_FILE + r'\train.csv', image_base_dir=IMAGE_PATH,
+        #                                target=TARGET, features=FEATURES,
+        #                                transform=transformation, target_transform=target_transformations, age=self.age)
+
+        self.valid = self.train
+        self.test = self.train
 
         # self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(self.train.X, self.train.y,
         #                                                                         stratify=self.train.y,

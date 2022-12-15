@@ -54,7 +54,7 @@ def main_multimodal(wandb, wandb_logger):
     model = MultiModModel()
 
     # load the data
-    data = MultimodalDataModule()
+    data = MultimodalDataModule(age=68)
 
     # Optional
     wandb.watch(model, log="all")

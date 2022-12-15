@@ -5,7 +5,8 @@ CSV_FILE = r'C:\Users\Selen\Desktop\LMU\multimodal_network\data\adni\labels\tabu
 TABULAR_DATA_FILE = r'C:\Users\Selen\Desktop\LMU\multimodal_network\data\adni\tabular'
 
 FEATURES = ['age', 'gender_numeric', 'education', 'APOE4',
-            'FDG', 'AV45', 'TAU', 'PTAU', 'MMSE', 'label_numeric']
+            'FDG', 'AV45', 'TAU', 'PTAU', 'MMSE', 'label_numeric',
+            'FDG_missing', 'TAU_missing', 'PTAU_missing', 'AV45_missing']
 
 TARGET = 'label_numeric'
 
