@@ -9,6 +9,7 @@ from multimodal_dataset import MultimodalDataModule
 from ResNet.model import ResNetModel
 from multimodal.model import MultiModModel
 
+from settings import CSV_FILE
 
 def main_conv3d(wandb, wandb_logger):
     '''
@@ -50,11 +51,13 @@ def main_multimodal(wandb, wandb_logger):
     '''
     main function to run the multimodal architecture
     '''
-    # ge the model
+    # get the model
     model = MultiModModel()
 
+    csv_dir = CSV_FILE + '/train.csv'
+
     # load the data
-    data = MultimodalDataModule(age=None)
+    data = MultimodalDataModule(csv_dir, age=None)
 
     # Optional
     wandb.watch(model, log="all")

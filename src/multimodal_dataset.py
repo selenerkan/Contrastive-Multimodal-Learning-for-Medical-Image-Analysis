@@ -91,7 +91,7 @@ class MultimodalDataModule(pl.LightningDataModule):
 
         # filter the dataset with the given age
         if self.age is not None:
-            self.tabular_data = self.tabular[self.tabular_data.age == self.age]
+            self.tabular_data = self.tabular_data[self.tabular_data.age == self.age]
             self.tabular_data = self.tabular_data.reset_index()
 
         # ----------------------------------------
