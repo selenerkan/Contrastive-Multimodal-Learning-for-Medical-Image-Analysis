@@ -10,6 +10,7 @@ from sklearn.model_selection import train_test_split
 
 from settings import CSV_FILE, IMAGE_PATH, TRAIN_SIZE, VAL_SIZE, TEST_SIZE, FEATURES, TARGET, transformation, target_transformations
 from torch.utils.data import DataLoader
+from sklearn.model_selection import StratifiedKFold
 
 
 class Multimodal_Dataset(Dataset):
@@ -59,7 +60,7 @@ class Multimodal_Dataset(Dataset):
         tab = self.X.iloc[idx].values
 
         # get image name in the given index
-        img_folder_name = self.multimodal['image_id'][idx]
+        img_folder_name = self.tabular_data['image_id'][idx]
 
         img_path = os.path.join(
             self.imge_base_dir, img_folder_name + '.nii.gz')
@@ -156,3 +157,52 @@ class MultimodalDataModule(pl.LightningDataModule):
 
         return DataLoader(self.test, batch_size=1, shuffle=False)
         # return DataLoader(self.X_test, batch_size=1, shuffle=False)
+
+class KfoldMultimodalDataModule(pl.LightningDataModule):
+
+    def __init__(self, csv_dir, fold_number=2, age=None):
+
+        super().__init__()
+        self.age = age
+        self.csv_dir = csv_dir
+        self.fold_number = fold_number
+
+    def prepare_data(self):
+
+        # read .csv to load the data
+        self.tabular_data = pd.read_csv(self.csv_dir)
+
+        # filter the dataset with the given age
+        if self.age is not None:
+            self.tabular_data = self.tabular_data[self.tabular_data.age == self.age]
+            self.tabular_data = self.tabular_data.reset_index()
+
+        # split data into kfolds
+        skf = StratifiedKFold(n_splits=self.fold_number,
+                              random_state=None, shuffle=False)
+        # print(self.tabular_data.label_numeric)
+        train_dataloaders = []
+        val_dataloaders = []
+        for i, (train_index, val_index) in enumerate(skf.split(self.tabular_data, self.tabular_data.label_numeric)):
+            # filter the data by the generated index
+            self.train_df = self.tabular_data.filter(
+                items=train_index, axis=0).reset_index()
+            self.val_df = self.tabular_data.filter(
+                items=val_index, axis=0).reset_index()
+
+            # create datasets from these dataframes
+            self.train = Multimodal_Dataset(self.train_df, image_base_dir=IMAGE_PATH,
+                                            target=TARGET, features=FEATURES,
+                                            transform=transformation, target_transform=target_transformations, age=self.age)
+
+            self.val = Multimodal_Dataset(self.val_df, image_base_dir=IMAGE_PATH,
+                                          target=TARGET, features=FEATURES,
+                                          transform=transformation, target_transform=target_transformations, age=self.age)
+
+            # create dataloaders and add them to a list
+            train_dataloaders.append(DataLoader(
+                self.train, batch_size=1, shuffle=True))
+            val_dataloaders.append(DataLoader(
+                self.val, batch_size=1, shuffle=True))
+
+        return train_dataloaders, val_dataloaders

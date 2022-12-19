@@ -3,6 +3,7 @@ from torch import nn
 from pytorch_lightning.core.module import LightningModule
 from torch.nn import functional as F
 from monai.networks.nets import resnet10, resnet18, resnet34, resnet50
+import torchmetrics
 
 
 class MultiModModel(LightningModule):
@@ -33,6 +34,12 @@ class MultiModModel(LightningModule):
 
         # final fc layer which takes concatenated imput
         self.fc3 = nn.Linear(200, 1)
+
+        self.train_acc = torchmetrics.Accuracy()
+        self.valid_acc = torchmetrics.Accuracy()
+
+        self.metrics = {"train_epoch_losses": [], "train_accuracy": [],
+                        "val_epoch_losses": [], "valid_accuracy": []}
 
     def forward(self, img, tab):
         """
@@ -67,31 +74,31 @@ class MultiModModel(LightningModule):
 
     def training_step(self, batch, batch_idx):
 
-        img, tab, y = batch
-        y = y.to(torch.float32)
+        img, tab, y_int = batch
+        y = y_int.to(torch.float32)
 
-        y_pred = self(img, tab)
+        y_pred = torch.sigmoid(self(img, tab))
 
-        loss = F.binary_cross_entropy(torch.sigmoid(y_pred), y.squeeze())
+        loss = F.binary_cross_entropy(y_pred, y.squeeze())
 
-        # Log loss
-        self.log('train_loss', loss)
+        # Log loss on every epoch
+        self.log('train_epoch_loss', loss, on_epoch=True, on_step=False)
+        self.metrics["train_epoch_losses"].append(loss)
 
-        return loss
 
     def validation_step(self, batch, batch_idx):
 
-        img, tab, y = batch
-        y = y.to(torch.float32)
+        img, tab, y_int = batch
+        y = y_int.to(torch.float32)
 
         y_pred = self(img, tab)
 
         loss = F.binary_cross_entropy(torch.sigmoid(y_pred), y.squeeze())
 
         # Log loss
-        self.log('val_loss', loss)
+        self.log('val_epoch_loss', loss, on_epoch=True, on_step=False)
+        self.metrics["val_epoch_losses"].append(loss)
 
-        return loss
 
     def test_step(self, batch, batch_idx):
 

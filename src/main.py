@@ -4,12 +4,13 @@ from pytorch_lightning.loggers import WandbLogger
 
 from conv3D.model import AdniModel
 from dataset import AdniDataModule
-from multimodal_dataset import MultimodalDataModule
+from multimodal_dataset import MultimodalDataModule, KfoldMultimodalDataModule
 
 from ResNet.model import ResNetModel
 from multimodal.model import MultiModModel
 
 from settings import CSV_FILE
+
 
 def main_conv3d(wandb, wandb_logger):
     '''
@@ -67,6 +68,47 @@ def main_multimodal(wandb, wandb_logger):
     trainer.fit(model, data)
 
 
+def main_kfold_multimodal(wandb, wandb_logger):
+    '''
+    main function to run the multimodal architecture with cross validation
+    '''
+
+    # path to the csv file
+    # this csv file contains image ids, patient ids and tabular info
+    csv_dir = CSV_FILE + '/train.csv'
+
+    # create kfold data object
+    data_module = KfoldMultimodalDataModule(csv_dir, fold_number=2, age=None)
+
+    # get dataloaders for every fold
+    train_dataloaders, val_dataloaders = data_module.prepare_data()
+
+    train_losses = []
+    val_losses = []
+    accuracies = []
+
+    # train the mdoel
+    for train_dataloader, val_dataloader in zip(train_dataloaders, val_dataloaders):
+        # get the model
+        model = MultiModModel()
+        trainer = Trainer(max_epochs=2, logger=wandb_logger,
+                          log_every_n_steps=1)
+        trainer.fit(model, train_dataloader, val_dataloader)
+
+        # log the loss of the fold
+        wandb.log(
+            {'Final train fold loss': model.metrics['train_epoch_losses'][-1]})
+        wandb.log(
+            {'Final val fold loss': model.metrics['val_epoch_losses'][-1]})
+
+        # add the final val and train losses to the list
+        train_losses.append(model.metrics['train_epoch_losses'][-1])
+        val_losses.append(model.metrics['val_epoch_losses'][-1])
+    # log the average loss of folds
+    wandb.log({"Val average loss": sum(
+        train_losses)/len(train_losses)})
+    wandb.log({"Train acc avg":  sum(
+        val_losses)/len(val_losses)})
 if __name__ == '__main__':
 
     # create wandb objects to track runs
@@ -80,4 +122,7 @@ if __name__ == '__main__':
     # main_resnet(wandb, wandb_logger)
 
     # run multimodal
-    main_multimodal(wandb, wandb_logger)
+    # main_multimodal(wandb, wandb_logger)
+
+    # run kfold multimodal
+    main_kfold_multimodal(wandb, wandb_logger)
