@@ -26,10 +26,10 @@ class MultiModModel(LightningModule):
         # self.imagenet = nn.Sequential(self.resnet, self.fc)
 
         # fc layer for tabular data
-        self.fc1 = nn.Linear(14, 14)
+        self.fc1 = nn.Linear(13, 13)
 
         # first fc layer which takes concatenated imput
-        self.fc2 = nn.Linear(414, 200)
+        self.fc2 = nn.Linear(413, 200)
 
         # final fc layer which takes concatenated imput
         self.fc3 = nn.Linear(200, 1)
@@ -43,7 +43,7 @@ class MultiModModel(LightningModule):
         """
 
         # run the model for the image
-        img = torch.unsqueeze(img, 0)
+        img = torch.unsqueeze(img, 1)
         img = self.resnet(img)
 
         # change the dtype of the tabular data
