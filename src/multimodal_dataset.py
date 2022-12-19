@@ -14,7 +14,7 @@ from torch.utils.data import DataLoader
 
 class Multimodal_Dataset(Dataset):
 
-    def __init__(self, csv_dir, image_base_dir, target, features, categorical=None, transform=None, target_transform=None, age=None):
+    def __init__(self, tabular_data, image_base_dir, target, features, categorical=None, transform=None, target_transform=None, age=None):
         """
 
         csv_dir: The directiry for the .csv file (tabular data) including the labels
@@ -27,17 +27,12 @@ class Multimodal_Dataset(Dataset):
 
         """
         # TABULAR DATA
-        # read .csv to load the data
-        self.multimodal = pd.read_csv(csv_dir)
+        # initialize the tabular data
+        self.tabular_data = tabular_data.copy()
 
         # keep relevant features in the tabular data
         self.features = features
-        self.tabular = self.multimodal[self.features]
-
-        # filter the dataset by age
-        if age is not None:
-            self.tabular = self.tabular[self.tabular.age == age]
-            self.tabular = self.tabular.reset_index()
+        self.tabular = self.tabular_data[self.features]
 
         # Save target and predictors
         self.target = target
@@ -83,35 +78,69 @@ class Multimodal_Dataset(Dataset):
 
 class MultimodalDataModule(pl.LightningDataModule):
 
-    def __init__(self, age=None):
+    def __init__(self, csv_dir, age=None):
 
         super().__init__()
         self.age = age
+        self.csv_dir = csv_dir
 
     def prepare_data(self):
 
-        self.train = Multimodal_Dataset(csv_dir=CSV_FILE + r'\train.csv', image_base_dir=IMAGE_PATH,
+        # read .csv to load the data
+        self.tabular_data = pd.read_csv(self.csv_dir)
+
+        # filter the dataset with the given age
+        if self.age is not None:
+            self.tabular_data = self.tabular[self.tabular_data.age == self.age]
+            self.tabular_data = self.tabular_data.reset_index()
+
+        # ----------------------------------------
+        # split the data by patient ID
+
+        # get unique patient and label pairs
+        patient_label_list = self.tabular_data.groupby(
+            'subject')['label_numeric'].unique()
+        patient_label_df = pd.DataFrame(patient_label_list)
+        patient_label_df = patient_label_df.reset_index()
+
+        # make stratified split on the labels
+        # get the subjects and labels fir train, test, validation
+        self.subjects_train, self.subjects_test, self.labels_train, self.labels_test = train_test_split(patient_label_df.subject, patient_label_df.label_numeric,
+                                                                                                        stratify=patient_label_df.label_numeric,
+                                                                                                        test_size=0.2)
+
+        self.subjects_train, self.subjects_val, self.labels_train, self.labels_val = train_test_split(self.subjects_train, self.labels_train,
+                                                                                                      stratify=self.labels_train,
+                                                                                                      test_size=0.25)
+        # ----------------------------------------
+        # prepare the train, test, validation datasets using the subjects assigned to them
+
+        # prepare train dataframe
+        self.train_df = self.tabular_data[self.tabular_data['subject'].isin(
+            self.subjects_train)]
+
+        # prepare test dataframe
+        self.test_df = self.tabular_data[self.tabular_data['subject'].isin(
+            self.subjects_test)]
+
+        # prepare val dataframe
+        self.val_df = self.tabular_data[self.tabular_data['subject'].isin(
+            self.subjects_val)]
+
+        # ----------------------------------------
+
+        # create the dataset object using the dataframes created above
+        self.train = Multimodal_Dataset(self.train_df, image_base_dir=IMAGE_PATH,
                                         target=TARGET, features=FEATURES,
                                         transform=transformation, target_transform=target_transformations, age=self.age)
 
-        # self.valid = Multimodal_Dataset(csv_dir=CSV_FILE + r'\train.csv', image_base_dir=IMAGE_PATH,
-        #                                 target=TARGET, features=FEATURES,
-        #                                 transform=transformation, target_transform=target_transformations, age=self.age)
+        self.test = Multimodal_Dataset(self.test_df, image_base_dir=IMAGE_PATH,
+                                       target=TARGET, features=FEATURES,
+                                       transform=transformation, target_transform=target_transformations, age=self.age)
 
-        # self.test = Multimodal_Dataset(csv_dir=CSV_FILE + r'\train.csv', image_base_dir=IMAGE_PATH,
-        #                                target=TARGET, features=FEATURES,
-        #                                transform=transformation, target_transform=target_transformations, age=self.age)
-
-        self.valid = self.train
-        self.test = self.train
-
-        # self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(self.train.X, self.train.y,
-        #                                                                         stratify=self.train.y,
-        #                                                                         test_size=0.2)
-
-        # self.X_train, self.self.X_val, self.y_train, self.y_val = train_test_split(self.X_train, self.y_train,
-        #                                                                            stratify=self.train.y,
-        #                                                                            test_size=0.25)
+        self.val = Multimodal_Dataset(self.val_df, image_base_dir=IMAGE_PATH,
+                                      target=TARGET, features=FEATURES,
+                                      transform=transformation, target_transform=target_transformations, age=self.age)
 
     def train_dataloader(self):
 
@@ -120,7 +149,7 @@ class MultimodalDataModule(pl.LightningDataModule):
 
     def val_dataloader(self):
 
-        return DataLoader(self.valid, batch_size=1, shuffle=False)
+        return DataLoader(self.val, batch_size=1, shuffle=False)
         # return DataLoader(self.X_valid, batch_size=1, shuffle=False)
 
     def test_dataloader(self):
