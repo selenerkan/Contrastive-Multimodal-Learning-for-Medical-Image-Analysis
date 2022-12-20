@@ -104,15 +104,22 @@ class MultimodalDataModule(pl.LightningDataModule):
         patient_label_df = pd.DataFrame(patient_label_list)
         patient_label_df = patient_label_df.reset_index()
 
-        # make stratified split on the labels
-        # get the subjects and labels fir train, test, validation
-        self.subjects_train, self.subjects_test, self.labels_train, self.labels_test = train_test_split(patient_label_df.subject, patient_label_df.label_numeric,
-                                                                                                        stratify=patient_label_df.label_numeric,
-                                                                                                        test_size=0.2)
+        try:
+            # make stratified split on the labels
+            # get the subjects and labels fir train, test, validation
+            self.subjects_train, self.subjects_test, self.labels_train, self.labels_test = train_test_split(patient_label_df.subject, patient_label_df.label_numeric,
+                                                                                                            stratify=patient_label_df.label_numeric,
+                                                                                                            test_size=0.2)
 
-        self.subjects_train, self.subjects_val, self.labels_train, self.labels_val = train_test_split(self.subjects_train, self.labels_train,
-                                                                                                      stratify=self.labels_train,
-                                                                                                      test_size=0.25)
+            self.subjects_train, self.subjects_val, self.labels_train, self.labels_val = train_test_split(self.subjects_train, self.labels_train,
+                                                                                                          stratify=self.labels_train,
+                                                                                                          test_size=0.25)
+        except Exception as e:
+            print('Dataset couldn\'t be split by patient. Possible cause is having only 1 patient in test or validation')
+            print(e)
+
+        raise SystemExit(1)
+
         # ----------------------------------------
         # prepare the train, test, validation datasets using the subjects assigned to them
 
