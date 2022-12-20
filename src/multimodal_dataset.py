@@ -118,15 +118,15 @@ class MultimodalDataModule(pl.LightningDataModule):
 
         # prepare train dataframe
         self.train_df = self.tabular_data[self.tabular_data['subject'].isin(
-            self.subjects_train)]
+            self.subjects_train)].reset_index()
 
         # prepare test dataframe
         self.test_df = self.tabular_data[self.tabular_data['subject'].isin(
-            self.subjects_test)]
+            self.subjects_test)].reset_index()
 
         # prepare val dataframe
         self.val_df = self.tabular_data[self.tabular_data['subject'].isin(
-            self.subjects_val)]
+            self.subjects_val)].reset_index()
 
         # ----------------------------------------
 
@@ -157,6 +157,7 @@ class MultimodalDataModule(pl.LightningDataModule):
 
         return DataLoader(self.test, batch_size=1, shuffle=False)
         # return DataLoader(self.X_test, batch_size=1, shuffle=False)
+
 
 class KfoldMultimodalDataModule(pl.LightningDataModule):
 

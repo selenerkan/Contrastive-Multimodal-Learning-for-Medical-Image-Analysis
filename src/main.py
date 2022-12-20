@@ -104,6 +104,9 @@ def main_kfold_multimodal(wandb, wandb_logger):
         # add the final val and train losses to the list
         train_losses.append(model.metrics['train_epoch_losses'][-1])
         val_losses.append(model.metrics['val_epoch_losses'][-1])
+
+    print('all the train losses: ', train_losses)
+    print('all the val losses: ', val_losses)
     # log the average loss of folds
     wandb.log({"Val average loss": sum(
         train_losses)/len(train_losses)})
