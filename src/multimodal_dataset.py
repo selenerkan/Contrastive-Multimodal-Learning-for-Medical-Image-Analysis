@@ -11,6 +11,7 @@ from sklearn.model_selection import train_test_split
 from settings import CSV_FILE, IMAGE_PATH, TRAIN_SIZE, VAL_SIZE, TEST_SIZE, FEATURES, TARGET, transformation, target_transformations
 from torch.utils.data import DataLoader
 from sklearn.model_selection import StratifiedKFold
+import sys
 
 
 class Multimodal_Dataset(Dataset):
@@ -117,9 +118,7 @@ class MultimodalDataModule(pl.LightningDataModule):
         except Exception as e:
             print('Dataset couldn\'t be split by patient. Possible cause is having only 1 patient in test or validation')
             print(e)
-
-        raise SystemExit(1)
-
+            sys.exit(e)
         # ----------------------------------------
         # prepare the train, test, validation datasets using the subjects assigned to them
 
