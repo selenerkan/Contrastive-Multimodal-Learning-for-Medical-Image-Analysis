@@ -11,3 +11,4 @@ scripts.bash
 data_analysis
 preprocessing
 notebooks
+slurm
