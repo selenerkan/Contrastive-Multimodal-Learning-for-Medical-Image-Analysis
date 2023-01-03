@@ -55,7 +55,7 @@ def main_multimodal(wandb, wandb_logger):
     # get the model
     model = MultiModModel()
 
-    csv_dir = CSV_FILE + '/train.csv'
+    csv_dir = CSV_FILE
 
     # load the data
     data = MultimodalDataModule(csv_dir, age=None)
@@ -104,14 +104,28 @@ def main_kfold_multimodal(wandb, wandb_logger):
         # add the final val and train losses to the list
         train_losses.append(model.metrics['train_epoch_losses'][-1])
         val_losses.append(model.metrics['val_epoch_losses'][-1])
+        # accuracies.append(model.metrics["train_accuracy"][-1])
+
+        # print(model.metrics['valid_accuracy'])
+        # wandb.log({'Valid acc final': model.metrics['valid_accuracy'][-1]})
+        # wandb.log({"Train acc final": model.metrics["train_accuracy"][-1]})
 
     print('all the train losses: ', train_losses)
     print('all the val losses: ', val_losses)
+
     # log the average loss of folds
     wandb.log({"Val average loss": sum(
         train_losses)/len(train_losses)})
     wandb.log({"Train acc avg":  sum(
         val_losses)/len(val_losses)})
+
+    # wandb.log({"Valid acc avg": sum(
+    #     model.metrics['valid_accuracy'])/len(model.metrics['valid_accuracy'])})
+    # wandb.log({"Train acc avg":  sum(
+    # model.metrics['train_accuracy'])/len(model.metrics['train_accuracy'])})
+    # wandb.log({"Mean score":scores.mean()})
+
+
 if __name__ == '__main__':
 
     # create wandb objects to track runs
@@ -125,7 +139,7 @@ if __name__ == '__main__':
     # main_resnet(wandb, wandb_logger)
 
     # run multimodal
-    # main_multimodal(wandb, wandb_logger)
+    main_multimodal(wandb, wandb_logger)
 
     # run kfold multimodal
-    main_kfold_multimodal(wandb, wandb_logger)
+    # main_kfold_multimodal(wandb, wandb_logger)
