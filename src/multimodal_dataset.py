@@ -8,7 +8,7 @@ import pytorch_lightning as pl
 import numpy as np
 from sklearn.model_selection import train_test_split
 
-from settings import CSV_FILE, IMAGE_PATH, TRAIN_SIZE, VAL_SIZE, TEST_SIZE, FEATURES, TARGET, transformation, target_transformations
+from settings import CSV_FILE, IMAGE_PATH, TRAIN_SIZE, VAL_SIZE, TEST_SIZE, FEATURES, TARGET, transformation
 from torch.utils.data import DataLoader
 from sklearn.model_selection import StratifiedKFold
 import sys
@@ -16,7 +16,7 @@ import sys
 
 class Multimodal_Dataset(Dataset):
 
-    def __init__(self, tabular_data, image_base_dir, target, features, categorical=None, transform=None, target_transform=None, age=None):
+    def __init__(self, tabular_data, image_base_dir, target, features, transform=None):
         """
 
         csv_dir: The directiry for the .csv file (tabular data) including the labels
@@ -44,7 +44,6 @@ class Multimodal_Dataset(Dataset):
         # IMAGE DATA
         self.imge_base_dir = image_base_dir
         self.transform = transform
-        self.target_transform = target_transform
 
     def __len__(self):
 
@@ -139,15 +138,15 @@ class MultimodalDataModule(pl.LightningDataModule):
         # create the dataset object using the dataframes created above
         self.train = Multimodal_Dataset(self.train_df, image_base_dir=IMAGE_PATH,
                                         target=TARGET, features=FEATURES,
-                                        transform=transformation, target_transform=target_transformations, age=self.age)
+                                        transform=transformation)
 
         self.test = Multimodal_Dataset(self.test_df, image_base_dir=IMAGE_PATH,
                                        target=TARGET, features=FEATURES,
-                                       transform=transformation, target_transform=target_transformations, age=self.age)
+                                       transform=transformation)
 
         self.val = Multimodal_Dataset(self.val_df, image_base_dir=IMAGE_PATH,
                                       target=TARGET, features=FEATURES,
-                                      transform=transformation, target_transform=target_transformations, age=self.age)
+                                      transform=transformation)
 
     def train_dataloader(self):
 
@@ -200,11 +199,11 @@ class KfoldMultimodalDataModule(pl.LightningDataModule):
             # create datasets from these dataframes
             self.train = Multimodal_Dataset(self.train_df, image_base_dir=IMAGE_PATH,
                                             target=TARGET, features=FEATURES,
-                                            transform=transformation, target_transform=target_transformations, age=self.age)
+                                            transform=transformation)
 
             self.val = Multimodal_Dataset(self.val_df, image_base_dir=IMAGE_PATH,
                                           target=TARGET, features=FEATURES,
-                                          transform=transformation, target_transform=target_transformations, age=self.age)
+                                          transform=transformation)
 
             # create dataloaders and add them to a list
             train_dataloaders.append(DataLoader(

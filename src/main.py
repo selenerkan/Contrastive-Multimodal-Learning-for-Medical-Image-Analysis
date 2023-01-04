@@ -75,7 +75,7 @@ def main_kfold_multimodal(wandb, wandb_logger):
 
     # path to the csv file
     # this csv file contains image ids, patient ids and tabular info
-    csv_dir = CSV_FILE + '/train.csv'
+    csv_dir = CSV_FILE
 
     # create kfold data object
     data_module = KfoldMultimodalDataModule(csv_dir, fold_number=2, age=None)
