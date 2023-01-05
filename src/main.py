@@ -151,7 +151,9 @@ def main_contrastive_learning(wandb, wandb_logger):
 if __name__ == '__main__':
 
     # create wandb objects to track runs
-    wandb.init(project="multimodal-network-test")
+    # wandb.init(project="multimodal-network-test")
+
+    wandb.init(project="multimodal_training", entity="multimodal_network")
     wandb_logger = WandbLogger()
 
     # # run conv3d
