@@ -2,7 +2,7 @@ import torch
 from torch import nn
 from pytorch_lightning.core.module import LightningModule
 from torch.nn import functional as F
-# from monai.networks.nets import resnet10, resnet18, resnet34, resnet50
+from monai.networks.nets import resnet10, resnet18, resnet34, resnet50
 import torchvision.models as models
 
 import torchmetrics
@@ -20,7 +20,10 @@ class ContrastiveModel(LightningModule):
 
         # IMAGE DATA
         # output dimension is adapted from simCLR
-        self.resnet = models.resnet50(pretrained=False, num_classes=2048)
+        self.resnet = resnet10(pretrained=False,
+                               spatial_dims=3,
+                               n_input_channels=1,
+                               )  # output features are 400
 
         # TABULAR DATA
         # fc layer for tabular data
@@ -41,17 +44,19 @@ class ContrastiveModel(LightningModule):
     def forward(self, img, tab):
         """
 
-        img is the input image data
+        img is the input image data ()
         tab is th einput tabular data
 
         """
-
+        # reshape the size of images from (3,2,1,120,120,120) to (6,1,120,120,120)
+        img = img.flatten(0, 1)
         # run the model for the image
-        # img = torch.unsqueeze(img, 1)
         img = self.resnet(img)
 
         # change the dtype of the tabular data
         tab = tab.to(torch.float32)
+        # concat the tab vectir with the same one to match image dimensions
+        tab = torch.cat((tab, tab), dim=0)
         # forward tabular data
         tab = F.relu(self.fc1(tab))
 
@@ -73,12 +78,7 @@ class ContrastiveModel(LightningModule):
 
         img, tab = batch
 
-        # concat the tab vectir with the same one to match image dimensions
-        tab = torch.cat((tab, tab), dim=0)
-        embeddings = torch.sigmoid(self(img, tab))
-
-        # concat the images list
-        img = torch.cat(img, dim=0)  # output=(8,1,120,120,120)
+        embeddings = self(img, tab)
 
         # generate same labels for the positive pairs
         # The assumption here is that data[0] and data[0+batch_size] are a positive pair
@@ -101,12 +101,7 @@ class ContrastiveModel(LightningModule):
 
         img, tab = batch
 
-        # concat the tab vectir with the same one to match image dimensions
-        tab = torch.cat((tab, tab), dim=0)
-        embeddings = torch.sigmoid(self(img, tab))
-
-        # concat the images list
-        img = torch.cat(img, dim=0)  # output=(8,1,120,120,120)
+        embeddings = self(img, tab)
 
         # generate same labels for the positive pairs
         # The assumption here is that data[0] and data[0+batch_size] are a positive pair
@@ -129,12 +124,7 @@ class ContrastiveModel(LightningModule):
 
         img, tab = batch
 
-        # concat the tab vectir with the same one to match image dimensions
-        tab = torch.cat((tab, tab), dim=0)
-        embeddings = torch.sigmoid(self(img, tab))
-
-        # concat the images list
-        img = torch.cat(img, dim=0)  # output=(8,1,120,120,120)
+        embeddings = self(img, tab)
 
         # generate same labels for the positive pairs
         # The assumption here is that data[0] and data[0+batch_size] are a positive pair

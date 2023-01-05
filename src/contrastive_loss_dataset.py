@@ -13,9 +13,7 @@ from torch.utils.data import DataLoader
 from sklearn.model_selection import StratifiedKFold
 import sys
 
-# from torchvision import transforms
 import numpy as np
-
 from monai import transforms
 np.random.seed(0)
 
@@ -72,9 +70,6 @@ class Contrastive_Dataset(Dataset):
         image = nib.load(img_path)
         image = image.get_fdata()
 
-        # change to numpy
-        # image = np.array(image, dtype=np.float32)
-
         # Apply transformations
         transformed_images = self.transform(image)
 
@@ -83,12 +78,13 @@ class Contrastive_Dataset(Dataset):
 
 class ContrastiveDataModule(pl.LightningDataModule):
 
-    def __init__(self, csv_dir, n_views=2, age=None):
+    def __init__(self, csv_dir, n_views=2, age=None, batch_size=1):
 
         super().__init__()
         self.age = age
         self.csv_dir = csv_dir
         self.n_views = n_views
+        self.batch_size = batch_size
 
     @staticmethod
     def get_transforms(size, s=1):
@@ -101,9 +97,7 @@ class ContrastiveDataModule(pl.LightningDataModule):
             transforms.RandFlip(
                 prob=0.5, spatial_axis=0),
             transforms.RandAdjustContrast(  # randomly change the contrast
-                prob=0.5, gamma=(1.5, 2)),
-            transforms.RandGaussianSmooth(
-                sigma_x=(0.25, 1.5), prob=0.5)
+                prob=0.5, gamma=(1.5, 2))
         ])
         return data_transforms
 
@@ -171,25 +165,36 @@ class ContrastiveDataModule(pl.LightningDataModule):
 
     def train_dataloader(self):
 
-        return DataLoader(self.train, batch_size=4, shuffle=True)
+        return DataLoader(self.train, batch_size=self.batch_size, shuffle=True)
 
     def val_dataloader(self):
 
-        return DataLoader(self.val, batch_size=1, shuffle=False)
+        return DataLoader(self.val, batch_size=self.batch_size, shuffle=False)
 
     def test_dataloader(self):
 
-        return DataLoader(self.test, batch_size=1, shuffle=False)
+        return DataLoader(self.test, batch_size=self.batch_size, shuffle=False)
 
 
 class ContrastiveLearningViewGenerator(object):
-    """Take two random crops of one image as the query and key."""
+    """Take two random crops of one image as the query and key.
+
+    Params:
+        - base_transform: the transform to apply
+        - n_views: how many transforms of the same image to create
+
+    Returns:
+        - the stacked tensor of augmented images (shape: n_views x 1 x width x height x depth)
+    """
 
     def __init__(self, base_transform, n_views=2):
         self.base_transform = base_transform
         self.n_views = n_views
 
     def __call__(self, x):
+
+        # change to numpy
+        x = np.array(x, dtype=np.float32)
 
         # scale images between [0,1]
         x = x / x.max()
@@ -199,4 +204,4 @@ class ContrastiveLearningViewGenerator(object):
         # create the channel dimension
         x = torch.unsqueeze(x, 0)
 
-        return [self.base_transform(x) for i in range(self.n_views)]
+        return torch.stack([self.base_transform(x) for _ in range(self.n_views)])

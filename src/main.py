@@ -5,9 +5,11 @@ from pytorch_lightning.loggers import WandbLogger
 from conv3D.model import AdniModel
 from dataset import AdniDataModule
 from multimodal_dataset import MultimodalDataModule, KfoldMultimodalDataModule
+from contrastive_loss_dataset import ContrastiveDataModule
 
 from ResNet.model import ResNetModel
 from multimodal.model import MultiModModel
+from multimodal.contrastive_learning_model import ContrastiveModel
 
 from settings import CSV_FILE
 
@@ -126,6 +128,26 @@ def main_kfold_multimodal(wandb, wandb_logger):
     # wandb.log({"Mean score":scores.mean()})
 
 
+def main_contrastive_learning(wandb, wandb_logger):
+    '''
+    main function to run the multimodal architecture
+    '''
+    # get the model
+    model = ContrastiveModel()
+
+    csv_dir = CSV_FILE
+
+    # load the data
+    data = ContrastiveDataModule(csv_dir, age=None)
+
+    # Optional
+    wandb.watch(model, log="all")
+
+    # train the network
+    trainer = Trainer(max_epochs=20, logger=wandb_logger, log_every_n_steps=1)
+    trainer.fit(model, data)
+
+
 if __name__ == '__main__':
 
     # create wandb objects to track runs
@@ -139,7 +161,10 @@ if __name__ == '__main__':
     # main_resnet(wandb, wandb_logger)
 
     # run multimodal
-    main_multimodal(wandb, wandb_logger)
+    # main_multimodal(wandb, wandb_logger)
 
     # run kfold multimodal
     # main_kfold_multimodal(wandb, wandb_logger)
+
+    # run contrastive learning
+    main_contrastive_learning(wandb, wandb_logger)
