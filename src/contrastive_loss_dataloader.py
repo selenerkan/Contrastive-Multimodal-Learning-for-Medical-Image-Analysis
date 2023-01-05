@@ -61,8 +61,6 @@ class Contrastive_Dataset(Dataset):
         if isinstance(idx, torch.Tensor):
             idx = idx.tolist()
 
-        label = self.y[idx]
-
         tab = self.X.iloc[idx].values
 
         # get image name in the given index
@@ -75,12 +73,12 @@ class Contrastive_Dataset(Dataset):
         image = image.get_fdata()
 
         # change to numpy
-        image = np.array(image, dtype=np.float32)
+        # image = np.array(image, dtype=np.float32)
 
         # Apply transformations
         transformed_images = self.transform(image)
 
-        return transformed_images, tab, label
+        return transformed_images, tab
 
 
 class ContrastiveDataModule(pl.LightningDataModule):
@@ -95,29 +93,18 @@ class ContrastiveDataModule(pl.LightningDataModule):
     @staticmethod
     def get_transforms(size, s=1):
         """Return a set of data augmentation transformations as described in the SimCLR paper."""
-        # color_jitter = transforms.ColorJitter(
-        #     0.8 * s, 0.8 * s, 0.8 * s, 0.2 * s)
-        data_transforms = transforms.Compose([transforms.RandSpatialCrop((80, 80), random_center=True, random_size=False),
-                                              transforms.Resize(
-                                                  spatial_size=(120, 120)),  # final image shape 160,120,120
-                                              transforms.RandFlip(
-                                                  prob=0.5, spatial_axis=0),
-                                              transforms.RandAdjustContrast(  # randomly change the contrast
-                                                  prob=0.5, gamma=(1.5, 2)),
-                                              transforms.RandGaussianSmooth(
-                                                  sigma_x=(0.25, 1.5), prob=0.5),
-                                              transforms.ToTensor(
-                                                  dtype=None, device=None, wrap_sequence=True, track_meta=None)
-                                              # transforms.ToTensor(),
-                                              #   transforms.RandomResizedCrop(       DONE
-                                              #       size=size),
-                                              #   transforms.RandomHorizontalFlip(),  DONE
-                                              #   transforms.RandomApply(
-                                              #       [color_jitter], p=0.8),         DONE
-                                              #   transforms.RandomGrayscale(
-                                              #       p=0.2),
-                                              #   GaussianBlur(kernel_size=int(0.1 * size)), DONE
-                                              ])
+        data_transforms = transforms.Compose([
+            transforms.RandSpatialCrop(
+                (80, 80, 80), random_center=True, random_size=False),
+            transforms.Resize(
+                spatial_size=(120, 120, 120)),  # final image shape 120,120,120
+            transforms.RandFlip(
+                prob=0.5, spatial_axis=0),
+            transforms.RandAdjustContrast(  # randomly change the contrast
+                prob=0.5, gamma=(1.5, 2)),
+            transforms.RandGaussianSmooth(
+                sigma_x=(0.25, 1.5), prob=0.5)
+        ])
         return data_transforms
 
     def prepare_data(self):
@@ -184,18 +171,15 @@ class ContrastiveDataModule(pl.LightningDataModule):
 
     def train_dataloader(self):
 
-        return DataLoader(self.train, batch_size=1, shuffle=True)
-        # return DataLoader(self.X_train, batch_size=1, shuffle=True)
+        return DataLoader(self.train, batch_size=4, shuffle=True)
 
     def val_dataloader(self):
 
         return DataLoader(self.val, batch_size=1, shuffle=False)
-        # return DataLoader(self.X_valid, batch_size=1, shuffle=False)
 
     def test_dataloader(self):
 
         return DataLoader(self.test, batch_size=1, shuffle=False)
-        # return DataLoader(self.X_test, batch_size=1, shuffle=False)
 
 
 class ContrastiveLearningViewGenerator(object):
@@ -209,5 +193,10 @@ class ContrastiveLearningViewGenerator(object):
 
         # scale images between [0,1]
         x = x / x.max()
+
+        x = torch.tensor(x)
+
+        # create the channel dimension
+        x = torch.unsqueeze(x, 0)
 
         return [self.base_transform(x) for i in range(self.n_views)]
