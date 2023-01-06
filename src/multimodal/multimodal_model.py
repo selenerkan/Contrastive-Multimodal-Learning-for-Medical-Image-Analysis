@@ -15,6 +15,7 @@ class MultiModModel(LightningModule):
 
         super().__init__()
 
+        # resnet module for image data
         self.resnet = resnet10(pretrained=False,
                                spatial_dims=3,
                                n_input_channels=1,

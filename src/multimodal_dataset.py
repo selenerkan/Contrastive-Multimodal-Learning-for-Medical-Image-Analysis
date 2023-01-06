@@ -8,7 +8,7 @@ import pytorch_lightning as pl
 import numpy as np
 from sklearn.model_selection import train_test_split
 
-from settings import CSV_FILE, IMAGE_PATH, TRAIN_SIZE, VAL_SIZE, TEST_SIZE, FEATURES, TARGET, transformation
+from settings import IMAGE_PATH, FEATURES, TARGET
 from torch.utils.data import DataLoader
 from sklearn.model_selection import StratifiedKFold
 import sys
@@ -79,11 +79,12 @@ class Multimodal_Dataset(Dataset):
 
 class MultimodalDataModule(pl.LightningDataModule):
 
-    def __init__(self, csv_dir, age=None):
+    def __init__(self, csv_dir, age=None, batch_size=1):
 
         super().__init__()
         self.age = age
         self.csv_dir = csv_dir
+        self.batch_size = batch_size
 
     def prepare_data(self):
 
@@ -137,41 +138,36 @@ class MultimodalDataModule(pl.LightningDataModule):
 
         # create the dataset object using the dataframes created above
         self.train = Multimodal_Dataset(self.train_df, image_base_dir=IMAGE_PATH,
-                                        target=TARGET, features=FEATURES,
-                                        transform=transformation)
+                                        target=TARGET, features=FEATURES)
 
         self.test = Multimodal_Dataset(self.test_df, image_base_dir=IMAGE_PATH,
-                                       target=TARGET, features=FEATURES,
-                                       transform=transformation)
+                                       target=TARGET, features=FEATURES)
 
         self.val = Multimodal_Dataset(self.val_df, image_base_dir=IMAGE_PATH,
-                                      target=TARGET, features=FEATURES,
-                                      transform=transformation)
+                                      target=TARGET, features=FEATURES)
 
     def train_dataloader(self):
 
-        return DataLoader(self.train, batch_size=1, shuffle=True)
-        # return DataLoader(self.X_train, batch_size=1, shuffle=True)
+        return DataLoader(self.train, batch_size=self.batch_size, shuffle=True)
 
     def val_dataloader(self):
 
-        return DataLoader(self.val, batch_size=1, shuffle=False)
-        # return DataLoader(self.X_valid, batch_size=1, shuffle=False)
+        return DataLoader(self.val, batch_size=self.batch_size, shuffle=False)
 
     def test_dataloader(self):
 
-        return DataLoader(self.test, batch_size=1, shuffle=False)
-        # return DataLoader(self.X_test, batch_size=1, shuffle=False)
+        return DataLoader(self.test, batch_size=self.batch_size, shuffle=False)
 
 
 class KfoldMultimodalDataModule(pl.LightningDataModule):
 
-    def __init__(self, csv_dir, fold_number=2, age=None):
+    def __init__(self, csv_dir, fold_number=2, age=None, batch_size=1):
 
         super().__init__()
         self.age = age
         self.csv_dir = csv_dir
         self.fold_number = fold_number
+        self.batch_size = batch_size
 
     def prepare_data(self):
 
@@ -198,17 +194,15 @@ class KfoldMultimodalDataModule(pl.LightningDataModule):
 
             # create datasets from these dataframes
             self.train = Multimodal_Dataset(self.train_df, image_base_dir=IMAGE_PATH,
-                                            target=TARGET, features=FEATURES,
-                                            transform=transformation)
+                                            target=TARGET, features=FEATURES)
 
             self.val = Multimodal_Dataset(self.val_df, image_base_dir=IMAGE_PATH,
-                                          target=TARGET, features=FEATURES,
-                                          transform=transformation)
+                                          target=TARGET, features=FEATURES)
 
             # create dataloaders and add them to a list
             train_dataloaders.append(DataLoader(
-                self.train, batch_size=1, shuffle=True))
+                self.train, batch_size=self.batch_size, shuffle=True))
             val_dataloaders.append(DataLoader(
-                self.val, batch_size=1, shuffle=True))
+                self.val, batch_size=self.batch_size, shuffle=True))
 
         return train_dataloaders, val_dataloaders

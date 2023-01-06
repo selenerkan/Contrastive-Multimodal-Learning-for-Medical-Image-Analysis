@@ -8,7 +8,7 @@ from multimodal_dataset import MultimodalDataModule, KfoldMultimodalDataModule
 from contrastive_loss_dataset import ContrastiveDataModule
 
 from ResNet.model import ResNetModel
-from multimodal.model import MultiModModel
+from multimodal.multimodal_model import MultiModModel
 from multimodal.contrastive_learning_model import ContrastiveModel
 
 from settings import CSV_FILE
