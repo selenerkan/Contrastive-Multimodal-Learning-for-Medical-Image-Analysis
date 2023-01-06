@@ -33,7 +33,7 @@ class Adni_Dataset(Dataset):
 
         # Save target and predictors
         self.target = target
-        self.y = self.tabular[self.target]
+        self.y = self.tabular_data[self.target]
 
         # IMAGE DATA
         self.imge_base_dir = image_base_dir
@@ -42,7 +42,7 @@ class Adni_Dataset(Dataset):
 
     def __len__(self):
 
-        return len(self.img_list)
+        return len(self.tabular_data)
 
     def __getitem__(self, idx):
 
@@ -77,16 +77,17 @@ class Adni_Dataset(Dataset):
 
 class AdniDataModule(pl.LightningDataModule):
 
-    def __init__(self, csv_file, batch_size):
+    def __init__(self, csv_file, age=None, batch_size=1):
 
         super().__init__()
         self.csv_file = csv_file
         self.batch_size = batch_size
+        self.age = age
 
     def prepare_data(self):
 
         # read .csv to load the data
-        self.tabular_data = pd.read_csv(self.csv_dir)
+        self.tabular_data = pd.read_csv(self.csv_file)
 
         # filter the dataset with the given age
         if self.age is not None:

@@ -40,7 +40,7 @@ def main_resnet(wandb, wandb_logger):
     model = ResNetModel()
 
     # load the data
-    data = AdniDataModule()
+    data = AdniDataModule(CSV_FILE)
 
     # Optional
     wandb.watch(model, log="all")
