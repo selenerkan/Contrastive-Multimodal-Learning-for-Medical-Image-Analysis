@@ -8,9 +8,8 @@ import pytorch_lightning as pl
 import numpy as np
 from sklearn.model_selection import train_test_split
 
-from settings import CSV_FILE, IMAGE_PATH, TRAIN_SIZE, VAL_SIZE, TEST_SIZE, FEATURES, TARGET
+from settings import IMAGE_PATH, FEATURES, TARGET
 from torch.utils.data import DataLoader
-from sklearn.model_selection import StratifiedKFold
 import sys
 
 import numpy as np
@@ -59,9 +58,10 @@ class Contrastive_Dataset(Dataset):
         if isinstance(idx, torch.Tensor):
             idx = idx.tolist()
 
+        # get the tabular data for given index
         tab = self.X.iloc[idx].values
 
-        # get image name in the given index
+        # get image name for the given index
         img_folder_name = self.tabular_data['image_id'][idx]
 
         img_path = os.path.join(
@@ -193,7 +193,7 @@ class ContrastiveLearningViewGenerator(object):
 
     def __call__(self, x):
 
-        # change to numpy
+        # change the dtype
         x = np.array(x, dtype=np.float32)
 
         # scale images between [0,1]
