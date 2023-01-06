@@ -3,7 +3,6 @@ from torch import nn
 from pytorch_lightning.core.module import LightningModule
 from torch.nn import functional as F
 from monai.networks.nets import resnet10, resnet18, resnet34, resnet50
-import torchvision.models as models
 
 import torchmetrics
 from pytorch_metric_learning import losses
@@ -11,7 +10,7 @@ from pytorch_metric_learning import losses
 
 class ContrastiveModel(LightningModule):
     '''
-    Resnet Model Class including the training, validation and testing steps
+    Uses ResNet for the image data, concatenates image and tabular data at the end
     '''
 
     def __init__(self):
@@ -76,16 +75,17 @@ class ContrastiveModel(LightningModule):
 
     def training_step(self, batch, batch_idx):
 
+        # get tabular and image data from the batch
         img, tab = batch
 
         embeddings = self(img, tab)
 
         # generate same labels for the positive pairs
-        # The assumption here is that data[0] and data[0+batch_size] are a positive pair
-        # Given batch_size=4 data[0] and data[4], data[1] and data[5] are the positive pairs
+        # The assumption here is that each image is followed by its positive pair
+        # data[0] and data[1], data[2] and data[3] are the positive pairs and so on
         batch_size = img.size(0)
-        labels = torch.arange(batch_size/2)
-        labels = torch.cat((labels, labels), dim=0)
+        labels = torch.arange(batch_size)
+        labels[1::2] = labels[0::2]
 
         loss_function = losses.NTXentLoss(
             temperature=0.5)  # temperature value is copied from simCLR
@@ -99,16 +99,17 @@ class ContrastiveModel(LightningModule):
 
     def validation_step(self, batch, batch_idx):
 
+        # get tabular and image data from the batch
         img, tab = batch
 
         embeddings = self(img, tab)
 
         # generate same labels for the positive pairs
-        # The assumption here is that data[0] and data[0+batch_size] are a positive pair
-        # Given batch_size=4 data[0] and data[4], data[1] and data[5] are the positive pairs
+        # The assumption here is that each image is followed by its positive pair
+        # data[0] and data[1], data[2] and data[3] are the positive pairs and so on
         batch_size = img.size(0)
-        labels = torch.arange(batch_size/2)
-        labels = torch.cat((labels, labels), dim=0)
+        labels = torch.arange(batch_size)
+        labels[1::2] = labels[0::2]
 
         loss_function = losses.NTXentLoss(
             temperature=0.5)  # temperature value is copied from simCLR
@@ -122,16 +123,17 @@ class ContrastiveModel(LightningModule):
 
     def test_step(self, batch, batch_idx):
 
+        # get tabular and image data from the batch
         img, tab = batch
 
         embeddings = self(img, tab)
 
         # generate same labels for the positive pairs
-        # The assumption here is that data[0] and data[0+batch_size] are a positive pair
-        # Given batch_size=4 data[0] and data[4], data[1] and data[5] are the positive pairs
+        # The assumption here is that each image is followed by its positive pair
+        # data[0] and data[1], data[2] and data[3] are the positive pairs and so on
         batch_size = img.size(0)
-        labels = torch.arange(batch_size/2)
-        labels = torch.cat((labels, labels), dim=0)
+        labels = torch.arange(batch_size)
+        labels[1::2] = labels[0::2]
 
         loss_function = losses.NTXentLoss(
             temperature=0.5)  # temperature value is copied from simCLR
