@@ -132,7 +132,7 @@ def main_contrastive_learning(wandb, wandb_logger):
     main function to run the multimodal architecture
     '''
     # get the model
-    model = ContrastiveModel()
+    model = ContrastiveModel(learning_rate=1e-3)
 
     csv_dir = CSV_FILE
 
@@ -143,7 +143,8 @@ def main_contrastive_learning(wandb, wandb_logger):
     wandb.watch(model, log="all")
 
     # train the network
-    trainer = Trainer(accelerator="gpu", devices=1, max_epochs=60, logger=wandb_logger)
+    trainer = Trainer(accelerator="gpu", devices=1,
+                      max_epochs=60, logger=wandb_logger)
     trainer.fit(model, data)
 
 
