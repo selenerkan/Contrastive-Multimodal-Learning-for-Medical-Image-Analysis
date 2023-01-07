@@ -28,7 +28,7 @@ def main_conv3d(wandb, wandb_logger):
     wandb.watch(model, log="all")
 
     # train the network
-    trainer = Trainer(max_epochs=15, logger=wandb_logger, log_every_n_steps=1)
+    trainer = Trainer(max_epochs=15, logger=wandb_logger)
     trainer.fit(model, data)
 
 
@@ -46,7 +46,7 @@ def main_resnet(wandb, wandb_logger):
     wandb.watch(model, log="all")
 
     # train the network
-    trainer = Trainer(max_epochs=15, logger=wandb_logger, log_every_n_steps=1)
+    trainer = Trainer(max_epochs=15, logger=wandb_logger)
     trainer.fit(model, data)
 
 
@@ -66,7 +66,7 @@ def main_multimodal(wandb, wandb_logger):
     wandb.watch(model, log="all")
 
     # train the network
-    trainer = Trainer(max_epochs=20, logger=wandb_logger, log_every_n_steps=1)
+    trainer = Trainer(max_epochs=20, logger=wandb_logger)
     trainer.fit(model, data)
 
 
@@ -93,8 +93,7 @@ def main_kfold_multimodal(wandb, wandb_logger):
     for train_dataloader, val_dataloader in zip(train_dataloaders, val_dataloaders):
         # get the model
         model = MultiModModel()
-        trainer = Trainer(max_epochs=2, logger=wandb_logger,
-                          log_every_n_steps=1)
+        trainer = Trainer(max_epochs=2, logger=wandb_logger)
         trainer.fit(model, train_dataloader, val_dataloader)
 
         # log the loss of the fold
@@ -138,13 +137,13 @@ def main_contrastive_learning(wandb, wandb_logger):
     csv_dir = CSV_FILE
 
     # load the data
-    data = ContrastiveDataModule(csv_dir, age=None)
+    data = ContrastiveDataModule(csv_dir, age=None, batch_size=8)
 
     # Optional
     wandb.watch(model, log="all")
 
     # train the network
-    trainer = Trainer(max_epochs=20, logger=wandb_logger, log_every_n_steps=1)
+    trainer = Trainer(accelerator="gpu", devices=1, max_epochs=60, logger=wandb_logger)
     trainer.fit(model, data)
 
 

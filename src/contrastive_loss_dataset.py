@@ -66,7 +66,7 @@ class Contrastive_Dataset(Dataset):
 
         img_path = os.path.join(
             self.imge_base_dir, img_folder_name + '.nii.gz')
-
+        
         image = nib.load(img_path)
         image = image.get_fdata()
 
@@ -165,15 +165,15 @@ class ContrastiveDataModule(pl.LightningDataModule):
 
     def train_dataloader(self):
 
-        return DataLoader(self.train, batch_size=self.batch_size, shuffle=True)
+        return DataLoader(self.train, batch_size=self.batch_size, shuffle=True, num_workers=16)
 
     def val_dataloader(self):
 
-        return DataLoader(self.val, batch_size=self.batch_size, shuffle=False)
+        return DataLoader(self.val, batch_size=self.batch_size, shuffle=False, num_workers=16)
 
     def test_dataloader(self):
 
-        return DataLoader(self.test, batch_size=self.batch_size, shuffle=False)
+        return DataLoader(self.test, batch_size=self.batch_size, shuffle=False, num_workers=16)
 
 
 class ContrastiveLearningViewGenerator(object):

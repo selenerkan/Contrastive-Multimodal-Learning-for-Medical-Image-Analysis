@@ -34,12 +34,6 @@ class ContrastiveModel(LightningModule):
         self.mlp = nn.Sequential(
             nn.Linear(resnet_out_dim + 13, resnet_out_dim + 13), nn.ReLU(), nn.Linear(resnet_out_dim + 13, resnet_out_dim + 13))
 
-        self.train_acc = torchmetrics.Accuracy()
-        self.valid_acc = torchmetrics.Accuracy()
-
-        self.metrics = {"train_epoch_losses": [], "train_accuracy": [],
-                        "val_epoch_losses": [], "valid_accuracy": []}
-
     def forward(self, img, tab):
         """
 
@@ -83,17 +77,16 @@ class ContrastiveModel(LightningModule):
         # generate same labels for the positive pairs
         # The assumption here is that each image is followed by its positive pair
         # data[0] and data[1], data[2] and data[3] are the positive pairs and so on
-        batch_size = img.size(0)
+        batch_size = img.size(0) * 2
         labels = torch.arange(batch_size)
         labels[1::2] = labels[0::2]
-
+        
         loss_function = losses.NTXentLoss(
             temperature=0.5)  # temperature value is copied from simCLR
         loss = loss_function(embeddings, labels)
 
         # Log loss on every epoch
         self.log('train_epoch_loss', loss, on_epoch=True, on_step=False)
-        self.metrics["train_epoch_losses"].append(loss)
 
         return loss
 
@@ -107,7 +100,7 @@ class ContrastiveModel(LightningModule):
         # generate same labels for the positive pairs
         # The assumption here is that each image is followed by its positive pair
         # data[0] and data[1], data[2] and data[3] are the positive pairs and so on
-        batch_size = img.size(0)
+        batch_size = img.size(0) * 2
         labels = torch.arange(batch_size)
         labels[1::2] = labels[0::2]
 
@@ -116,8 +109,7 @@ class ContrastiveModel(LightningModule):
         loss = loss_function(embeddings, labels)
 
         # Log loss on every epoch
-        self.log('train_epoch_loss', loss, on_epoch=True, on_step=False)
-        self.metrics["train_epoch_losses"].append(loss)
+        self.log('validation_epoch_loss', loss, on_epoch=True, on_step=False)
 
         return loss
 
@@ -131,7 +123,7 @@ class ContrastiveModel(LightningModule):
         # generate same labels for the positive pairs
         # The assumption here is that each image is followed by its positive pair
         # data[0] and data[1], data[2] and data[3] are the positive pairs and so on
-        batch_size = img.size(0)
+        batch_size = img.size(0) * 2
         labels = torch.arange(batch_size)
         labels[1::2] = labels[0::2]
 
@@ -140,7 +132,6 @@ class ContrastiveModel(LightningModule):
         loss = loss_function(embeddings, labels)
 
         # Log loss on every epoch
-        self.log('train_epoch_loss', loss, on_epoch=True, on_step=False)
-        self.metrics["train_epoch_losses"].append(loss)
+        self.log('test_epoch_loss', loss, on_epoch=True, on_step=False)
 
         return loss
