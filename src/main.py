@@ -50,7 +50,7 @@ def main_resnet(wandb, wandb_logger):
     trainer.fit(model, data)
 
 
-def main_multimodal(wandb, wandb_logger, learning_rate=1e-3, batch_size=8, max_epochs=60, age=None):
+def main_multimodal(wandb, wandb_logger, learning_rate=1e-3, batch_size=8, max_epochs=60, age=None, spatial_size=(120, 120, 120)):
     '''
     main function to run the multimodal architecture
     '''
@@ -60,7 +60,8 @@ def main_multimodal(wandb, wandb_logger, learning_rate=1e-3, batch_size=8, max_e
     csv_dir = CSV_FILE
 
     # load the data
-    data = MultimodalDataModule(csv_dir, age=age, batch_size=batch_size)
+    data = MultimodalDataModule(
+        csv_dir, age=age, batch_size=batch_size, spatial_size=spatial_size)
 
     # Optional
     wandb.watch(model, log="all")
@@ -176,7 +177,7 @@ if __name__ == '__main__':
 
     # run multimodal
     main_multimodal(wandb, wandb_logger, learning_rate=1e-3,
-                    batch_size=8, max_epochs=60, age=None)
+                    batch_size=8, max_epochs=60, age=None, spatial_size=(120, 120, 120))
 
     # run kfold multimodal
     # main_kfold_multimodal(wandb, wandb_logger, fold_number = 5, learning_rate=1e-3, batch_size=8, max_epochs=60, age=None)

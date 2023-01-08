@@ -12,6 +12,7 @@ from settings import IMAGE_PATH, FEATURES, TARGET
 from torch.utils.data import DataLoader
 from sklearn.model_selection import StratifiedKFold
 import sys
+from monai import transforms
 
 
 class Multimodal_Dataset(Dataset):
@@ -71,17 +72,21 @@ class Multimodal_Dataset(Dataset):
         image = np.array(image, dtype=np.float32)
         image = image / image.max()
 
+        if self.transform:
+            image = self.transform(image)
+
         return image, tab, label
 
 
 class MultimodalDataModule(pl.LightningDataModule):
 
-    def __init__(self, csv_dir, age=None, batch_size=1):
+    def __init__(self, csv_dir, age=None, batch_size=1, spatial_size=(120, 120, 120)):
 
         super().__init__()
         self.age = age
         self.csv_dir = csv_dir
         self.batch_size = batch_size
+        self.spatial_size = spatial_size
 
     def prepare_data(self):
 
@@ -143,13 +148,22 @@ class MultimodalDataModule(pl.LightningDataModule):
 
         # create the dataset object using the dataframes created above
         self.train = Multimodal_Dataset(self.train_df, image_base_dir=IMAGE_PATH,
-                                        target=TARGET, features=FEATURES)
+                                        target=TARGET, features=FEATURES, transform=self.get_transforms(self.spatial_size))
 
         self.test = Multimodal_Dataset(self.test_df, image_base_dir=IMAGE_PATH,
-                                       target=TARGET, features=FEATURES)
+                                       target=TARGET, features=FEATURES, transform=self.get_transforms(self.spatial_size))
 
         self.val = Multimodal_Dataset(self.val_df, image_base_dir=IMAGE_PATH,
-                                      target=TARGET, features=FEATURES)
+                                      target=TARGET, features=FEATURES, transform=self.get_transforms(self.spatial_size))
+
+    def get_transforms(self, spatial_size=(120, 120, 120)):
+        """Return a set of data augmentation transformations as described in the SimCLR paper."""
+        data_transforms = None
+        if spatial_size:
+            data_transforms = transforms.Compose([
+                transforms.Resize(spatial_size=spatial_size)
+            ])
+        return data_transforms
 
     def train_dataloader(self):
 
