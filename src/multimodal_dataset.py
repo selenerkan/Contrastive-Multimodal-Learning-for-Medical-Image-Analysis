@@ -61,17 +61,14 @@ class Multimodal_Dataset(Dataset):
 
         # get image name in the given index
         img_folder_name = self.tabular_data['image_id'][idx]
-
         img_path = os.path.join(
             self.imge_base_dir, img_folder_name + '.nii.gz')
 
         image = nib.load(img_path)
         image = image.get_fdata()
 
-        # change to numpy
+        # change to numpy and scale images between [0,1]
         image = np.array(image, dtype=np.float32)
-
-        # scale images between [0,1]
         image = image / image.max()
 
         return image, tab, label
@@ -126,6 +123,10 @@ class MultimodalDataModule(pl.LightningDataModule):
         self.train_df = self.tabular_data[self.tabular_data['subject'].isin(
             self.subjects_train)].reset_index()
 
+        # print the patients in train
+        print('number of patients in train: ', len(self.train_df))
+        print('ids of patients in train: ', self.train_df['subject'].unique)
+
         # prepare test dataframe
         self.test_df = self.tabular_data[self.tabular_data['subject'].isin(
             self.subjects_test)].reset_index()
@@ -133,6 +134,10 @@ class MultimodalDataModule(pl.LightningDataModule):
         # prepare val dataframe
         self.val_df = self.tabular_data[self.tabular_data['subject'].isin(
             self.subjects_val)].reset_index()
+
+        # print the patients in train
+        print('number of patients in val: ', len(self.val_df))
+        print('ids of patients in val: ', self.val_df['subject'].unique)
 
         # ----------------------------------------
 
@@ -148,15 +153,15 @@ class MultimodalDataModule(pl.LightningDataModule):
 
     def train_dataloader(self):
 
-        return DataLoader(self.train, batch_size=self.batch_size, shuffle=True)
+        return DataLoader(self.train, batch_size=self.batch_size, shuffle=True, num_workers=16)
 
     def val_dataloader(self):
 
-        return DataLoader(self.val, batch_size=self.batch_size, shuffle=False)
+        return DataLoader(self.val, batch_size=self.batch_size, shuffle=False, num_workers=16)
 
     def test_dataloader(self):
 
-        return DataLoader(self.test, batch_size=self.batch_size, shuffle=False)
+        return DataLoader(self.test, batch_size=self.batch_size, shuffle=False, num_workers=16)
 
 
 class KfoldMultimodalDataModule(pl.LightningDataModule):
@@ -182,6 +187,7 @@ class KfoldMultimodalDataModule(pl.LightningDataModule):
         # split data into kfolds
         skf = StratifiedKFold(n_splits=self.fold_number,
                               random_state=None, shuffle=False)
+
         # print(self.tabular_data.label_numeric)
         train_dataloaders = []
         val_dataloaders = []
@@ -201,8 +207,8 @@ class KfoldMultimodalDataModule(pl.LightningDataModule):
 
             # create dataloaders and add them to a list
             train_dataloaders.append(DataLoader(
-                self.train, batch_size=self.batch_size, shuffle=True))
+                self.train, batch_size=self.batch_size, shuffle=True, num_workers=16))
             val_dataloaders.append(DataLoader(
-                self.val, batch_size=self.batch_size, shuffle=True))
+                self.val, batch_size=self.batch_size, shuffle=True, num_workers=16))
 
         return train_dataloaders, val_dataloaders

@@ -11,9 +11,11 @@ class MultiModModel(LightningModule):
     Resnet Model Class including the training, validation and testing steps
     '''
 
-    def __init__(self):
+    def __init__(self, learning_rate):
 
         super().__init__()
+
+        self.lr = learning_rate
 
         # resnet module for image data
         self.resnet = resnet10(pretrained=False,
@@ -28,10 +30,10 @@ class MultiModModel(LightningModule):
         self.fc2 = nn.Linear(413, 200)
 
         # final fc layer which takes concatenated imput
-        self.fc3 = nn.Linear(200, 1)
+        self.fc3 = nn.Linear(200, 3)
 
-        self.train_acc = torchmetrics.Accuracy()
-        self.valid_acc = torchmetrics.Accuracy()
+        # self.train_acc = torchmetrics.Accuracy()
+        # self.valid_acc = torchmetrics.Accuracy()
 
         self.metrics = {"train_epoch_losses": [], "train_accuracy": [],
                         "val_epoch_losses": [], "valid_accuracy": []}
@@ -63,7 +65,7 @@ class MultiModModel(LightningModule):
 
     def configure_optimizers(self):
 
-        optimizer = torch.optim.Adam(self.parameters(), lr=1e-3)
+        optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
 
         return optimizer
 
@@ -72,9 +74,10 @@ class MultiModModel(LightningModule):
         img, tab, y_int = batch
         y = y_int.to(torch.float32)
 
-        y_pred = torch.sigmoid(self(img, tab))
+        y_pred = self(img, tab)
 
-        loss = F.binary_cross_entropy(y_pred, y.squeeze())
+        # loss = F.binary_cross_entropy(y_pred, y.squeeze())
+        loss = F.cross_entropy(y_pred, y.squeeze())
 
         # Log loss on every epoch
         self.log('train_epoch_loss', loss, on_epoch=True, on_step=False)
@@ -96,7 +99,7 @@ class MultiModModel(LightningModule):
 
         y_pred = self(img, tab)
 
-        loss = F.binary_cross_entropy(torch.sigmoid(y_pred), y.squeeze())
+        loss = F.cross_entropy(y_pred, y.squeeze())
 
         # Log loss
         self.log('val_epoch_loss', loss, on_epoch=True, on_step=False)
@@ -121,8 +124,8 @@ class MultiModModel(LightningModule):
 
         y_pred = self(img, tab)
 
-        loss = F.binary_cross_entropy(torch.sigmoid(y_pred), y.squeeze())
+        loss = F.cross_entropy(y_pred, y.squeeze())
 
-        self.log("loss", loss)
+        self.log("test_loss", loss)
 
         return loss
