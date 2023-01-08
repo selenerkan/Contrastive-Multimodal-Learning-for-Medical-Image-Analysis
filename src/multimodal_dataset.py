@@ -58,7 +58,7 @@ class Multimodal_Dataset(Dataset):
         image = torch.unsqueeze(image, 0)
 
         if transform:
-            image = self.transform(image)
+            image = transform(image)
 
         return image
 
@@ -85,7 +85,7 @@ class Multimodal_Dataset(Dataset):
         image = image.get_fdata()
 
         image = self.image_preprocess(image, self.transform)
-
+        
         return image, tab, label
 
 
