@@ -71,7 +71,7 @@ class MultiModModel(LightningModule):
 
     def training_step(self, batch, batch_idx):
 
-        img, tab, y_int = batch
+        img, tab, y = batch
         # y = y_int.to(torch.float32)
 
         y_pred = self(img, tab)
@@ -94,7 +94,7 @@ class MultiModModel(LightningModule):
 
     def validation_step(self, batch, batch_idx):
 
-        img, tab, y_int = batch
+        img, tab, y = batch
         # y = y_int.to(torch.float32)
 
         y_pred = self(img, tab)
