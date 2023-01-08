@@ -46,6 +46,22 @@ class Multimodal_Dataset(Dataset):
         self.imge_base_dir = image_base_dir
         self.transform = transform
 
+    def image_preprocess(self, image, transform):
+
+        # change to numpy and scale images between [0,1]
+        image = np.array(image, dtype=np.float32)
+        image = image / image.max()
+
+        image = torch.tensor(image)
+
+        # create the channel dimension
+        image = torch.unsqueeze(image, 0)
+
+        if transform:
+            image = self.transform(image)
+
+        return image
+
     def __len__(self):
 
         return len(self.tabular)
@@ -68,12 +84,7 @@ class Multimodal_Dataset(Dataset):
         image = nib.load(img_path)
         image = image.get_fdata()
 
-        # change to numpy and scale images between [0,1]
-        image = np.array(image, dtype=np.float32)
-        image = image / image.max()
-
-        if self.transform:
-            image = self.transform(image)
+        image = self.image_preprocess(image, self.transform)
 
         return image, tab, label
 
@@ -130,7 +141,6 @@ class MultimodalDataModule(pl.LightningDataModule):
 
         # print the patients in train
         print('number of patients in train: ', len(self.train_df))
-        print('ids of patients in train: ', self.train_df['subject'].unique)
 
         # prepare test dataframe
         self.test_df = self.tabular_data[self.tabular_data['subject'].isin(
@@ -142,7 +152,6 @@ class MultimodalDataModule(pl.LightningDataModule):
 
         # print the patients in train
         print('number of patients in val: ', len(self.val_df))
-        print('ids of patients in val: ', self.val_df['subject'].unique)
 
         # ----------------------------------------
 
