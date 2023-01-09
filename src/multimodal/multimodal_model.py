@@ -47,7 +47,6 @@ class MultiModModel(LightningModule):
         """
 
         # run the model for the image
-        img = torch.unsqueeze(img, 1)
         img = self.resnet(img)
 
         # change the dtype of the tabular data
