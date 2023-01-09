@@ -80,7 +80,7 @@ class MultiModModel(LightningModule):
 
         # Log loss on every epoch
         self.log('train_epoch_loss', loss, on_epoch=True, on_step=False)
-        self.metrics["train_epoch_losses"].append(loss)
+        self.metrics["train_epoch_losses"].append(loss.detach())
 
         # Calculate accuracy
         # self.train_acc(y_pred.unsqueeze(0), y_int)
@@ -102,7 +102,7 @@ class MultiModModel(LightningModule):
 
         # Log loss
         self.log('val_epoch_loss', loss, on_epoch=True, on_step=False)
-        self.metrics["val_epoch_losses"].append(loss)
+        self.metrics["val_epoch_losses"].append(loss.detach())
 
         # # Calculate accuracy
         # self.valid_acc(y_pred.unsqueeze(0), y_int)
