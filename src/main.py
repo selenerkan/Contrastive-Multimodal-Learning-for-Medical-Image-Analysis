@@ -1,5 +1,5 @@
 import wandb
-from pytorch_lightning import Trainer
+from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.loggers import WandbLogger
 
 from conv3D.model import AdniModel
@@ -11,7 +11,8 @@ from ResNet.model import ResNetModel
 from multimodal.multimodal_model import MultiModModel
 from multimodal.contrastive_learning_model import ContrastiveModel
 
-from settings import CSV_FILE
+import torch
+from settings import CSV_FILE, SEED
 
 
 def main_conv3d(wandb, wandb_logger):
@@ -72,7 +73,7 @@ def main_multimodal(wandb, wandb_logger, learning_rate=1e-3, batch_size=8, max_e
         accelerator = 'gpu'
         devices = 1
 
-        # train the network
+    # train the network
     trainer = Trainer(accelerator=accelerator, devices=devices,
     trainer.fit(model, data)
 
@@ -180,6 +181,10 @@ if __name__ == '__main__':
 
     # create wandb objects to track runs
     # wandb.init(project="multimodal-network-test")
+
+    # set the seed of the environment
+    # Function that sets seed for pseudo-random number generators in: pytorch, numpy, python.random
+    seed_everything(SEED, workers=True)
 
     wandb.init(project="multimodal_training", entity="multimodal_network")
     wandb_logger = WandbLogger()

@@ -14,7 +14,6 @@ import sys
 
 import numpy as np
 from monai import transforms
-np.random.seed(0)
 
 
 class Contrastive_Dataset(Dataset):
