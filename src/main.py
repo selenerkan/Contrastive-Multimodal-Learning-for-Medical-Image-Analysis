@@ -200,7 +200,7 @@ if __name__ == '__main__':
 
     # run multimodal
     main_multimodal(wandb, wandb_logger, learning_rate=1e-3,
-                    batch_size=1, max_epochs=60, age=None, spatial_size=(120, 120, 120))
+                    batch_size=8, max_epochs=60, age=None, spatial_size=(120, 120, 120))
 
     # run kfold multimodal
     # main_kfold_multimodal(wandb, wandb_logger, fold_number = 5, learning_rate=1e-3, batch_size=8, max_epochs=60, age=None)
