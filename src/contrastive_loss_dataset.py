@@ -66,7 +66,7 @@ class Contrastive_Dataset(Dataset):
 
         img_path = os.path.join(
             self.imge_base_dir, img_folder_name + '.nii.gz')
-        
+
         image = nib.load(img_path)
         image = image.get_fdata()
 

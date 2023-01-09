@@ -66,9 +66,14 @@ def main_multimodal(wandb, wandb_logger, learning_rate=1e-3, batch_size=8, max_e
     # Optional
     wandb.watch(model, log="all")
 
-    # train the network
-    trainer = Trainer(accelerator="gpu", devices=1,
-                      max_epochs=max_epochs, logger=wandb_logger)
+    accelerator = 'cpu'
+    devices = None
+    if torch.cuda.is_available():
+        accelerator = 'gpu'
+        devices = 1
+
+        # train the network
+    trainer = Trainer(accelerator=accelerator, devices=devices,
     trainer.fit(model, data)
 
 
@@ -92,13 +97,18 @@ def main_kfold_multimodal(wandb, wandb_logger, fold_number=2, learning_rate=1e-3
     val_fold_losses = []
     accuracies = []
 
+    accelerator = 'cpu'
+    devices = None
+    if torch.cuda.is_available():
+        accelerator = 'gpu'
+        devices = 1
+
     fold_num = 0
     # train the mdoel
     for train_dataloader, val_dataloader in zip(train_dataloaders, val_dataloaders):
         # get the model
         model = MultiModModel(learning_rate=learning_rate)
-        trainer = Trainer(accelerator="gpu", devices=1,
-                          max_epochs=max_epochs, logger=wandb_logger)
+        trainer = Trainer(accelerator=accelerator, devices=devices,
         trainer.fit(model, train_dataloader, val_dataloader)
 
         # log the loss of the fold
@@ -155,9 +165,14 @@ def main_contrastive_learning(wandb, wandb_logger, learning_rate=1e-3, batch_siz
     # Optional
     wandb.watch(model, log="all")
 
+    accelerator = 'cpu'
+    devices = None
+    if torch.cuda.is_available():
+        accelerator = 'gpu'
+        devices = 1
+
     # train the network
-    trainer = Trainer(accelerator="gpu", devices=1,
-                      max_epochs=max_epochs, logger=wandb_logger)
+    trainer = Trainer(accelerator=accelerator, devices=devices,
     trainer.fit(model, data)
 
 

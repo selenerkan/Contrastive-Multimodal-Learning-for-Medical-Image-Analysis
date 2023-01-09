@@ -85,7 +85,7 @@ class Multimodal_Dataset(Dataset):
         image = image.get_fdata()
 
         image = self.image_preprocess(image, self.transform)
-        
+
         return image, tab, label
 
 
