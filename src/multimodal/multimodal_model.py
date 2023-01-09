@@ -27,10 +27,10 @@ class MultiModModel(LightningModule):
         self.fc1 = nn.Linear(13, 13)
 
         # first fc layer which takes concatenated imput
-        self.fc2 = nn.Linear(413, 200)
+        self.fc2 = nn.Linear(413, 413)
 
         # final fc layer which takes concatenated imput
-        self.fc3 = nn.Linear(200, 3)
+        self.fc3 = nn.Linear(413, 3)
 
         # self.train_acc = torchmetrics.Accuracy()
         # self.valid_acc = torchmetrics.Accuracy()
