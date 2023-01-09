@@ -10,6 +10,8 @@ TARGET = 'label_numeric'
 
 IMAGE_SIZE = (182, 218, 182)
 
+SEED = 42
+
 TRAIN_SIZE = 1
 VAL_SIZE = 1
 TEST_SIZE = 1

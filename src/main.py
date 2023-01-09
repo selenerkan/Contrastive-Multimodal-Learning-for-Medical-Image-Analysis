@@ -29,7 +29,7 @@ def main_conv3d(wandb, wandb_logger):
     wandb.watch(model, log="all")
 
     # train the network
-    trainer = Trainer(max_epochs=15, logger=wandb_logger)
+    trainer = Trainer(max_epochs=15, logger=wandb_logger, deterministic=True)
     trainer.fit(model, data)
 
 
@@ -47,7 +47,7 @@ def main_resnet(wandb, wandb_logger):
     wandb.watch(model, log="all")
 
     # train the network
-    trainer = Trainer(max_epochs=15, logger=wandb_logger)
+    trainer = Trainer(max_epochs=15, logger=wandb_logger, deterministic=True)
     trainer.fit(model, data)
 
 
@@ -75,6 +75,7 @@ def main_multimodal(wandb, wandb_logger, learning_rate=1e-3, batch_size=8, max_e
 
     # train the network
     trainer = Trainer(accelerator=accelerator, devices=devices,
+                      max_epochs=max_epochs, logger=wandb_logger, deterministic=True)
     trainer.fit(model, data)
 
 
@@ -110,6 +111,7 @@ def main_kfold_multimodal(wandb, wandb_logger, fold_number=2, learning_rate=1e-3
         # get the model
         model = MultiModModel(learning_rate=learning_rate)
         trainer = Trainer(accelerator=accelerator, devices=devices,
+                          max_epochs=max_epochs, logger=wandb_logger, deterministic=True)
         trainer.fit(model, train_dataloader, val_dataloader)
 
         # log the loss of the fold
@@ -174,6 +176,7 @@ def main_contrastive_learning(wandb, wandb_logger, learning_rate=1e-3, batch_siz
 
     # train the network
     trainer = Trainer(accelerator=accelerator, devices=devices,
+                      max_epochs=max_epochs, logger=wandb_logger, deterministic=True)
     trainer.fit(model, data)
 
 
