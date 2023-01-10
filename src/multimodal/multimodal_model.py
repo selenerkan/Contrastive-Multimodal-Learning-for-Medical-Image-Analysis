@@ -99,6 +99,9 @@ class MultiModModel(LightningModule):
             else:
                 self.train_acc.append(0)
 
+        acc = sum(self.train_acc) / len(self.train_acc)
+        self.log('train_acc_loss', acc, on_epoch=True, on_step=False)
+
         return loss
 
     def training_epoch_end(self, outputs):
