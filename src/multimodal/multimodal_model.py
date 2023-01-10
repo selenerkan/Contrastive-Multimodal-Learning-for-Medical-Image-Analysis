@@ -91,15 +91,13 @@ class MultiModModel(LightningModule):
         # take softmax
         y_pred_softmax = self.softmax(y_pred)
         # get the index of max value
-        pred_label = torch.argmax(y_pred_softmax)
+        pred_label = torch.argmax(y_pred_softmax, dim=1)
 
-        if pred_label == y:
-            self.train_acc.append(1)
-        else:
-            self.train_acc.appen(0)
-
-        acc = sum(self.train_acc) / len(self.train_acc)
-        self.log('train_epoch_acc', acc, on_epoch=True, on_step=False)
+        for i in range(len(pred_label)):
+            if pred_label[i] == y[i]:
+                self.train_acc.append(1)
+            else:
+                self.train_acc.append(0)
 
         return loss
 
