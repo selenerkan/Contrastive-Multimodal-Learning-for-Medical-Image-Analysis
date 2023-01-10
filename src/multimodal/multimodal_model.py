@@ -4,6 +4,7 @@ from pytorch_lightning.core.module import LightningModule
 from torch.nn import functional as F
 from monai.networks.nets import resnet10, resnet18, resnet34, resnet50
 import torchmetrics
+from torch.nn import Softmax
 
 
 class MultiModModel(LightningModule):
@@ -33,8 +34,12 @@ class MultiModModel(LightningModule):
         self.fc3 = nn.Linear(413, 3)
 
         # track accuracy
-        self.train_acc = torchmetrics.Accuracy()
-        self.valid_acc = torchmetrics.Accuracy()
+        # self.train_acc = torchmetrics.Accuracy()
+        # self.valid_acc = torchmetrics.Accuracy()
+        self.train_acc = []
+        self.val_acc = []
+
+        self.softmax = Softmax()
 
     def forward(self, img, tab):
         """
@@ -75,14 +80,31 @@ class MultiModModel(LightningModule):
         loss = F.cross_entropy(y_pred, y.squeeze())
 
         # log step metric
-        self.train_acc(y_pred.unsqueeze(0), y)
+        # self.train_acc(y_pred.unsqueeze(0), y)
 
         # Log loss on every epoch
         self.log('train_epoch_loss', loss, on_epoch=True, on_step=False)
-        self.log('train_epoch_acc', self.train_acc,
-                 on_step=False, on_epoch=True)
+        # self.log('train_epoch_acc', self.train_acc,
+        #          on_step=False, on_epoch=True)
+
+        # calculate acc
+        # take softmax
+        y_pred_softmax = self.softmax(y_pred)
+        # get the index of max value
+        pred_label = torch.argmax(y_pred_softmax)
+
+        if pred_label == y:
+            self.train_acc.append(1)
+        else:
+            self.train_acc.appen(0)
+
+        acc = sum(self.train_acc) / len(self.train_acc)
+        self.log('train_epoch_acc', acc, on_epoch=True, on_step=False)
 
         return loss
+
+    def training_epoch_end(self, outputs):
+        self.train_acc = []
 
     def validation_step(self, batch, batch_idx):
 
@@ -93,11 +115,11 @@ class MultiModModel(LightningModule):
         loss = F.cross_entropy(y_pred, y.squeeze())
 
         # calculate acc
-        self.valid_acc(y_pred.unsqueeze(0), y)
+        # self.valid_acc(y_pred.unsqueeze(0), y)
 
         # Log loss
         self.log('val_epoch_loss', loss, on_epoch=True, on_step=False)
-        self.log('valid_acc', self.valid_acc, on_step=False, on_epoch=True)
+        # self.log('valid_acc', self.valid_acc, on_step=False, on_epoch=True)
 
         return loss
 
