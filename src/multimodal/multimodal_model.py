@@ -34,8 +34,6 @@ class MultiModModel(LightningModule):
         self.fc3 = nn.Linear(413, 3)
 
         # track accuracy
-        # self.train_acc = torchmetrics.Accuracy()
-        # self.valid_acc = torchmetrics.Accuracy()
         self.train_acc = []
         self.val_acc = []
 
@@ -79,13 +77,8 @@ class MultiModModel(LightningModule):
 
         loss = F.cross_entropy(y_pred, y.squeeze())
 
-        # log step metric
-        # self.train_acc(y_pred.unsqueeze(0), y)
-
         # Log loss on every epoch
         self.log('train_epoch_loss', loss, on_epoch=True, on_step=False)
-        # self.log('train_epoch_acc', self.train_acc,
-        #          on_step=False, on_epoch=True)
 
         # calculate acc
         # take softmax
@@ -100,7 +93,7 @@ class MultiModModel(LightningModule):
                 self.train_acc.append(0)
 
         acc = sum(self.train_acc) / len(self.train_acc)
-        self.log('train_acc_loss', acc, on_epoch=True, on_step=False)
+        self.log('train_epoch_acc', acc, on_epoch=True, on_step=False)
 
         return loss
 
@@ -115,14 +108,28 @@ class MultiModModel(LightningModule):
 
         loss = F.cross_entropy(y_pred, y.squeeze())
 
-        # calculate acc
-        # self.valid_acc(y_pred.unsqueeze(0), y)
-
         # Log loss
         self.log('val_epoch_loss', loss, on_epoch=True, on_step=False)
-        # self.log('valid_acc', self.valid_acc, on_step=False, on_epoch=True)
+
+        # calculate acc
+        # take softmax
+        y_pred_softmax = self.softmax(y_pred)
+        # get the index of max value
+        pred_label = torch.argmax(y_pred_softmax, dim=1)
+
+        for i in range(len(pred_label)):
+            if pred_label[i] == y[i]:
+                self.val_acc.append(1)
+            else:
+                self.val_acc.append(0)
+
+        acc = sum(self.val_acc) / len(self.val_acc)
+        self.log('val_epoch_acc', acc, on_epoch=True, on_step=False)
 
         return loss
+
+    def validation_epoch_end(self, outputs):
+        self.val_acc = []
 
     def test_step(self, batch, batch_idx):
 
