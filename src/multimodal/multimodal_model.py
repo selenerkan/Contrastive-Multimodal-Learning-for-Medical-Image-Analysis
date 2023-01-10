@@ -73,6 +73,10 @@ class MultiModModel(LightningModule):
         # Log loss on every epoch
         self.log('train_epoch_loss', loss, on_epoch=True, on_step=False)
 
+        print('TRAIN LOSS: ', loss)
+
+        return loss
+
     def validation_step(self, batch, batch_idx):
 
         img, tab, y = batch
@@ -83,6 +87,9 @@ class MultiModModel(LightningModule):
 
         # Log loss
         self.log('val_epoch_loss', loss, on_epoch=True, on_step=False)
+        print('VAL LOSS: ', loss)
+
+        return loss
 
     def test_step(self, batch, batch_idx):
 
