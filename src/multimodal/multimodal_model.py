@@ -32,12 +32,6 @@ class MultiModModel(LightningModule):
         # final fc layer which takes concatenated imput
         self.fc3 = nn.Linear(413, 3)
 
-        # self.train_acc = torchmetrics.Accuracy()
-        # self.valid_acc = torchmetrics.Accuracy()
-
-        self.metrics = {"train_epoch_losses": [], "train_accuracy": [],
-                        "val_epoch_losses": [], "valid_accuracy": []}
-
     def forward(self, img, tab):
         """
 
@@ -71,30 +65,17 @@ class MultiModModel(LightningModule):
     def training_step(self, batch, batch_idx):
 
         img, tab, y = batch
-        # y = y_int.to(torch.float32)
 
         y_pred = self(img, tab)
 
-        # loss = F.binary_cross_entropy(y_pred, y.squeeze())
         loss = F.cross_entropy(y_pred, y.squeeze())
 
         # Log loss on every epoch
         self.log('train_epoch_loss', loss, on_epoch=True, on_step=False)
-        self.metrics["train_epoch_losses"].append(loss.detach())
-
-        # Calculate accuracy
-        # self.train_acc(y_pred.unsqueeze(0), y_int)
-
-    # def on_train_epoch_end(self):
-    #     # Log accuracy
-    #     train_acc = self.train_acc.compute()
-    #     # self.log("train_epochwise_accuracy", train_acc)
-    #     self.metrics["train_accuracy"].append(train_acc)
 
     def validation_step(self, batch, batch_idx):
 
         img, tab, y = batch
-        # y = y_int.to(torch.float32)
 
         y_pred = self(img, tab)
 
@@ -102,24 +83,10 @@ class MultiModModel(LightningModule):
 
         # Log loss
         self.log('val_epoch_loss', loss, on_epoch=True, on_step=False)
-        self.metrics["val_epoch_losses"].append(loss.detach())
-
-        # # Calculate accuracy
-        # self.valid_acc(y_pred.unsqueeze(0), y_int)
-        # # self.metrics["valid_accuracy"].append(loss)
-
-        # return loss
-
-    # def on_validation_end(self):
-    #     # Log accuracy
-    #     valid_acc = self.valid_acc.compute()
-    #     # self.log("valid_epochwise_accuracy", valid_acc)
-    #     self.metrics["valid_accuracy"].append(valid_acc)
 
     def test_step(self, batch, batch_idx):
 
         img, tab, y = batch
-        # y = y.to(torch.float32)
 
         y_pred = self(img, tab)
 

@@ -139,6 +139,9 @@ class MultimodalDataModule(pl.LightningDataModule):
         self.train_df = self.tabular_data[self.tabular_data['subject'].isin(
             self.subjects_train)].reset_index()
 
+        # ONLY FOR OVERFITTING ON ONE IMAGE
+        self.train_df = self.train_df.iloc[:1]
+
         # print the patients in train
         print('number of patients in train: ', len(self.train_df))
 
@@ -146,9 +149,15 @@ class MultimodalDataModule(pl.LightningDataModule):
         self.test_df = self.tabular_data[self.tabular_data['subject'].isin(
             self.subjects_test)].reset_index()
 
+        # ONLY FOR OVERFITTING ON ONE IMAGE
+        self.test_df = self.train_df
+
         # prepare val dataframe
         self.val_df = self.tabular_data[self.tabular_data['subject'].isin(
             self.subjects_val)].reset_index()
+
+        # ONLY FOR OVERFITTING ON ONE IMAGE
+        self.val_df = self.train_df
 
         # print the patients in train
         print('number of patients in val: ', len(self.val_df))
