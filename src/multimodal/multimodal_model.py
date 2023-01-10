@@ -32,6 +32,10 @@ class MultiModModel(LightningModule):
         # final fc layer which takes concatenated imput
         self.fc3 = nn.Linear(413, 3)
 
+        # track accuracy
+        self.train_acc = torchmetrics.Accuracy()
+        self.valid_acc = torchmetrics.Accuracy()
+
     def forward(self, img, tab):
         """
 
@@ -70,10 +74,13 @@ class MultiModModel(LightningModule):
 
         loss = F.cross_entropy(y_pred, y.squeeze())
 
+        # log step metric
+        self.train_acc(y_pred.unsqueeze(0), y)
+
         # Log loss on every epoch
         self.log('train_epoch_loss', loss, on_epoch=True, on_step=False)
-
-        print('TRAIN LOSS: ', loss)
+        self.log('train_epoch_acc', self.train_acc,
+                 on_step=False, on_epoch=True)
 
         return loss
 
@@ -85,9 +92,12 @@ class MultiModModel(LightningModule):
 
         loss = F.cross_entropy(y_pred, y.squeeze())
 
+        # calculate acc
+        self.valid_acc(y_pred.unsqueeze(0), y)
+
         # Log loss
         self.log('val_epoch_loss', loss, on_epoch=True, on_step=False)
-        print('VAL LOSS: ', loss)
+        self.log('valid_acc', self.valid_acc, on_step=False, on_epoch=True)
 
         return loss
 
