@@ -13,6 +13,7 @@ from multimodal.contrastive_learning_model import ContrastiveModel
 
 import torch
 from settings import CSV_FILE, SEED
+import torch.multiprocessing
 
 
 def main_conv3d(wandb, wandb_logger):
@@ -75,7 +76,7 @@ def main_multimodal(wandb, wandb_logger, learning_rate=1e-3, batch_size=8, max_e
 
     # train the network
     trainer = Trainer(accelerator=accelerator, devices=devices,
-                      max_epochs=max_epochs, logger=wandb_logger, deterministic=True)
+                      max_epochs=max_epochs, logger=wandb_logger)
     trainer.fit(model, data)
 
 
@@ -187,7 +188,9 @@ if __name__ == '__main__':
 
     # set the seed of the environment
     # Function that sets seed for pseudo-random number generators in: pytorch, numpy, python.random
-    seed_everything(SEED, workers=True)
+    # seed_everything(SEED, workers=True)
+
+    torch.multiprocessing.set_sharing_strategy('file_system')
 
     wandb.init(project="multimodal_training", entity="multimodal_network")
     wandb_logger = WandbLogger()
@@ -199,8 +202,8 @@ if __name__ == '__main__':
     # main_resnet(wandb, wandb_logger)
 
     # run multimodal
-    main_multimodal(wandb, wandb_logger, learning_rate=1e-3,
-                    batch_size=8, max_epochs=60, age=None, spatial_size=(120, 120, 120))
+    main_multimodal(wandb, wandb_logger, learning_rate=1e-4,
+                    batch_size=16, max_epochs=60, age=None, spatial_size=(120, 120, 120))
 
     # run kfold multimodal
     # main_kfold_multimodal(wandb, wandb_logger, fold_number = 5, learning_rate=1e-3, batch_size=8, max_epochs=60, age=None)
