@@ -34,21 +34,32 @@ def main_conv3d(wandb, wandb_logger):
     trainer.fit(model, data)
 
 
-def main_resnet(wandb, wandb_logger):
+def main_resnet(wandb, wandb_logger, learning_rate=1e-3, weight_decay=1e-5, batch_size=8, max_epochs=60, age=None, spatial_size=(120, 120, 120)):
     '''
     main function to run the resnet architecture
     '''
     # ge the model
-    model = ResNetModel()
+    model = ResNetModel(learning_rate=learning_rate,
+                        weight_decay=weight_decay)
+
+    csv_dir = CSV_FILE
 
     # load the data
-    data = AdniDataModule(CSV_FILE)
+    data = AdniDataModule(
+        csv_dir, age=age, batch_size=batch_size, spatial_size=spatial_size)
 
     # Optional
     wandb.watch(model, log="all")
 
+    accelerator = 'cpu'
+    devices = None
+    if torch.cuda.is_available():
+        accelerator = 'gpu'
+        devices = 1
+
     # train the network
-    trainer = Trainer(max_epochs=15, logger=wandb_logger, deterministic=True)
+    trainer = Trainer(accelerator=accelerator, devices=devices,
+                      max_epochs=max_epochs, logger=wandb_logger)
     trainer.fit(model, data)
 
 
@@ -180,7 +191,7 @@ def main_contrastive_learning(wandb, wandb_logger, weight_decay, learning_rate=1
 
     # train the network
     trainer = Trainer(accelerator=accelerator, devices=devices,
-                      max_epochs=max_epochs, logger=wandb_logger, deterministic=True)
+                      max_epochs=max_epochs, logger=wandb_logger)
     trainer.fit(model, data)
 
 
@@ -202,7 +213,8 @@ if __name__ == '__main__':
     # main_conv3d(wandb, wandb_logger)
 
     # run resnet
-    # main_resnet(wandb, wandb_logger)
+    main_resnet(wandb, wandb_logger, learning_rate=1e-4, weight_decay=1e-5,
+                batch_size=16, max_epochs=60, age=None, spatial_size=(120, 120, 120))
 
     # run multimodal
     # main_multimodal(wandb, wandb_logger, learning_rate=1e-4, weight_decay=1e-5,
@@ -212,5 +224,5 @@ if __name__ == '__main__':
     # main_kfold_multimodal(wandb, wandb_logger, fold_number = 5, learning_rate=1e-3, batch_size=8, max_epochs=60, age=None)
 
     # run contrastive learning
-    main_contrastive_learning(wandb, wandb_logger, learning_rate=1e-4,
-                              weight_decay=1e-5, batch_size=8, max_epochs=60, spatial_size=(120, 120, 120), age=None)
+    # main_contrastive_learning(wandb, wandb_logger, learning_rate=1e-4,
+    #                           weight_decay=1e-5, batch_size=8, max_epochs=60, spatial_size=(120, 120, 120), age=None)

@@ -10,11 +10,14 @@ from settings import IMAGE_PATH, TARGET
 from torch.utils.data import DataLoader
 from sklearn.model_selection import train_test_split
 import sys
+from monai import transforms
+
+import torch
 
 
 class Adni_Dataset(Dataset):
 
-    def __init__(self, tabular_data, image_base_dir, target, transform=None, target_transform=None):
+    def __init__(self, tabular_data, image_base_dir, target, transform=None):
         """
 
         csv_dir: The directiry for the .csv file holding the name of the images and the labels
@@ -38,7 +41,22 @@ class Adni_Dataset(Dataset):
         # IMAGE DATA
         self.imge_base_dir = image_base_dir
         self.transform = transform
-        self.target_transform = target_transform
+
+    def image_preprocess(self, image, transform):
+
+        # change to numpy and scale images between [0,1]
+        image = np.array(image, dtype=np.float32)
+        image = image / image.max()
+
+        image = torch.tensor(image)
+
+        # create the channel dimension
+        image = torch.unsqueeze(image, 0)
+
+        if transform:
+            image = transform(image)
+
+        return image
 
     def __len__(self):
 
@@ -46,43 +64,38 @@ class Adni_Dataset(Dataset):
 
     def __getitem__(self, idx):
 
+        # get the label
+        label = self.y[idx]
+
         # get image name in the given index
         img_folder_name = self.tabular_data['image_id'][idx]
-
         img_path = os.path.join(
             self.imge_base_dir, img_folder_name + '.nii.gz')
 
         image = nib.load(img_path)
         image = image.get_fdata()
-
-        # change to numpy
-        image = np.array(image, dtype=np.float32)
-
-        # scale images between [0,1]
-        image = image / image.max()
-
-        # get the label
-        label = self.y[idx]
+        image = self.image_preprocess(image, self.transform)
 
         if self.transform:
-
             image = self.transform(image)
-
-        if self.target_transform:
-
-            label = self.target_transform(label)
 
         return image, label
 
 
 class AdniDataModule(pl.LightningDataModule):
 
-    def __init__(self, csv_file, age=None, batch_size=1):
+    def __init__(self, csv_file, age=None, batch_size=1, spatial_size=(120, 120, 120)):
 
         super().__init__()
         self.csv_file = csv_file
         self.batch_size = batch_size
         self.age = age
+        self.spatial_size = spatial_size
+
+        self.num_workers = 0
+        if torch.cuda.is_available():
+            self.num_workers = 16
+        print(self.num_workers)
 
     def prepare_data(self):
 
@@ -124,34 +137,58 @@ class AdniDataModule(pl.LightningDataModule):
         self.train_df = self.tabular_data[self.tabular_data['subject'].isin(
             self.subjects_train)].reset_index()
 
+        # ONLY FOR OVERFITTING ON ONE IMAGE
+        # self.train_df = self.train_df.iloc[:1]
+
+        # print the patients in train
+        print('number of patients in train: ', len(self.train_df))
+
         # prepare test dataframe
         self.test_df = self.tabular_data[self.tabular_data['subject'].isin(
             self.subjects_test)].reset_index()
+
+        # ONLY FOR OVERFITTING ON ONE IMAGE
+        # self.test_df = self.train_df
 
         # prepare val dataframe
         self.val_df = self.tabular_data[self.tabular_data['subject'].isin(
             self.subjects_val)].reset_index()
 
+        # ONLY FOR OVERFITTING ON ONE IMAGE
+        # self.val_df = self.train_df
+
+        # print the patients in train
+        print('number of patients in val: ', len(self.val_df))
+
         # ----------------------------------------
 
         # create the dataset object using the dataframes created above
         self.train = Adni_Dataset(self.train_df, image_base_dir=IMAGE_PATH,
-                                  target=TARGET)
+                                  target=TARGET, transform=self.get_transforms(self.spatial_size))
 
         self.test = Adni_Dataset(self.test_df, image_base_dir=IMAGE_PATH,
-                                 target=TARGET)
+                                 target=TARGET, transform=self.get_transforms(self.spatial_size))
 
         self.val = Adni_Dataset(self.val_df, image_base_dir=IMAGE_PATH,
-                                target=TARGET)
+                                target=TARGET, transform=self.get_transforms(self.spatial_size))
+
+    def get_transforms(self, spatial_size=(120, 120, 120)):
+        """Return a set of data augmentation transformations as described in the SimCLR paper."""
+        data_transforms = None
+        if spatial_size:
+            data_transforms = transforms.Compose([
+                transforms.Resize(spatial_size=spatial_size)
+            ])
+        return data_transforms
 
     def train_dataloader(self):
 
-        return DataLoader(self.train, batch_size=self.batch_size, shuffle=True)
+        return DataLoader(self.train, batch_size=self.batch_size, shuffle=True, num_workers=self.num_workers)
 
     def val_dataloader(self):
 
-        return DataLoader(self.val, batch_size=self.batch_size, shuffle=False)
+        return DataLoader(self.val, batch_size=self.batch_size, shuffle=True, num_workers=self.num_workers)
 
     def test_dataloader(self):
 
-        return DataLoader(self.test, batch_size=self.batch_size, shuffle=False)
+        return DataLoader(self.test, batch_size=self.batch_size, shuffle=True, num_workers=self.num_workers)

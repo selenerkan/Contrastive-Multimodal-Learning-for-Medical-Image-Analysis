@@ -94,12 +94,11 @@ class MultiModModel(LightningModule):
             else:
                 self.train_acc.append(0)
 
-        acc = sum(self.train_acc) / len(self.train_acc)
-        self.log('train_epoch_acc', acc, on_epoch=True, on_step=False)
-
         return loss
 
     def training_epoch_end(self, outputs):
+        acc = sum(self.train_acc) / len(self.train_acc)
+        self.log('train_epoch_acc', acc, on_epoch=True, on_step=False)
         self.train_acc = []
 
     def validation_step(self, batch, batch_idx):
@@ -125,12 +124,11 @@ class MultiModModel(LightningModule):
             else:
                 self.val_acc.append(0)
 
-        acc = sum(self.val_acc) / len(self.val_acc)
-        self.log('val_epoch_acc', acc, on_epoch=True, on_step=False)
-
         return loss
 
     def validation_epoch_end(self, outputs):
+        acc = sum(self.val_acc) / len(self.val_acc)
+        self.log('val_epoch_acc', acc, on_epoch=True, on_step=False)
         self.val_acc = []
 
     def test_step(self, batch, batch_idx):
