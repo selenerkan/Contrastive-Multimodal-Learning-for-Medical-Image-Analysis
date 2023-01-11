@@ -12,11 +12,12 @@ class MultiModModel(LightningModule):
     Resnet Model Class including the training, validation and testing steps
     '''
 
-    def __init__(self, learning_rate):
+    def __init__(self, learning_rate, weight_decay=1e-5):
 
         super().__init__()
 
         self.lr = learning_rate
+        self.wd = weight_decay
 
         # resnet module for image data
         self.resnet = resnet10(pretrained=False,
@@ -65,7 +66,8 @@ class MultiModModel(LightningModule):
 
     def configure_optimizers(self):
 
-        optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
+        optimizer = torch.optim.Adam(
+            self.parameters(), lr=self.lr, weight_decay=self.wd)
 
         return optimizer
 
