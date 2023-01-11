@@ -13,11 +13,12 @@ class ContrastiveModel(LightningModule):
     Uses ResNet for the image data, concatenates image and tabular data at the end
     '''
 
-    def __init__(self, learning_rate):
+    def __init__(self, learning_rate, weight_decay=1e-5):
 
         super().__init__()
 
         self.lr = learning_rate
+        self.wd = weight_decay
 
         # IMAGE DATA
         # output dimension is adapted from simCLR
@@ -65,7 +66,8 @@ class ContrastiveModel(LightningModule):
     def configure_optimizers(self):
 
         # weight decay can be added, lr can be changed
-        optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
+        optimizer = torch.optim.Adam(
+            self.parameters(), lr=self.lr, weight_decay=self.wd)
 
         return optimizer
 

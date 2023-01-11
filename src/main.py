@@ -210,4 +210,5 @@ if __name__ == '__main__':
     # main_kfold_multimodal(wandb, wandb_logger, fold_number = 5, learning_rate=1e-3, batch_size=8, max_epochs=60, age=None)
 
     # run contrastive learning
-    # main_contrastive_learning(wandb, wandb_logger, learning_rate=1e-3, batch_size=8, max_epochs=60, age=None)
+    main_contrastive_learning(wandb, wandb_logger, learning_rate=1e-4,
+                              weight_decay=1e-5, batch_size=8, max_epochs=60, age=None)
