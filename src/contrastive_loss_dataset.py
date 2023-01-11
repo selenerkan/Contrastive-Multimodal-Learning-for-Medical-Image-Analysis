@@ -152,13 +152,13 @@ class ContrastiveDataModule(pl.LightningDataModule):
 
         # create the dataset object using the dataframes created above
         self.train = Contrastive_Dataset(self.train_df, image_base_dir=IMAGE_PATH,
-                                         target=TARGET, features=FEATURES, transform=ContrastiveLearningViewGenerator(self.get_transforms(32), self.n_views))
+                                         target=TARGET, features=FEATURES, transform=ContrastiveLearningViewGenerator(self.get_transforms(), self.n_views))
 
         self.test = Contrastive_Dataset(self.test_df, image_base_dir=IMAGE_PATH,
-                                        target=TARGET, features=FEATURES, transform=ContrastiveLearningViewGenerator(self.get_transforms(32), self.n_views))
+                                        target=TARGET, features=FEATURES, transform=ContrastiveLearningViewGenerator(self.get_transforms(), self.n_views))
 
         self.val = Contrastive_Dataset(self.val_df, image_base_dir=IMAGE_PATH,
-                                       target=TARGET, features=FEATURES, transform=ContrastiveLearningViewGenerator(self.get_transforms(32), self.n_views))
+                                       target=TARGET, features=FEATURES, transform=ContrastiveLearningViewGenerator(self.get_transforms(), self.n_views))
 
         return self.train_df, self.train
 
