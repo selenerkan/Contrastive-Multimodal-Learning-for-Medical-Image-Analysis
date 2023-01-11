@@ -84,7 +84,8 @@ class MultiModModel(LightningModule):
 
         # calculate acc
         # take softmax
-        y_pred = y_pred.unsqueeze(0)
+        if len(y_pred.shape) == 1:
+            y_pred = y_pred.unsqueeze(0)
         y_pred_softmax = self.softmax(y_pred)
         # get the index of max value
         pred_label = torch.argmax(y_pred_softmax, dim=1)
@@ -115,7 +116,8 @@ class MultiModModel(LightningModule):
 
         # calculate acc
         # take softmax
-        y_pred = y_pred.unsqueeze(0)
+        if len(y_pred.shape) == 1:
+            y_pred = y_pred.unsqueeze(0)
         y_pred_softmax = self.softmax(y_pred)
         # get the index of max value
         pred_label = torch.argmax(y_pred_softmax, dim=1)
