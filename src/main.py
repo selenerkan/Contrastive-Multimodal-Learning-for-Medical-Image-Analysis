@@ -155,7 +155,7 @@ def main_kfold_multimodal(wandb, wandb_logger, fold_number=2, learning_rate=1e-3
     # wandb.log({"Mean score":scores.mean()})
 
 
-def main_contrastive_learning(wandb, wandb_logger, learning_rate=1e-3, batch_size=8, max_epochs=60, age=None):
+def main_contrastive_learning(wandb, wandb_logger, learning_rate=1e-3, batch_size=8, max_epochs=60, spatial_size=(120, 120, 120), age=None):
     '''
     main function to run the multimodal architecture
     '''
@@ -165,7 +165,8 @@ def main_contrastive_learning(wandb, wandb_logger, learning_rate=1e-3, batch_siz
     csv_dir = CSV_FILE
 
     # load the data
-    data = ContrastiveDataModule(csv_dir, age=age, batch_size=batch_size)
+    data = ContrastiveDataModule(
+        csv_dir, age=age, batch_size=batch_size, spatial_size=spatial_size)
 
     # Optional
     wandb.watch(model, log="all")
@@ -211,4 +212,4 @@ if __name__ == '__main__':
 
     # run contrastive learning
     main_contrastive_learning(wandb, wandb_logger, learning_rate=1e-4,
-                              weight_decay=1e-5, batch_size=8, max_epochs=60, age=None)
+                              weight_decay=1e-5, batch_size=8, max_epochs=60, spatial_size=(120, 120, 120), age=None)

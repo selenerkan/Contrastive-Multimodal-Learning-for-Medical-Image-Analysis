@@ -77,22 +77,22 @@ class Contrastive_Dataset(Dataset):
 
 class ContrastiveDataModule(pl.LightningDataModule):
 
-    def __init__(self, csv_dir, n_views=2, age=None, batch_size=1):
+    def __init__(self, csv_dir, n_views=2, age=None, batch_size=1, spatial_size=(120, 120, 120)):
 
         super().__init__()
         self.age = age
         self.csv_dir = csv_dir
         self.n_views = n_views
         self.batch_size = batch_size
+        self.spatial_size = spatial_size
 
-    @staticmethod
-    def get_transforms(size, s=1):
+    def get_transforms(self):
         """Return a set of data augmentation transformations as described in the SimCLR paper."""
         data_transforms = transforms.Compose([
-            transforms.RandSpatialCrop(
-                (80, 80, 80), random_center=True, random_size=False),
+            # transforms.RandSpatialCrop(
+            #     (80, 80, 80), random_center=True, random_size=False),
             transforms.Resize(
-                spatial_size=(120, 120, 120)),  # final image shape 120,120,120
+                spatial_size=self.spatial_size),  # final image shape 120,120,120
             transforms.RandFlip(
                 prob=0.5, spatial_axis=0),
             transforms.RandAdjustContrast(  # randomly change the contrast
