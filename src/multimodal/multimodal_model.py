@@ -38,7 +38,7 @@ class MultiModModel(LightningModule):
         self.train_acc = []
         self.val_acc = []
 
-        self.softmax = Softmax()
+        self.softmax = Softmax(dim=1)
 
     def forward(self, img, tab):
         """
