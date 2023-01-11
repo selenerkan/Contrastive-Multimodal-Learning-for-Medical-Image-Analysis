@@ -2,7 +2,7 @@ import torch
 from torch import nn
 from pytorch_lightning.core.module import LightningModule
 from torch.nn import functional as F
-from monai.networks.nets import resnet10, resnet18, resnet34, resnet50
+from monai.networks.nets.resnet_group import resnet10, resnet18, resnet34, resnet50
 
 import torchmetrics
 from pytorch_metric_learning import losses

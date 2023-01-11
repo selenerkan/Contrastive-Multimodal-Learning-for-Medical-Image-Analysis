@@ -14,6 +14,7 @@ import sys
 
 import numpy as np
 from monai import transforms
+# import torchio as tio
 
 
 class Contrastive_Dataset(Dataset):
@@ -89,15 +90,14 @@ class ContrastiveDataModule(pl.LightningDataModule):
     def get_transforms(self):
         """Return a set of data augmentation transformations as described in the SimCLR paper."""
         data_transforms = transforms.Compose([
-            # transforms.RandSpatialCrop(
-            #     (80, 80, 80), random_center=True, random_size=False),
-            transforms.Resize(
-                spatial_size=self.spatial_size),  # final image shape 120,120,120
-            transforms.RandFlip(
-                prob=0.5, spatial_axis=0),
-            transforms.RandAdjustContrast(  # randomly change the contrast
-                prob=0.5, gamma=(1.5, 2))
+            # tio.RandomElasticDeformation(p=0.5, num_control_points=(10),  # or just 7
+            #                              locked_borders=0),
+            # tio.RandomBiasField(p=0.5, coefficients=0.5, order=3),
+            # tio.RandomSwap(p=0.6, patch_size=15, num_iterations=80),
+            # tio.RandomGamma(p=0.5, log_gamma=(-0.3, 0.3))
+
         ])
+
         return data_transforms
 
     def prepare_data(self):

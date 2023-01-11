@@ -2,7 +2,7 @@ import torch
 from torch import nn
 from pytorch_lightning.core.module import LightningModule
 from torch.nn import functional as F
-from monai.networks.nets import resnet10, resnet18, resnet34, resnet50
+from monai.networks.nets.resnet_group import resnet10, resnet18, resnet34, resnet50
 from torch.nn import Softmax
 
 
@@ -67,6 +67,7 @@ class ResNetModel(LightningModule):
 
         # calculate acc
         # take softmax
+        y_pred = y_pred.unsqueeze(0)
         y_pred_softmax = self.softmax(y_pred)
         # get the index of max value
         pred_label = torch.argmax(y_pred_softmax, dim=1)
@@ -97,6 +98,7 @@ class ResNetModel(LightningModule):
 
         # calculate acc
         # take softmax
+        y_pred = y_pred.unsqueeze(0)
         y_pred_softmax = self.softmax(y_pred)
         # get the index of max value
         pred_label = torch.argmax(y_pred_softmax, dim=1)
