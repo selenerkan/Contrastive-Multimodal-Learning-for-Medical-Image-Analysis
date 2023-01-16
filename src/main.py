@@ -1,6 +1,8 @@
 import wandb
 from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.loggers import WandbLogger
+from pytorch_lightning.callbacks import ModelCheckpoint
+import os
 
 from conv3D.model import AdniModel
 from dataset import AdniDataModule
@@ -12,8 +14,9 @@ from models.multimodal_model import MultiModModel
 from models.contrastive_learning_model import ContrastiveModel
 
 import torch
-from settings import CSV_FILE, SEED
+from settings import CSV_FILE, SEED, CHECKPOINT_DIR
 import torch.multiprocessing
+from datetime import datetime
 
 
 def main_conv3d(wandb, wandb_logger):
@@ -58,8 +61,13 @@ def main_resnet(wandb, wandb_logger, learning_rate=1e-3, weight_decay=1e-5, batc
         devices = 1
 
     # train the network
+    # datetime object containing current date and time
+    date_time = datetime.now()
+    dt_string = date_time.strftime("%d.%m.%Y-%H.%M")
+    checkpoint_callback = ModelCheckpoint(
+        dirpath=os.path.join(CHECKPOINT_DIR, 'resnet'), filename=dt_string+'-{epoch:03d}')
     trainer = Trainer(accelerator=accelerator, devices=devices,
-                      max_epochs=max_epochs, logger=wandb_logger)
+                      max_epochs=max_epochs, logger=wandb_logger, callbacks=[checkpoint_callback])
     trainer.fit(model, data)
 
 
@@ -87,8 +95,13 @@ def main_multimodal(wandb, wandb_logger, learning_rate=1e-3, weight_decay=1e-5, 
         devices = 1
 
     # train the network
+    # datetime object containing current date and time
+    date_time = datetime.now()
+    dt_string = date_time.strftime("%d.%m.%Y-%H.%M")
+    checkpoint_callback = ModelCheckpoint(
+        dirpath=os.path.join(CHECKPOINT_DIR, 'supervised'), filename=dt_string+'-{epoch:03d}')
     trainer = Trainer(accelerator=accelerator, devices=devices,
-                      max_epochs=max_epochs, logger=wandb_logger)
+                      max_epochs=max_epochs, logger=wandb_logger, callbacks=[checkpoint_callback])
     trainer.fit(model, data)
 
 
@@ -190,8 +203,13 @@ def main_contrastive_learning(wandb, wandb_logger, weight_decay, learning_rate=1
         devices = 1
 
     # train the network
+    # datetime object containing current date and time
+    date_time = datetime.now()
+    dt_string = date_time.strftime("%d.%m.%Y-%H.%M")
+    checkpoint_callback = ModelCheckpoint(
+        dirpath=os.path.join(CHECKPOINT_DIR, 'contrastive'), filename=dt_string+'-{epoch:03d}')
     trainer = Trainer(accelerator=accelerator, devices=devices,
-                      max_epochs=max_epochs, logger=wandb_logger)
+                      max_epochs=max_epochs, logger=wandb_logger, callbacks=[checkpoint_callback])
     trainer.fit(model, data)
 
 
@@ -214,15 +232,15 @@ if __name__ == '__main__':
 
     # run resnet
     main_resnet(wandb, wandb_logger, learning_rate=1e-4, weight_decay=1e-5,
-                batch_size=16, max_epochs=60, age=None, spatial_size=(120, 120, 120))
+                batch_size=16, max_epochs=100, age=None, spatial_size=(120, 120, 120))
 
     # run multimodal
     # main_multimodal(wandb, wandb_logger, learning_rate=1e-4, weight_decay=1e-5,
-    #                 batch_size=8, max_epochs=60, age=None, spatial_size=(120, 120, 120))
+    #                 batch_size=8, max_epochs=100, age=None, spatial_size=(120, 120, 120))
 
     # run kfold multimodal
-    # main_kfold_multimodal(wandb, wandb_logger, fold_number = 5, learning_rate=1e-3, batch_size=8, max_epochs=60, age=None)
+    # main_kfold_multimodal(wandb, wandb_logger, fold_number = 5, learning_rate=1e-3, batch_size=8, max_epochs=100, age=None)
 
     # run contrastive learning
     # main_contrastive_learning(wandb, wandb_logger, learning_rate=1e-4,
-    #                           weight_decay=1e-5, batch_size=8, max_epochs=60, spatial_size=(120, 120, 120), age=None)
+    #                           weight_decay=1e-5, batch_size=8, max_epochs=100, spatial_size=(120, 120, 120), age=None)

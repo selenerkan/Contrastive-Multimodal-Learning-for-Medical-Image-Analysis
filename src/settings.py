@@ -1,6 +1,7 @@
 IMAGE_PATH = r'C:\Users\Selen\Desktop\LMU\multimodal_network\data\adni\images\preprocessed'
 CSV_FILE = r"C:\Users\Selen\Desktop\LMU\multimodal_network\data\adni\tabular\adni_final.csv"
 TABULAR_DATA_FILE = r'C:\Users\Selen\Desktop\LMU\multimodal_network\data\adni\tabular'
+CHECKPOINT_DIR = r'C:\Users\Selen\Desktop\LMU\multimodal_network\src\models\checkpoints'
 
 FEATURES = ['age', 'gender_numeric', 'education', 'APOE4',
             'FDG', 'AV45', 'TAU', 'PTAU', 'MMSE', 'label_numeric',
