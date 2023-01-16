@@ -2,7 +2,8 @@ import torch
 from torch import nn
 from pytorch_lightning.core.module import LightningModule
 from torch.nn import functional as F
-from monai.networks.nets.resnet import resnet10, resnet18, resnet34, resnet50
+# from monai.networks.nets.resnet import resnet10, resnet18, resnet34, resnet50
+from models.model_blocks.resnet_block import ResNet
 from torch.nn import Softmax
 import torchmetrics
 
@@ -21,17 +22,13 @@ class ResNetModel(LightningModule):
 
         self.softmax = Softmax(dim=1)
 
-        self.resnet = resnet10(pretrained=False,
-                               spatial_dims=3,
-                               n_input_channels=1,
-                               )
+        self.resnet = ResNet()
 
         # add a new fc layer
-        self.fc1 = nn.Linear(400, 400)
-        self.fc2 = nn.Linear(400, 3)
+        self.fc = nn.Linear(32, 3)
 
         # combine the nets
-        self.net = nn.Sequential(self.resnet, self.fc1, self.fc2)
+        self.net = nn.Sequential(self.resnet, self.fc)
 
         # track accuracy
         self.train_macro_accuracy = torchmetrics.Accuracy(

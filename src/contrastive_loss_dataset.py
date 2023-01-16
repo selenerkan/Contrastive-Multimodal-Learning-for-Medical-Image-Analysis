@@ -87,6 +87,11 @@ class ContrastiveDataModule(pl.LightningDataModule):
         self.batch_size = batch_size
         self.spatial_size = spatial_size
 
+        self.num_workers = 0
+        if torch.cuda.is_available():
+            self.num_workers = 16
+        print(self.num_workers)
+
     def get_transforms(self):
         """Return a set of data augmentation transformations as described in the SimCLR paper."""
         data_transforms = transforms.Compose([
@@ -164,15 +169,15 @@ class ContrastiveDataModule(pl.LightningDataModule):
 
     def train_dataloader(self):
 
-        return DataLoader(self.train, batch_size=self.batch_size, shuffle=True, num_workers=16)
+        return DataLoader(self.train, batch_size=self.batch_size, shuffle=True, num_workers=self.num_workers)
 
     def val_dataloader(self):
 
-        return DataLoader(self.val, batch_size=self.batch_size, shuffle=False, num_workers=16)
+        return DataLoader(self.val, batch_size=self.batch_size, shuffle=False, num_workers=self.num_workers)
 
     def test_dataloader(self):
 
-        return DataLoader(self.test, batch_size=self.batch_size, shuffle=False, num_workers=16)
+        return DataLoader(self.test, batch_size=self.batch_size, shuffle=False, num_workers=self.num_workers)
 
 
 class ContrastiveLearningViewGenerator(object):

@@ -2,7 +2,8 @@ import torch
 from torch import nn
 from pytorch_lightning.core.module import LightningModule
 from torch.nn import functional as F
-from monai.networks.nets.resnet_group import resnet10, resnet18, resnet34, resnet50
+# from monai.networks.nets.resnet_group import resnet10, resnet18, resnet34, resnet50
+from models.model_blocks.resnet_block import ResNet
 
 import torchmetrics
 from pytorch_metric_learning import losses
@@ -22,16 +23,13 @@ class ContrastiveModel(LightningModule):
 
         # IMAGE DATA
         # output dimension is adapted from simCLR
-        self.resnet = resnet10(pretrained=False,
-                               spatial_dims=3,
-                               n_input_channels=1,
-                               )  # output features are 400
+        self.resnet = ResNet()  # output features are 32
 
         # TABULAR DATA
         # fc layer for tabular data
         self.fc1 = nn.Linear(13, 13)
 
-        # tabular + IMAGE DATA
+        # TABULAR + IMAGE DATA
         # mlp projection head which takes concatenated input
         resnet_out_dim = self.resnet.fc.out_features
         self.mlp = nn.Sequential(

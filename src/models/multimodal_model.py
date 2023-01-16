@@ -2,7 +2,8 @@ import torch
 from torch import nn
 from pytorch_lightning.core.module import LightningModule
 from torch.nn import functional as F
-from monai.networks.nets.resnet_group import resnet10, resnet18, resnet34, resnet50
+# from monai.networks.nets.resnet import resnet10, resnet18, resnet34, resnet50
+from models.model_blocks.resnet_block import ResNet
 import torchmetrics
 from torch.nn import Softmax
 
@@ -19,20 +20,19 @@ class MultiModModel(LightningModule):
         self.lr = learning_rate
         self.wd = weight_decay
 
+        # IMAGE
         # resnet module for image data
-        self.resnet = resnet10(pretrained=False,
-                               spatial_dims=3,
-                               n_input_channels=1,
-                               )
+        self.resnet = ResNet()
 
+        # TABULAR
         # fc layer for tabular data
         self.fc1 = nn.Linear(13, 13)
 
-        # first fc layer which takes concatenated imput
-        self.fc2 = nn.Linear(413, 413)
-
-        # final fc layer which takes concatenated imput
-        self.fc3 = nn.Linear(413, 3)
+        # TABULAR + IMAGE DATA
+        # mlp projection head which takes concatenated input
+        resnet_out_dim = self.resnet.fc.out_features
+        self.mlp = nn.Sequential(
+            nn.Linear(resnet_out_dim + 13, resnet_out_dim + 13), nn.ReLU(), nn.Linear(resnet_out_dim + 13, 3))
 
         # track accuracy
         self.train_macro_accuracy = torchmetrics.Accuracy(
@@ -60,8 +60,7 @@ class MultiModModel(LightningModule):
 
         # concat image and tabular data
         x = torch.cat((img, tab), dim=1)
-        x = F.relu(self.fc2(x))
-        out = self.fc3(x)
+        out = F.relu(self.mlp(x))
         out = torch.squeeze(out)
 
         return out
