@@ -12,3 +12,5 @@ data_analysis
 preprocessing
 notebooks
 slurm
+intalled_modules.txt
+checkpoints
