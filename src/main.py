@@ -7,9 +7,9 @@ from dataset import AdniDataModule
 from multimodal_dataset import MultimodalDataModule, KfoldMultimodalDataModule
 from contrastive_loss_dataset import ContrastiveDataModule
 
-from ResNet.model import ResNetModel
-from multimodal.multimodal_model import MultiModModel
-from multimodal.contrastive_learning_model import ContrastiveModel
+from models.resnet_model import ResNetModel
+from models.multimodal_model import MultiModModel
+from models.contrastive_learning_model import ContrastiveModel
 
 import torch
 from settings import CSV_FILE, SEED
