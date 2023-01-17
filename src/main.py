@@ -37,54 +37,57 @@ def main_conv3d(wandb, wandb_logger):
     trainer.fit(model, data)
 
 
-def main_resnet(learning_rate=1e-3, weight_decay=1e-5, batch_size=8, max_epochs=60, age=None, spatial_size=(120, 120, 120)):
+def main_resnet(config=None):
     '''
     main function to run the resnet architecture
     '''
 
-    wandb.init(project="multimodal_training", entity="multimodal_network")
-    wandb_logger = WandbLogger()
+    with wandb.init(config=config):
+        config = wandb.config
 
-    # ge the model
-    model = ResNetModel(learning_rate=learning_rate, weight_decay=weight_decay)
+        wandb_logger = WandbLogger()
 
-    csv_dir = CSV_FILE
+        # ge the model
+        model = ResNetModel(learning_rate=config.learning_rate,
+                            weight_decay=config.weight_decay)
 
-    # load the data
-    data = AdniDataModule(
-        csv_dir, age=age, batch_size=batch_size, spatial_size=spatial_size)
+        csv_dir = CSV_FILE
 
-    # Optional
-    wandb.watch(model, log="all")
+        # load the data
+        data = AdniDataModule(
+            csv_dir, age=age, batch_size=batch_size, spatial_size=spatial_size)
 
-    accelerator = 'cpu'
-    devices = None
-    if torch.cuda.is_available():
-        accelerator = 'gpu'
-        devices = 1
+        # Optional
+        wandb.watch(model, log="all")
 
-    # train the network
-    # datetime object containing current date and time
-    date_time = datetime.now()
-    dt_string = date_time.strftime("%d.%m.%Y-%H.%M")
-    checkpoint_callback = ModelCheckpoint(
-        dirpath=os.path.join(CHECKPOINT_DIR, 'resnet'), filename=dt_string+'-{epoch:03d}')
+        accelerator = 'cpu'
+        devices = None
+        if torch.cuda.is_available():
+            accelerator = 'gpu'
+            devices = 1
 
-    trainer = Trainer(accelerator=accelerator, devices=devices,
-                      max_epochs=max_epochs, logger=wandb_logger, callbacks=[checkpoint_callback], log_every_n_steps=10)
+        # train the network
+        # datetime object containing current date and time
+        date_time = datetime.now()
+        dt_string = date_time.strftime("%d.%m.%Y-%H.%M")
+        checkpoint_callback = ModelCheckpoint(
+            dirpath=os.path.join(CHECKPOINT_DIR, 'resnet'), filename=dt_string+'-{epoch:03d}')
 
-    # trainer = Trainer(accelerator=accelerator, devices=devices,
-    #                   max_epochs=max_epochs, logger=wandb_logger, callbacks=[checkpoint_callback], auto_lr_find='lr', log_every_n_steps=10)
+        trainer = Trainer(accelerator=accelerator, devices=devices,
+                          max_epochs=max_epochs, logger=wandb_logger, callbacks=[checkpoint_callback], log_every_n_steps=10)
 
-    # lr_finder = trainer.tuner.lr_find(
-    #     model=model, datamodule=data, min_lr=1e-4, max_lr=0.01, num_training=200, mode='linear')
+        # trainer = Trainer(accelerator=accelerator, devices=devices,
+        #                   max_epochs=max_epochs, logger=wandb_logger, callbacks=[checkpoint_callback], auto_lr_find='lr', log_every_n_steps=10)
 
-    # print('found learning rate= ', lr_finder.suggestion())
+        # lr_finder = trainer.tuner.lr_find(
+        #     model=model, datamodule=data, min_lr=1e-4, max_lr=0.01, num_training=200, mode='linear')
 
-    # # get the model
-    # model.hparams.learning_rate = lr_finder.suggestion()
+        # print('found learning rate= ', lr_finder.suggestion())
 
-    trainer.fit(model, data)
+        # # get the model
+        # model.hparams.learning_rate = lr_finder.suggestion()
+
+        trainer.fit(model, data)
 
 
 def main_multimodal(wandb, wandb_logger, learning_rate=1e-3, weight_decay=1e-5, batch_size=8, max_epochs=60, age=None, spatial_size=(120, 120, 120)):
@@ -259,8 +262,9 @@ if __name__ == '__main__':
         'parameters': {
             'batch_size': {'value': 16},
             'max_epochs': {'value': 10},
+            'epochs': {'value': 5},
             'age': {'value': None},
-            'spatial_size': {'value': (120, 120, 120)},
+            'spatial_size': {'value': [(120, 120, 120)]},
             'learning_rate': {'values': [0.03, 0.01, 0.003, 0.001, 0.0001]},
             'weight_decay': {'values': [1e-3, 1e-4, 1e-5]},
         },
@@ -270,7 +274,7 @@ if __name__ == '__main__':
     # sweep
     sweep_id = wandb.sweep(
         sweep_config, project="multimodal_training", entity="multimodal_network")
-    wandb.agent(sweep_id, function=main_resnet, count=10)
+    wandb.agent(sweep_id, function=main_resnet, count=5)
     wandb.finish()
     # # run conv3d
     # main_conv3d(wandb, wandb_logger)
