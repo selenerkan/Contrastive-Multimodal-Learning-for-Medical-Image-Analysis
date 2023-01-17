@@ -67,10 +67,10 @@ def main_resnet(wandb, wandb_logger, learning_rate=1e-3, weight_decay=1e-5, batc
         dirpath=os.path.join(CHECKPOINT_DIR, 'resnet'), filename=dt_string+'-{epoch:03d}')
 
     trainer = Trainer(accelerator=accelerator, devices=devices,
-                      max_epochs=max_epochs, logger=wandb_logger, callbacks=[checkpoint_callback], auto_lr_find='lr')
+                      max_epochs=max_epochs, logger=wandb_logger, callbacks=[checkpoint_callback], auto_lr_find='lr', log_every_n_steps=10)
 
     lr_finder = trainer.tuner.lr_find(
-        model=model, datamodule=data, min_lr=1e-4, max_lr=0.01, num_training=300)
+        model=model, datamodule=data, min_lr=1e-4, max_lr=0.01, num_training=200)
 
     print('found learning rate= ', lr_finder.suggestion())
 
@@ -111,10 +111,10 @@ def main_multimodal(wandb, wandb_logger, learning_rate=1e-3, weight_decay=1e-5, 
         dirpath=os.path.join(CHECKPOINT_DIR, 'supervised'), filename=dt_string+'-{epoch:03d}')
 
     trainer = Trainer(accelerator=accelerator, devices=devices,
-                      max_epochs=max_epochs, logger=wandb_logger, callbacks=[checkpoint_callback], auto_lr_find='lr')
+                      max_epochs=max_epochs, logger=wandb_logger, callbacks=[checkpoint_callback], auto_lr_find='lr', log_every_n_steps=10)
 
     lr_finder = trainer.tuner.lr_find(
-        model=model, datamodule=data, min_lr=1e-4, max_lr=0.01, num_training=300)
+        model=model, datamodule=data, min_lr=1e-4, max_lr=0.01, num_training=200)
 
     print('found learning rate= ', lr_finder.suggestion())
 
@@ -228,7 +228,7 @@ def main_contrastive_learning(wandb, wandb_logger, weight_decay, learning_rate=1
     checkpoint_callback = ModelCheckpoint(
         dirpath=os.path.join(CHECKPOINT_DIR, 'contrastive'), filename=dt_string+'-{epoch:03d}')
     trainer = Trainer(accelerator=accelerator, devices=devices,
-                      max_epochs=max_epochs, logger=wandb_logger, callbacks=[checkpoint_callback])
+                      max_epochs=max_epochs, logger=wandb_logger, callbacks=[checkpoint_callback], log_every_n_steps=10)
     trainer.fit(model, data)
 
 
