@@ -228,14 +228,14 @@ def run_grid_search(network):
             'epochs': {'value': 5},
             'age': {'value': None},
             'spatial_size': {'value': (120, 120, 120)},
-            'learning_rate': {'values': [0.01, 0.003, 0.001, 0.0003, 0.0001]},
-            'weight_decay': {'values': [1e-2, 1e-3, 1e-4, 1e-5, 1e-6]},
+            'learning_rate': {'values': [0.01, 0.001, 0.0001]},
+            'weight_decay': {'values': [1e-3, 1e-4, 1e-5, 1e-6]},
         },
         'early_terminate': {'type': 'hyperband', 'min_iter': 3}
     }
 
-    count = len(sweep_config.parameters.learning_rate) * \
-        len(sweep_config.parameters.weight_decay)
+    count = len(sweep_config['parameters']['learning_rate']['values']) * \
+        len(sweep_config['parameters']['weight_decay']['values'])
 
     # sweep
     sweep_id = wandb.sweep(
@@ -277,7 +277,7 @@ def grid_search(config=None):
                                   weight_decay=config.weight_decay)
             # load the data
             data = MultimodalDataModule(
-                CSV_FILE, age=config.age, batch_size=config.batch_size, spatial_size=config.spatial_size)
+                CSV_FILE, age=config.age, batch_size=8, spatial_size=config.spatial_size)
 
         accelerator = 'cpu'
         devices = None
@@ -301,7 +301,7 @@ if __name__ == '__main__':
     # main_resnet(resnet_config)
 
     # run multimodal
-    main_multimodal(supervised_config)
+    # main_multimodal(supervised_config)
 
     # run contrastive learning
     # main_contrastive_learning(contrastive_config)
@@ -310,4 +310,4 @@ if __name__ == '__main__':
     # main_kfold_multimodal(wandb, wandb_logger, fold_number = 5, learning_rate=1e-3, batch_size=8, max_epochs=100, age=None)
 
     # run grid search
-    # run_grid_search('supervised')
+    run_grid_search('supervised')
