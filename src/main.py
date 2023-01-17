@@ -42,12 +42,13 @@ def main_resnet(wandb, wandb_logger, learning_rate=1e-3, weight_decay=1e-5, batc
     main function to run the resnet architecture
     '''
     # ge the model
-    model = ResNetModel(learning_rate=learning_rate,
-                        weight_decay=weight_decay)
+    model = ResNetModel(weight_decay=weight_decay)
 
     csv_dir = CSV_FILE
 
     # load the data
+    data_tuning = AdniDataModule(
+        csv_dir, age=age, batch_size=1, spatial_size=spatial_size)
     data = AdniDataModule(
         csv_dir, age=age, batch_size=batch_size, spatial_size=spatial_size)
 
@@ -66,8 +67,22 @@ def main_resnet(wandb, wandb_logger, learning_rate=1e-3, weight_decay=1e-5, batc
     dt_string = date_time.strftime("%d.%m.%Y-%H.%M")
     checkpoint_callback = ModelCheckpoint(
         dirpath=os.path.join(CHECKPOINT_DIR, 'resnet'), filename=dt_string+'-{epoch:03d}')
+
     trainer = Trainer(accelerator=accelerator, devices=devices,
-                      max_epochs=max_epochs, logger=wandb_logger, callbacks=[checkpoint_callback])
+                      max_epochs=max_epochs, logger=wandb_logger, callbacks=[checkpoint_callback], auto_lr_find='lr')
+
+    lr_finder = trainer.tuner.lr_find(
+        model=model, datamodule=data_tuning, min_lr=1e-4, max_lr=0.01, num_training=100)
+
+    fig = lr_finder.plot(suggest=True)
+    fig.show()
+
+    print('found learning rate= ', lr_finder.suggestion())
+
+    # ge the model
+    model = ResNetModel(weight_decay=weight_decay)
+    model.hparams.learning_rate = lr_finder.suggestion()
+
     trainer.fit(model, data)
 
 

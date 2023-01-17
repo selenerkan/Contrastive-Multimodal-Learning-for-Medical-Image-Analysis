@@ -13,7 +13,7 @@ class ResNetModel(LightningModule):
     Resnet Model Class including the training, validation and testing steps
     '''
 
-    def __init__(self, learning_rate, weight_decay):
+    def __init__(self, learning_rate=1e-3, weight_decay=1e-5):
 
         super().__init__()
 
