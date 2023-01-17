@@ -18,35 +18,32 @@ VAL_SIZE = 1
 TEST_SIZE = 1
 
 resnet_config = {
-    'parameters': {
-        'batch_size': {'value': 16},
-        'max_epochs': {'value': 100},
-        'epochs': {'value': 5},
-        'age': {'value': None},
-        'spatial_size': {'value': (120, 120, 120)},
-        'learning_rate': {'value': 0.0001},
-        'weight_decay': {'value': 1e-4},
-    }}
+    'batch_size': 16,
+    'max_epochs': 100,
+    'epochs': 5,
+    'age': None,
+    'spatial_size': (120, 120, 120),
+    'learning_rate': 0.0001,
+    'weight_decay': 1e-4,
+}
 
 
 supervised_config = {
-    'parameters': {
-        'batch_size': {'value': 16},
-        'max_epochs': {'value': 100},
-        'epochs': {'value': 5},
-        'age': {'value': None},
-        'spatial_size': {'value': (120, 120, 120)},
-        'learning_rate': {'value': 0.0001},
-        'weight_decay': {'value': 1e-4},
-    }}
+    'batch_size': 16,
+    'max_epochs': 100,
+    'epochs': 5,
+    'age': None,
+    'spatial_size': (120, 120, 120),
+    'learning_rate': 0.0001,
+    'weight_decay': 1e-4,
+}
 
 contrastive_config = {
-    'parameters': {
-        'batch_size': {'value': 8},
-        'max_epochs': {'value': 100},
-        'epochs': {'value': 5},
-        'age': {'value': None},
-        'spatial_size': {'value': (120, 120, 120)},
-        'learning_rate': {'value': 0.0001},
-        'weight_decay': {'value': 1e-4},
-    }}
+    'batch_size': 8,
+    'max_epochs': 100,
+    'epochs': 5,
+    'age': None,
+    'spatial_size': (120, 120, 120),
+    'learning_rate': 0.0001,
+    'weight_decay': 1e-4,
+}

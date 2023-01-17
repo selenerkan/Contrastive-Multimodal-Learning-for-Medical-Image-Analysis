@@ -41,7 +41,8 @@ def main_resnet(config=None):
     '''
     main function to run the resnet architecture
     '''
-    wandb.init(project="multimodal_training", entity="multimodal_network")
+    wandb.init(project="multimodal_training",
+               entity="multimodal_network", config=config)
     wandb_logger = WandbLogger()
 
     # get the model
@@ -75,7 +76,8 @@ def main_multimodal(config=None):
     '''
     main function to run the multimodal architecture
     '''
-    wandb.init(project="multimodal_training", entity="multimodal_network")
+    wandb.init(project="multimodal_training",
+               entity="multimodal_network", config=config)
     wandb_logger = WandbLogger()
 
     # get the model
@@ -183,7 +185,8 @@ def main_contrastive_learning(config=None):
     '''
     main function to run the multimodal architecture
     '''
-    wandb.init(project="multimodal_training", entity="multimodal_network")
+    wandb.init(project="multimodal_training",
+               entity="multimodal_network", config=config)
     wandb_logger = WandbLogger()
 
     # get the model
