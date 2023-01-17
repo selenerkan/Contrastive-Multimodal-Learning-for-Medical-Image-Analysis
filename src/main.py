@@ -12,6 +12,7 @@ from contrastive_loss_dataset import ContrastiveDataModule
 from models.resnet_model import ResNetModel
 from models.multimodal_model import MultiModModel
 from models.contrastive_learning_model import ContrastiveModel
+from pytorch_lightning.callbacks import LearningRateMonitor
 
 import torch
 from settings import CSV_FILE, SEED, CHECKPOINT_DIR, resnet_config, supervised_config, contrastive_config
@@ -102,8 +103,10 @@ def main_multimodal(config=None):
     checkpoint_callback = ModelCheckpoint(
         dirpath=os.path.join(CHECKPOINT_DIR, 'supervised'), filename=dt_string+'-{epoch:03d}')
 
+    # Add learning rate scheduler monitoring
+    lr_monitor = LearningRateMonitor(logging_interval='epoch')
     trainer = Trainer(accelerator=accelerator, devices=devices,
-                      max_epochs=wandb.config.max_epochs, logger=wandb_logger, callbacks=[checkpoint_callback], log_every_n_steps=10)
+                      max_epochs=wandb.config.max_epochs, logger=wandb_logger, callbacks=[checkpoint_callback, lr_monitor], log_every_n_steps=10)
     trainer.fit(model, data)
 
 

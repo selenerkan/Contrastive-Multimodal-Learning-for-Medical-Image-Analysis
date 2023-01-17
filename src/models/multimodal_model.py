@@ -6,6 +6,7 @@ from torch.nn import functional as F
 from models.model_blocks.resnet_block import ResNet
 import torchmetrics
 from torch.nn import Softmax
+from torch.optim.lr_scheduler import ExponentialLR
 
 
 class MultiModModel(LightningModule):
@@ -16,7 +17,8 @@ class MultiModModel(LightningModule):
     def __init__(self, learning_rate, weight_decay=1e-5):
 
         super().__init__()
-
+        # turn off automatic schedular
+        self.automatic_optimization = False
         self.lr = learning_rate
         self.wd = weight_decay
 
@@ -70,8 +72,9 @@ class MultiModModel(LightningModule):
 
         optimizer = torch.optim.Adam(
             self.parameters(), lr=self.lr, weight_decay=self.wd)
+        scheduler = ExponentialLR(optimizer, gamma=0.1)
 
-        return optimizer
+        return optimizer, scheduler
 
     def training_step(self, batch, batch_idx):
 
@@ -96,6 +99,12 @@ class MultiModModel(LightningModule):
         # calculate and log accuracy
         train_acc = self.train_macro_accuracy(pred_label, y)
         self.log('train_macro_acc', train_acc, on_epoch=True, on_step=False)
+
+        # add lr scheduling
+        # step every 20 epochs
+        sch = self.lr_schedulers()
+        if self.trainer.is_last_batch and (self.trainer.current_epoch + 1) % 20 == 0:
+            sch.step()
 
         return loss
 
