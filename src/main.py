@@ -258,19 +258,20 @@ if __name__ == '__main__':
         'metric': {'goal': 'minimize', 'name': 'val_epoch_loss'},
         'parameters': {
             'batch_size': {'value': 16},
-            'max_epochs': {'value': 100},
+            'max_epochs': {'value': 10},
             'age': {'value': None},
             'spatial_size': {'value': (120, 120, 120)},
             'learning_rate': {'values': [0.03, 0.01, 0.003, 0.001, 0.0001]},
             'weight_decay': {'values': [1e-3, 1e-4, 1e-5]},
-        }
+        },
+        'early_terminate': {'type': 'hyperband', 'min_iter': 3}
     }
 
     # sweep
     sweep_id = wandb.sweep(
         sweep_config, project="multimodal_training", entity="multimodal_network")
     wandb.agent(sweep_id, function=main_resnet, count=10)
-
+    wandb.finish()
     # # run conv3d
     # main_conv3d(wandb, wandb_logger)
 
