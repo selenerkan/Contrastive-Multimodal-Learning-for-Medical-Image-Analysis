@@ -11,8 +11,42 @@ TARGET = 'label_numeric'
 
 IMAGE_SIZE = (182, 218, 182)
 
-SEED = 42
+SEED = 473
 
 TRAIN_SIZE = 1
 VAL_SIZE = 1
 TEST_SIZE = 1
+
+resnet_config = {
+    'parameters': {
+        'batch_size': {'value': 16},
+        'max_epochs': {'value': 100},
+        'epochs': {'value': 5},
+        'age': {'value': None},
+        'spatial_size': {'value': (120, 120, 120)},
+        'learning_rate': {'value': 0.0001},
+        'weight_decay': {'value': 1e-4},
+    }}
+
+
+supervised_config = {
+    'parameters': {
+        'batch_size': {'value': 16},
+        'max_epochs': {'value': 100},
+        'epochs': {'value': 5},
+        'age': {'value': None},
+        'spatial_size': {'value': (120, 120, 120)},
+        'learning_rate': {'value': 0.0001},
+        'weight_decay': {'value': 1e-4},
+    }}
+
+contrastive_config = {
+    'parameters': {
+        'batch_size': {'value': 8},
+        'max_epochs': {'value': 100},
+        'epochs': {'value': 5},
+        'age': {'value': None},
+        'spatial_size': {'value': (120, 120, 120)},
+        'learning_rate': {'value': 0.0001},
+        'weight_decay': {'value': 1e-4},
+    }}

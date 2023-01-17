@@ -14,7 +14,7 @@ from models.multimodal_model import MultiModModel
 from models.contrastive_learning_model import ContrastiveModel
 
 import torch
-from settings import CSV_FILE, SEED, CHECKPOINT_DIR
+from settings import CSV_FILE, SEED, CHECKPOINT_DIR, resnet_config, supervised_config, contrastive_config
 import torch.multiprocessing
 from datetime import datetime
 
@@ -41,71 +41,17 @@ def main_resnet(config=None):
     '''
     main function to run the resnet architecture
     '''
+    wandb.init(project="multimodal_training", entity="multimodal_network")
+    wandb_logger = WandbLogger()
+    wandb.watch(model, log="all")
 
-    with wandb.init(config=config):
-        config = wandb.config
-
-        wandb_logger = WandbLogger()
-
-        # ge the model
-        model = ResNetModel(learning_rate=config.learning_rate,
-                            weight_decay=config.weight_decay)
-
-        csv_dir = CSV_FILE
-
-        # load the data
-        data = AdniDataModule(
-            csv_dir, age=config.age, batch_size=config.batch_size, spatial_size=config.spatial_size)
-
-        # Optional
-        wandb.watch(model, log="all")
-
-        accelerator = 'cpu'
-        devices = None
-        if torch.cuda.is_available():
-            accelerator = 'gpu'
-            devices = 1
-
-        # train the network
-        # datetime object containing current date and time
-        date_time = datetime.now()
-        dt_string = date_time.strftime("%d.%m.%Y-%H.%M")
-        checkpoint_callback = ModelCheckpoint(
-            dirpath=os.path.join(CHECKPOINT_DIR, 'resnet'), filename=dt_string+'-{epoch:03d}')
-
-        trainer = Trainer(accelerator=accelerator, devices=devices,
-                          max_epochs=config.max_epochs, logger=wandb_logger, callbacks=[checkpoint_callback], log_every_n_steps=10)
-
-        # trainer = Trainer(accelerator=accelerator, devices=devices,
-        #                   max_epochs=max_epochs, logger=wandb_logger, callbacks=[checkpoint_callback], auto_lr_find='lr', log_every_n_steps=10)
-
-        # lr_finder = trainer.tuner.lr_find(
-        #     model=model, datamodule=data, min_lr=1e-4, max_lr=0.01, num_training=200, mode='linear')
-
-        # print('found learning rate= ', lr_finder.suggestion())
-
-        # # get the model
-        # model.hparams.learning_rate = lr_finder.suggestion()
-
-        trainer.fit(model, data)
-
-
-def main_multimodal(wandb, wandb_logger, learning_rate=1e-3, weight_decay=1e-5, batch_size=8, max_epochs=60, age=None, spatial_size=(120, 120, 120)):
-    '''
-    main function to run the multimodal architecture
-    '''
     # get the model
-    model = MultiModModel(learning_rate=learning_rate,
-                          weight_decay=weight_decay)
-
-    csv_dir = CSV_FILE
+    model = ResNetModel(learning_rate=config.learning_rate,
+                        weight_decay=config.weight_decay)
 
     # load the data
-    data = MultimodalDataModule(
-        csv_dir, age=age, batch_size=batch_size, spatial_size=spatial_size)
-
-    # Optional
-    wandb.watch(model, log="all")
+    data = AdniDataModule(
+        CSV_FILE, age=config.age, batch_size=config.batch_size, spatial_size=config.spatial_size)
 
     accelerator = 'cpu'
     devices = None
@@ -113,24 +59,49 @@ def main_multimodal(wandb, wandb_logger, learning_rate=1e-3, weight_decay=1e-5, 
         accelerator = 'gpu'
         devices = 1
 
-    # train the network
-    # datetime object containing current date and time
+    # save the checkpoint in a different folder
+    # use datetime value in the file name
+    date_time = datetime.now()
+    dt_string = date_time.strftime("%d.%m.%Y-%H.%M")
+    checkpoint_callback = ModelCheckpoint(
+        dirpath=os.path.join(CHECKPOINT_DIR, 'resnet'), filename=dt_string+'-{epoch:03d}')
+
+    trainer = Trainer(accelerator=accelerator, devices=devices,
+                      max_epochs=config.max_epochs, logger=wandb_logger, callbacks=[checkpoint_callback], log_every_n_steps=10)
+    trainer.fit(model, data)
+
+
+def main_multimodal(config=None):
+    '''
+    main function to run the multimodal architecture
+    '''
+    wandb.init(project="multimodal_training", entity="multimodal_network")
+    wandb_logger = WandbLogger()
+    wandb.watch(model, log="all")
+
+    # get the model
+    model = MultiModModel(learning_rate=config.learning_rate,
+                          weight_decay=config.weight_decay)
+
+    # load the data
+    data = MultimodalDataModule(
+        CSV_FILE, age=config.age, batch_size=config.batch_size, spatial_size=config.spatial_size)
+
+    accelerator = 'cpu'
+    devices = None
+    if torch.cuda.is_available():
+        accelerator = 'gpu'
+        devices = 1
+
+    # save the checkpoint in a different folder
+    # use datetime value in the file name
     date_time = datetime.now()
     dt_string = date_time.strftime("%d.%m.%Y-%H.%M")
     checkpoint_callback = ModelCheckpoint(
         dirpath=os.path.join(CHECKPOINT_DIR, 'supervised'), filename=dt_string+'-{epoch:03d}')
 
     trainer = Trainer(accelerator=accelerator, devices=devices,
-                      max_epochs=max_epochs, logger=wandb_logger, callbacks=[checkpoint_callback], auto_lr_find='lr', log_every_n_steps=10)
-
-    lr_finder = trainer.tuner.lr_find(
-        model=model, datamodule=data, min_lr=1e-4, max_lr=0.01, num_training=200)
-
-    print('found learning rate= ', lr_finder.suggestion())
-
-    # ge the model
-    model.hparams.learning_rate = lr_finder.suggestion()
-
+                      max_epochs=config.max_epochs, logger=wandb_logger, callbacks=[checkpoint_callback], log_every_n_steps=10)
     trainer.fit(model, data)
 
 
@@ -208,22 +179,20 @@ def main_kfold_multimodal(wandb, wandb_logger, fold_number=2, learning_rate=1e-3
     # wandb.log({"Mean score":scores.mean()})
 
 
-def main_contrastive_learning(wandb, wandb_logger, weight_decay, learning_rate=1e-3, batch_size=8, max_epochs=60, spatial_size=(120, 120, 120), age=None):
+def main_contrastive_learning(config=None):
     '''
     main function to run the multimodal architecture
     '''
+    wandb.init(project="multimodal_training", entity="multimodal_network")
+    wandb_logger = WandbLogger()
+    wandb.watch(model, log="all")
+
     # get the model
     model = ContrastiveModel(
-        learning_rate=learning_rate, weight_decay=weight_decay)
-
-    csv_dir = CSV_FILE
-
+        learning_rate=config.learning_rate, weight_decay=config.weight_decay)
     # load the data
     data = ContrastiveDataModule(
-        csv_dir, age=age, batch_size=batch_size, spatial_size=spatial_size)
-
-    # Optional
-    wandb.watch(model, log="all")
+        CSV_FILE, age=config.age, batch_size=config.batch_size, spatial_size=config.spatial_size)
 
     accelerator = 'cpu'
     devices = None
@@ -231,65 +200,110 @@ def main_contrastive_learning(wandb, wandb_logger, weight_decay, learning_rate=1
         accelerator = 'gpu'
         devices = 1
 
-    # train the network
-    # datetime object containing current date and time
+    # save the checkpoint in a different folder
+    # use datetime value in the file name
     date_time = datetime.now()
     dt_string = date_time.strftime("%d.%m.%Y-%H.%M")
     checkpoint_callback = ModelCheckpoint(
         dirpath=os.path.join(CHECKPOINT_DIR, 'contrastive'), filename=dt_string+'-{epoch:03d}')
+
     trainer = Trainer(accelerator=accelerator, devices=devices,
-                      max_epochs=max_epochs, logger=wandb_logger, callbacks=[checkpoint_callback], log_every_n_steps=10)
+                      max_epochs=config.max_epochs, logger=wandb_logger, callbacks=[checkpoint_callback], log_every_n_steps=10)
     trainer.fit(model, data)
 
 
-if __name__ == '__main__':
-
-    # create wandb objects to track runs
-    # wandb.init(project="multimodal-network-test")
-
-    # set the seed of the environment
-    # Function that sets seed for pseudo-random number generators in: pytorch, numpy, python.random
-    # seed_everything(SEED, workers=True)
-
-    torch.multiprocessing.set_sharing_strategy('file_system')
-
-    # wandb.init(project="multimodal_training", entity="multimodal_network")
-    # wandb_logger = WandbLogger()
+def run_grid_search(network):
 
     sweep_config = {
         'method': 'grid',
         'metric': {'goal': 'minimize', 'name': 'val_epoch_loss'},
         'parameters': {
+            'network': {'value': 'supervised'},
             'batch_size': {'value': 16},
             'max_epochs': {'value': 10},
             'epochs': {'value': 5},
             'age': {'value': None},
-            'spatial_size': {'value': [(120, 120, 120)]},
-            'learning_rate': {'values': [0.03, 0.01, 0.003, 0.001, 0.0001]},
-            'weight_decay': {'values': [1e-3, 1e-4, 1e-5]},
+            'spatial_size': {'value': (120, 120, 120)},
+            'learning_rate': {'values': [0.03, 0.01, 0.003, 0.001, 0.0003, 0.0001]},
+            'weight_decay': {'values': [1e-2, 1e-3, 1e-4, 1e-5, 1e-6]},
         },
         'early_terminate': {'type': 'hyperband', 'min_iter': 3}
     }
 
+    count = len(sweep_config.parameters.learning_rate) * \
+        len(sweep_config.parameters.weight_decay)
+
     # sweep
     sweep_id = wandb.sweep(
         sweep_config, project="multimodal_training", entity="multimodal_network")
-    wandb.agent(sweep_id, function=main_resnet, count=5)
+    wandb.agent(sweep_id, function=grid_search, count=count)
     wandb.finish()
-    # # run conv3d
-    # main_conv3d(wandb, wandb_logger)
+
+
+def grid_search(config=None):
+    '''
+    main function to run grif search on the models
+    '''
+
+    with wandb.init(config=config):
+
+        config = wandb.config
+        wandb_logger = WandbLogger()
+        wandb.watch(model, log="all")
+
+        if config.network == 'resnet':
+            # get the model
+            model = ResNetModel(learning_rate=config.learning_rate,
+                                weight_decay=config.weight_decay)
+            # load the data
+            data = AdniDataModule(
+                CSV_FILE, age=config.age, batch_size=config.batch_size, spatial_size=config.spatial_size)
+
+        elif config.network == 'supervised':
+            # get the model
+            model = MultiModModel(learning_rate=config.learning_rate,
+                                  weight_decay=config.weight_decay)
+            # load the data
+            data = MultimodalDataModule(
+                CSV_FILE, age=config.age, batch_size=config.batch_size, spatial_size=config.spatial_size)
+
+        elif config.network == 'contrastive':
+            # get the model
+            model = MultiModModel(learning_rate=config.learning_rate,
+                                  weight_decay=config.weight_decay)
+            # load the data
+            data = MultimodalDataModule(
+                CSV_FILE, age=config.age, batch_size=config.batch_size, spatial_size=config.spatial_size)
+
+        accelerator = 'cpu'
+        devices = None
+        if torch.cuda.is_available():
+            accelerator = 'gpu'
+            devices = 1
+
+        trainer = Trainer(accelerator=accelerator, devices=devices,
+                          max_epochs=config.max_epochs, logger=wandb_logger, log_every_n_steps=10)
+        trainer.fit(model, data)
+
+
+if __name__ == '__main__':
+
+    # set the seed of the environment
+    # Function that sets seed for pseudo-random number generators in: pytorch, numpy, python.random
+    seed_everything(SEED, workers=True)
+    torch.multiprocessing.set_sharing_strategy('file_system')
 
     # run resnet
-    # main_resnet(wandb, wandb_logger, learning_rate=1e-4, weight_decay=1e-5,
-    #             batch_size=16, max_epochs=100, age=None, spatial_size=(120, 120, 120))
+    # main_resnet(resnet_config)
 
     # run multimodal
-    # main_multimodal(wandb, wandb_logger, learning_rate=1e-4, weight_decay=1e-5,
-    #                 batch_size=8, max_epochs=100, age=None, spatial_size=(120, 120, 120))
+    # main_multimodal(supervised_config)
+
+    # run contrastive learning
+    # main_contrastive_learning(contrastive_config)
 
     # run kfold multimodal
     # main_kfold_multimodal(wandb, wandb_logger, fold_number = 5, learning_rate=1e-3, batch_size=8, max_epochs=100, age=None)
 
-    # run contrastive learning
-    # main_contrastive_learning(wandb, wandb_logger, learning_rate=1e-4,
-    #                           weight_decay=1e-5, batch_size=8, max_epochs=100, spatial_size=(120, 120, 120), age=None)
+    # run grid search
+    run_grid_search('supervised')
