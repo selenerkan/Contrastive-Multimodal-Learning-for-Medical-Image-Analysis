@@ -55,7 +55,7 @@ def main_resnet(config=None):
 
         # load the data
         data = AdniDataModule(
-            csv_dir, age=age, batch_size=batch_size, spatial_size=spatial_size)
+            csv_dir, age=config.age, batch_size=config.batch_size, spatial_size=config.spatial_size)
 
         # Optional
         wandb.watch(model, log="all")
@@ -74,7 +74,7 @@ def main_resnet(config=None):
             dirpath=os.path.join(CHECKPOINT_DIR, 'resnet'), filename=dt_string+'-{epoch:03d}')
 
         trainer = Trainer(accelerator=accelerator, devices=devices,
-                          max_epochs=max_epochs, logger=wandb_logger, callbacks=[checkpoint_callback], log_every_n_steps=10)
+                          max_epochs=config.max_epochs, logger=wandb_logger, callbacks=[checkpoint_callback], log_every_n_steps=10)
 
         # trainer = Trainer(accelerator=accelerator, devices=devices,
         #                   max_epochs=max_epochs, logger=wandb_logger, callbacks=[checkpoint_callback], auto_lr_find='lr', log_every_n_steps=10)
