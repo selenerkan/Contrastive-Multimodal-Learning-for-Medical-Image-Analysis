@@ -37,10 +37,14 @@ def main_conv3d(wandb, wandb_logger):
     trainer.fit(model, data)
 
 
-def main_resnet(wandb, wandb_logger, learning_rate=1e-3, weight_decay=1e-5, batch_size=8, max_epochs=60, age=None, spatial_size=(120, 120, 120)):
+def main_resnet(learning_rate=1e-3, weight_decay=1e-5, batch_size=8, max_epochs=60, age=None, spatial_size=(120, 120, 120)):
     '''
     main function to run the resnet architecture
     '''
+
+    wandb.init(project="multimodal_training", entity="multimodal_network")
+    wandb_logger = WandbLogger()
+
     # ge the model
     model = ResNetModel(learning_rate=learning_rate, weight_decay=weight_decay)
 
@@ -67,15 +71,18 @@ def main_resnet(wandb, wandb_logger, learning_rate=1e-3, weight_decay=1e-5, batc
         dirpath=os.path.join(CHECKPOINT_DIR, 'resnet'), filename=dt_string+'-{epoch:03d}')
 
     trainer = Trainer(accelerator=accelerator, devices=devices,
-                      max_epochs=max_epochs, logger=wandb_logger, callbacks=[checkpoint_callback], auto_lr_find='lr', log_every_n_steps=10)
+                      max_epochs=max_epochs, logger=wandb_logger, callbacks=[checkpoint_callback], log_every_n_steps=10)
 
-    lr_finder = trainer.tuner.lr_find(
-        model=model, datamodule=data, min_lr=1e-4, max_lr=0.01, num_training=200)
+    # trainer = Trainer(accelerator=accelerator, devices=devices,
+    #                   max_epochs=max_epochs, logger=wandb_logger, callbacks=[checkpoint_callback], auto_lr_find='lr', log_every_n_steps=10)
 
-    print('found learning rate= ', lr_finder.suggestion())
+    # lr_finder = trainer.tuner.lr_find(
+    #     model=model, datamodule=data, min_lr=1e-4, max_lr=0.01, num_training=200, mode='linear')
 
-    # ge the model
-    model.hparams.learning_rate = lr_finder.suggestion()
+    # print('found learning rate= ', lr_finder.suggestion())
+
+    # # get the model
+    # model.hparams.learning_rate = lr_finder.suggestion()
 
     trainer.fit(model, data)
 
@@ -243,15 +250,33 @@ if __name__ == '__main__':
 
     torch.multiprocessing.set_sharing_strategy('file_system')
 
-    wandb.init(project="multimodal_training", entity="multimodal_network")
-    wandb_logger = WandbLogger()
+    # wandb.init(project="multimodal_training", entity="multimodal_network")
+    # wandb_logger = WandbLogger()
+
+    sweep_config = {
+        'method': 'grid',
+        'metric': {'goal': 'minimize', 'name': 'val_epoch_loss'},
+        'parameters': {
+            'batch_size': {'value': 16},
+            'max_epochs': {'value': 100},
+            'age': {'value': None},
+            'spatial_size': {'value': (120, 120, 120)},
+            'learning_rate': {'values': [0.03, 0.01, 0.003, 0.001, 0.0001]},
+            'weight_decay': {'values': [1e-3, 1e-4, 1e-5]},
+        }
+    }
+
+    # sweep
+    sweep_id = wandb.sweep(
+        sweep_config, project="multimodal_training", entity="multimodal_network")
+    wandb.agent(sweep_id, function=main_resnet, count=10)
 
     # # run conv3d
     # main_conv3d(wandb, wandb_logger)
 
     # run resnet
-    main_resnet(wandb, wandb_logger, learning_rate=1e-4, weight_decay=1e-5,
-                batch_size=16, max_epochs=100, age=None, spatial_size=(120, 120, 120))
+    # main_resnet(wandb, wandb_logger, learning_rate=1e-4, weight_decay=1e-5,
+    #             batch_size=16, max_epochs=100, age=None, spatial_size=(120, 120, 120))
 
     # run multimodal
     # main_multimodal(wandb, wandb_logger, learning_rate=1e-4, weight_decay=1e-5,
