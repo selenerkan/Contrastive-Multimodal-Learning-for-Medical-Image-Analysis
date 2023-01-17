@@ -253,7 +253,6 @@ def grid_search(config=None):
 
         config = wandb.config
         wandb_logger = WandbLogger()
-        wandb.watch(model, log="all")
 
         if config.network == 'resnet':
             # get the model
@@ -279,6 +278,7 @@ def grid_search(config=None):
             data = MultimodalDataModule(
                 CSV_FILE, age=config.age, batch_size=8, spatial_size=config.spatial_size)
 
+        wandb.watch(model, log="all")
         accelerator = 'cpu'
         devices = None
         if torch.cuda.is_available():
