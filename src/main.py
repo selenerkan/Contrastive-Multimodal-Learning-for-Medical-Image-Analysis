@@ -46,13 +46,13 @@ def main_resnet(config=None):
     wandb_logger = WandbLogger()
 
     # get the model
-    model = ResNetModel(learning_rate=config.learning_rate,
-                        weight_decay=config.weight_decay)
+    model = ResNetModel(learning_rate=wandb.config.learning_rate,
+                        weight_decay=wandb.config.weight_decay)
     wandb.watch(model, log="all")
 
     # load the data
     data = AdniDataModule(
-        CSV_FILE, age=config.age, batch_size=config.batch_size, spatial_size=config.spatial_size)
+        CSV_FILE, age=wandb.config.age, batch_size=wandb.config.batch_size, spatial_size=wandb.config.spatial_size)
 
     accelerator = 'cpu'
     devices = None
@@ -68,7 +68,7 @@ def main_resnet(config=None):
         dirpath=os.path.join(CHECKPOINT_DIR, 'resnet'), filename=dt_string+'-{epoch:03d}')
 
     trainer = Trainer(accelerator=accelerator, devices=devices,
-                      max_epochs=config.max_epochs, logger=wandb_logger, callbacks=[checkpoint_callback], log_every_n_steps=10)
+                      max_epochs=wandb.config.max_epochs, logger=wandb_logger, callbacks=[checkpoint_callback], log_every_n_steps=10)
     trainer.fit(model, data)
 
 
@@ -81,13 +81,13 @@ def main_multimodal(config=None):
     wandb_logger = WandbLogger()
 
     # get the model
-    model = MultiModModel(learning_rate=config.learning_rate,
-                          weight_decay=config.weight_decay)
+    model = MultiModModel(learning_rate=wandb.config.learning_rate,
+                          weight_decay=wandb.config.weight_decay)
     wandb.watch(model, log="all")
 
     # load the data
     data = MultimodalDataModule(
-        CSV_FILE, age=config.age, batch_size=config.batch_size, spatial_size=config.spatial_size)
+        CSV_FILE, age=wandb.config.age, batch_size=wandb.config.batch_size, spatial_size=wandb.config.spatial_size)
 
     accelerator = 'cpu'
     devices = None
@@ -103,7 +103,7 @@ def main_multimodal(config=None):
         dirpath=os.path.join(CHECKPOINT_DIR, 'supervised'), filename=dt_string+'-{epoch:03d}')
 
     trainer = Trainer(accelerator=accelerator, devices=devices,
-                      max_epochs=config.max_epochs, logger=wandb_logger, callbacks=[checkpoint_callback], log_every_n_steps=10)
+                      max_epochs=wandb.config.max_epochs, logger=wandb_logger, callbacks=[checkpoint_callback], log_every_n_steps=10)
     trainer.fit(model, data)
 
 
@@ -191,12 +191,12 @@ def main_contrastive_learning(config=None):
 
     # get the model
     model = ContrastiveModel(
-        learning_rate=config.learning_rate, weight_decay=config.weight_decay)
+        learning_rate=wandb.config.learning_rate, weight_decay=wandb.config.weight_decay)
     wandb.watch(model, log="all")
 
     # load the data
     data = ContrastiveDataModule(
-        CSV_FILE, age=config.age, batch_size=config.batch_size, spatial_size=config.spatial_size)
+        CSV_FILE, age=wandb.config.age, batch_size=wandb.config.batch_size, spatial_size=wandb.config.spatial_size)
 
     accelerator = 'cpu'
     devices = None
@@ -212,7 +212,7 @@ def main_contrastive_learning(config=None):
         dirpath=os.path.join(CHECKPOINT_DIR, 'contrastive'), filename=dt_string+'-{epoch:03d}')
 
     trainer = Trainer(accelerator=accelerator, devices=devices,
-                      max_epochs=config.max_epochs, logger=wandb_logger, callbacks=[checkpoint_callback], log_every_n_steps=10)
+                      max_epochs=wandb.config.max_epochs, logger=wandb_logger, callbacks=[checkpoint_callback], log_every_n_steps=10)
     trainer.fit(model, data)
 
 
