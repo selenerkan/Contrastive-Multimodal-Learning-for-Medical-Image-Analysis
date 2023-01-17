@@ -23,7 +23,8 @@ class ContrastiveModel(LightningModule):
 
         # IMAGE DATA
         # output dimension is adapted from simCLR
-        self.resnet = ResNet()  # output features are 32
+        self.resnet = ResNet(in_channels=1, n_outputs=3,
+                             bn_momentum=0.1, n_basefilters=64)  # output features are 32
 
         # TABULAR DATA
         # fc layer for tabular data

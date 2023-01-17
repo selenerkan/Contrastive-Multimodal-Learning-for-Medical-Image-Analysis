@@ -22,7 +22,8 @@ class MultiModModel(LightningModule):
 
         # IMAGE
         # resnet module for image data
-        self.resnet = ResNet()
+        self.resnet = ResNet(in_channels=1, n_outputs=3,
+                             bn_momentum=0.1, n_basefilters=64)
 
         # TABULAR
         # fc layer for tabular data

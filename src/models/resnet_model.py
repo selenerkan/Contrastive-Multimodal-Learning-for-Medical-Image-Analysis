@@ -22,10 +22,12 @@ class ResNetModel(LightningModule):
 
         self.softmax = Softmax(dim=1)
 
-        self.resnet = ResNet()
+        self.resnet = ResNet(in_channels=1, n_outputs=3,
+                             bn_momentum=0.1, n_basefilters=64)
 
         # add a new fc layer
-        self.fc = nn.Linear(32, 3)
+        resnet_out_dim = self.resnet.fc.out_features
+        self.fc = nn.Linear(resnet_out_dim, 3)
 
         # combine the nets
         self.net = nn.Sequential(self.resnet, self.fc)
