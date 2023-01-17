@@ -43,11 +43,11 @@ def main_resnet(config=None):
     '''
     wandb.init(project="multimodal_training", entity="multimodal_network")
     wandb_logger = WandbLogger()
-    wandb.watch(model, log="all")
 
     # get the model
     model = ResNetModel(learning_rate=config.learning_rate,
                         weight_decay=config.weight_decay)
+    wandb.watch(model, log="all")
 
     # load the data
     data = AdniDataModule(
@@ -77,11 +77,11 @@ def main_multimodal(config=None):
     '''
     wandb.init(project="multimodal_training", entity="multimodal_network")
     wandb_logger = WandbLogger()
-    wandb.watch(model, log="all")
 
     # get the model
     model = MultiModModel(learning_rate=config.learning_rate,
                           weight_decay=config.weight_decay)
+    wandb.watch(model, log="all")
 
     # load the data
     data = MultimodalDataModule(
@@ -185,11 +185,12 @@ def main_contrastive_learning(config=None):
     '''
     wandb.init(project="multimodal_training", entity="multimodal_network")
     wandb_logger = WandbLogger()
-    wandb.watch(model, log="all")
 
     # get the model
     model = ContrastiveModel(
         learning_rate=config.learning_rate, weight_decay=config.weight_decay)
+    wandb.watch(model, log="all")
+
     # load the data
     data = ContrastiveDataModule(
         CSV_FILE, age=config.age, batch_size=config.batch_size, spatial_size=config.spatial_size)
@@ -224,7 +225,7 @@ def run_grid_search(network):
             'epochs': {'value': 5},
             'age': {'value': None},
             'spatial_size': {'value': (120, 120, 120)},
-            'learning_rate': {'values': [0.03, 0.01, 0.003, 0.001, 0.0003, 0.0001]},
+            'learning_rate': {'values': [0.01, 0.003, 0.001, 0.0003, 0.0001]},
             'weight_decay': {'values': [1e-2, 1e-3, 1e-4, 1e-5, 1e-6]},
         },
         'early_terminate': {'type': 'hyperband', 'min_iter': 3}
@@ -297,7 +298,7 @@ if __name__ == '__main__':
     # main_resnet(resnet_config)
 
     # run multimodal
-    # main_multimodal(supervised_config)
+    main_multimodal(supervised_config)
 
     # run contrastive learning
     # main_contrastive_learning(contrastive_config)
@@ -306,4 +307,4 @@ if __name__ == '__main__':
     # main_kfold_multimodal(wandb, wandb_logger, fold_number = 5, learning_rate=1e-3, batch_size=8, max_epochs=100, age=None)
 
     # run grid search
-    run_grid_search('supervised')
+    # run_grid_search('supervised')
