@@ -14,7 +14,6 @@ import sys
 
 import numpy as np
 from monai import transforms
-# import torchio as tio
 
 
 class Contrastive_Dataset(Dataset):
@@ -100,7 +99,6 @@ class ContrastiveDataModule(pl.LightningDataModule):
             # tio.RandomBiasField(p=0.5, coefficients=0.5, order=3),
             # tio.RandomSwap(p=0.6, patch_size=15, num_iterations=80),
             # tio.RandomGamma(p=0.5, log_gamma=(-0.3, 0.3))
-
         ])
 
         return data_transforms

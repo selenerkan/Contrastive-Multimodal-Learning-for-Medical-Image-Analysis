@@ -41,8 +41,8 @@ supervised_config = {
     'max_epochs': 100,
     'age': None,
     'spatial_size': (120, 120, 120),
-    'learning_rate': 0.001,
-    'weight_decay': 1e-4,
+    'learning_rate': 0.013,
+    'weight_decay': 0.01,
 }
 
 contrastive_config = {
