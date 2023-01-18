@@ -6,6 +6,7 @@ from torch.nn import functional as F
 from models.model_blocks.resnet_block import ResNet
 from torch.nn import Softmax
 import torchmetrics
+from torch.optim.lr_scheduler import StepLR
 
 
 class ResNetModel(LightningModule):
@@ -22,14 +23,11 @@ class ResNetModel(LightningModule):
 
         self.softmax = Softmax(dim=1)
 
-        self.resnet = ResNet(in_channels=1, n_outputs=3)
+        self.resnet = ResNet()
 
         # add a new fc layer
-        # resnet_out_dim = self.resnet.fc.out_features
-        # self.fc = nn.Linear(resnet_out_dim, 3)
-
-        # combine the nets
-        # self.net = nn.Sequential(self.resnet, self.fc)
+        resnet_out_dim = self.resnet.fc.out_features
+        self.fc = nn.Linear(resnet_out_dim, 3)
 
         # track accuracy
         self.train_macro_accuracy = torchmetrics.Accuracy(
@@ -47,6 +45,8 @@ class ResNetModel(LightningModule):
         x is the image data
         """
         out = self.resnet(x)
+        out = out.view(out.size(0), -1)
+        out = self.fc(out)
 
         return out
 
@@ -54,8 +54,11 @@ class ResNetModel(LightningModule):
 
         optimizer = torch.optim.Adam(
             self.parameters(), lr=self.lr, weight_decay=self.wd)
+        scheduler = StepLR(optimizer,
+                           step_size=10,  # Period of learning rate decay
+                           gamma=0.1)
 
-        return optimizer
+        return [optimizer], [scheduler]
 
     def training_step(self, batch, batch_idx):
 

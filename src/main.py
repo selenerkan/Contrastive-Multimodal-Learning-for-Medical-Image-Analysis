@@ -226,15 +226,14 @@ def run_grid_search(network):
         'metric': {'goal': 'minimize', 'name': 'val_epoch_loss'},
         'parameters': {
             'network': {'value': network},
-            'batch_size': {'value': 16},
-            'max_epochs': {'value': 10},
+            'batch_size': {'value': 32},
+            'max_epochs': {'value': 30},
             'epochs': {'value': 5},
             'age': {'value': None},
             'spatial_size': {'value': (120, 120, 120)},
-            'learning_rate': {'values': [0.01, 0.001, 0.0001]},
-            'weight_decay': {'values': [1e-3, 1e-4, 1e-5, 1e-6]},
-        },
-        'early_terminate': {'type': 'hyperband', 'min_iter': 3}
+            'learning_rate': {'values': [0.03, 0.013, 0.0055, 0.0023, 0.001]},
+            'weight_decay': {'values': [0, 1e-2, 1e-4]},
+        }
     }
 
     count = len(sweep_config['parameters']['learning_rate']['values']) * \

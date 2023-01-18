@@ -22,18 +22,16 @@ class MultiModModel(LightningModule):
 
         # IMAGE
         # resnet module for image data
-        self.resnet = ResNet(in_channels=1, n_outputs=3)
+        self.resnet = ResNet()
 
         # TABULAR
         # fc layer for tabular data
-        self.fc1 = nn.Linear(13, 13)
-        self.fc2 = nn.Linear(13, 13)
+        self.fc1 = nn.Linear(13, 10)
 
         # TABULAR + IMAGE DATA
         # mlp projection head which takes concatenated input
         resnet_out_dim = self.resnet.fc.out_features
-        self.mlp = nn.Sequential(
-            nn.Linear(resnet_out_dim + 13, resnet_out_dim + 13), nn.ReLU(), nn.Linear(resnet_out_dim + 13, 3))
+        self.fc2 = nn.Linear(resnet_out_dim + 10, 3)
 
         # track accuracy
         self.train_macro_accuracy = torchmetrics.Accuracy(
@@ -56,15 +54,15 @@ class MultiModModel(LightningModule):
 
         # run the model for the image
         img = self.resnet(img)
+        img = img.view(img.size(0), -1)
 
-        # change the dtype of the tabular data
+        # forward pass for tabular data
         tab = tab.to(torch.float32)
-        # forward tabular data
-        tab = self.fc2(F.relu(self.fc1(tab)))
+        tab = F.relu(self.fc1(tab))
 
         # concat image and tabular data
         x = torch.cat((img, tab), dim=1)
-        out = self.mlp(x)
+        out = self.fc2(x)
 
         return out
 
@@ -73,7 +71,7 @@ class MultiModModel(LightningModule):
         optimizer = torch.optim.Adam(
             self.parameters(), lr=self.lr, weight_decay=self.wd)
         scheduler = StepLR(optimizer,
-                           step_size=20,  # Period of learning rate decay
+                           step_size=10,  # Period of learning rate decay
                            gamma=0.1)
 
         return [optimizer], [scheduler]

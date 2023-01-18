@@ -66,7 +66,7 @@ class ResBlock(nn.Module):
 
 
 class ResNet(LightningModule):
-    def __init__(self, in_channels=1, n_outputs=3, bn_momentum=0.1, n_basefilters=4) -> None:
+    def __init__(self, in_channels=1, bn_momentum=0.1, n_basefilters=4) -> None:
         super().__init__()
 
         self.conv1 = ConvBnReLU(
@@ -81,7 +81,6 @@ class ResNet(LightningModule):
         self.block4 = ResBlock(
             4 * n_basefilters, 8 * n_basefilters, bn_momentum=bn_momentum, stride=2)  # 4
         self.global_pool = nn.AdaptiveAvgPool3d(1)
-        self.fc = nn.Linear(8 * n_basefilters, n_outputs)  # 32
 
     def forward(self, image):
         out = self.conv1(image)
@@ -91,7 +90,5 @@ class ResNet(LightningModule):
         out = self.block3(out)
         out = self.block4(out)
         out = self.global_pool(out)
-        out = out.view(out.size(0), -1)
-        out = self.fc(out)
 
         return out
