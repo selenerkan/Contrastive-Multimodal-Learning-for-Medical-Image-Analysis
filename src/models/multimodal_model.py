@@ -28,6 +28,7 @@ class MultiModModel(LightningModule):
         # TABULAR
         # fc layer for tabular data
         self.fc1 = nn.Linear(13, 13)
+        self.fc2 = nn.Linear(13, 13)
 
         # TABULAR + IMAGE DATA
         # mlp projection head which takes concatenated input
@@ -55,7 +56,7 @@ class MultiModModel(LightningModule):
         # change the dtype of the tabular data
         tab = tab.to(torch.float32)
         # forward tabular data
-        tab = F.relu(self.fc1(tab))
+        tab = self.fc2(F.relu(self.fc1(tab)))
 
         # concat image and tabular data
         x = torch.cat((img, tab), dim=1)
