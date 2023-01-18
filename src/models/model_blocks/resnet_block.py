@@ -81,7 +81,7 @@ class ResNet(LightningModule):
         self.block4 = ResBlock(
             4 * n_basefilters, 8 * n_basefilters, bn_momentum=bn_momentum, stride=2)  # 4
         self.global_pool = nn.AdaptiveAvgPool3d(1)
-        self.fc = nn.Linear(8 * n_basefilters, 4 * n_basefilters)  # 32
+        self.fc = nn.Linear(8 * n_basefilters, n_outputs)  # 32
 
     def forward(self, image):
         out = self.conv1(image)

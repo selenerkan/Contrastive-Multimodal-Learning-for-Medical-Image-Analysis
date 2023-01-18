@@ -22,20 +22,21 @@ class ResNetModel(LightningModule):
 
         self.softmax = Softmax(dim=1)
 
-        self.resnet = ResNet(in_channels=1, n_outputs=3,
-                             bn_momentum=0.1, n_basefilters=64)
+        self.resnet = ResNet(in_channels=1, n_outputs=3)
 
         # add a new fc layer
-        resnet_out_dim = self.resnet.fc.out_features
-        self.fc = nn.Linear(resnet_out_dim, 3)
+        # resnet_out_dim = self.resnet.fc.out_features
+        # self.fc = nn.Linear(resnet_out_dim, 3)
 
         # combine the nets
-        self.net = nn.Sequential(self.resnet, self.fc)
+        # self.net = nn.Sequential(self.resnet, self.fc)
 
         # track accuracy
         self.train_macro_accuracy = torchmetrics.Accuracy(
             task='multiclass', average='macro', num_classes=3, top_k=1)
         self.val_macro_accuracy = torchmetrics.Accuracy(
+            task='multiclass', average='macro', num_classes=3, top_k=1)
+        self.val_acc_dummy = torchmetrics.Accuracy(
             task='multiclass', average='macro', num_classes=3, top_k=1)
 
     def forward(self, x):
@@ -44,7 +45,7 @@ class ResNetModel(LightningModule):
         x is the input data
 
         """
-        out = self.net(x)
+        out = self.resnet(x)
         out = torch.squeeze(F.relu(out))
 
         return out
@@ -104,7 +105,15 @@ class ResNetModel(LightningModule):
         val_acc = self.val_macro_accuracy(pred_label, y)
         self.log('val_macro_acc', val_acc, on_epoch=True, on_step=False)
 
+        # calculatethe dummy accuracy
+        self.val_acc_dummy.update(pred_label, y)
+
         return loss
+
+    def validation_epoch_end(self, outputs):
+        epoch_acc = self.val_acc_dummy.compute()
+        self.log('valid_dummy_acc', epoch_acc)
+        self.val_acc_dummy.reset()
 
     def test_step(self, batch, batch_idx):
 
