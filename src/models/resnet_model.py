@@ -44,12 +44,9 @@ class ResNetModel(LightningModule):
 
     def forward(self, x):
         """
-
-        x is the input data
-
+        x is the image data
         """
         out = self.resnet(x)
-        out = torch.squeeze(F.relu(out))
 
         return out
 

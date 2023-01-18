@@ -45,10 +45,8 @@ class MultiModModel(LightningModule):
 
     def forward(self, img, tab):
         """
-
         img is the input image data
         tab is th einput tabular data
-
         """
 
         # run the model for the image
@@ -61,8 +59,7 @@ class MultiModModel(LightningModule):
 
         # concat image and tabular data
         x = torch.cat((img, tab), dim=1)
-        out = F.relu(self.mlp(x))
-        out = torch.squeeze(out)
+        out = self.mlp(x)
 
         return out
 

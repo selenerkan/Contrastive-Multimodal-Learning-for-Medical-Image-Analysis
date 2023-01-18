@@ -57,8 +57,7 @@ class ContrastiveModel(LightningModule):
 
         # concat image and tabular data
         x = torch.cat((img, tab), dim=1)
-        out = F.relu(self.mlp(x))
-        out = torch.squeeze(out)
+        out = self.mlp(x)
 
         return out
 
