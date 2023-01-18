@@ -303,6 +303,14 @@ def grid_search(config=None):
             data = AdniDataModule(
                 CSV_FILE, age=config.age, batch_size=config.batch_size, spatial_size=config.spatial_size)
 
+        elif config.network == 'tabular':
+            # get the model
+            model = TabularModel(learning_rate=config.learning_rate,
+                                 weight_decay=config.weight_decay)
+            # load the data
+            data = MultimodalDataModule(
+                CSV_FILE, age=config.age, batch_size=config.batch_size, spatial_size=config.spatial_size)
+
         elif config.network == 'supervised':
             # get the model
             model = MultiModModel(learning_rate=config.learning_rate,
@@ -339,7 +347,7 @@ if __name__ == '__main__':
     torch.multiprocessing.set_sharing_strategy('file_system')
 
     # run tabular
-    main_tabular(tabular_config)
+    # main_tabular(tabular_config)
 
     # run resnet
     # main_resnet(resnet_config)
@@ -354,4 +362,4 @@ if __name__ == '__main__':
     # main_kfold_multimodal(wandb, wandb_logger, fold_number = 5, learning_rate=1e-3, batch_size=8, max_epochs=100, age=None)
 
     # run grid search
-    # run_grid_search('supervised')
+    run_grid_search('tabular')
