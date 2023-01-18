@@ -18,7 +18,7 @@ VAL_SIZE = 1
 TEST_SIZE = 1
 
 tabular_config = {
-    'batch_size': 64,
+    'batch_size': 1,
     'max_epochs': 100,
     'age': None,
     'spatial_size': (120, 120, 120),

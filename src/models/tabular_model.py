@@ -23,8 +23,10 @@ class TabularModel(LightningModule):
         # TABULAR
         # fc layer for tabular data
         self.fc1 = nn.Linear(13, 13)
-        self.fc2 = nn.Linear(13, 10)
-        self.fc3 = nn.Linear(10, 3)
+        self.fc2 = nn.Linear(13, 13)
+        self.fc3 = nn.Linear(13, 13)
+        self.fc4 = nn.Linear(13, 10)
+        self.fc5 = nn.Linear(10, 3)
 
         # track accuracy
         self.train_macro_accuracy = torchmetrics.Accuracy(
@@ -49,7 +51,9 @@ class TabularModel(LightningModule):
         tab = tab.to(torch.float32)
         tab = F.relu(self.fc1(tab))
         tab = F.relu(self.fc2(tab))
-        out = self.fc3(tab)
+        tab = F.relu(self.fc3(tab))
+        tab = F.relu(self.fc4(tab))
+        out = self.fc5(tab)
 
         return out
 
