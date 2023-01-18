@@ -72,7 +72,7 @@ class MultiModModel(LightningModule):
                            step_size=20,  # Period of learning rate decay
                            gamma=0.1)
 
-        return optimizer, scheduler
+        return [optimizer], [scheduler]
 
     def training_step(self, batch, batch_idx):
 
