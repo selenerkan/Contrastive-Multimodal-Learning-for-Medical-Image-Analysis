@@ -11,11 +11,12 @@ from contrastive_loss_dataset import ContrastiveDataModule
 
 from models.resnet_model import ResNetModel
 from models.multimodal_model import MultiModModel
+from models.tabular_model import TabularModel
 from models.contrastive_learning_model import ContrastiveModel
 from pytorch_lightning.callbacks import LearningRateMonitor
 
 import torch
-from settings import CSV_FILE, SEED, CHECKPOINT_DIR, resnet_config, supervised_config, contrastive_config
+from settings import CSV_FILE, SEED, CHECKPOINT_DIR, resnet_config, supervised_config, contrastive_config, tabular_config
 import torch.multiprocessing
 from datetime import datetime
 
@@ -35,6 +36,42 @@ def main_conv3d(wandb, wandb_logger):
 
     # train the network
     trainer = Trainer(max_epochs=15, logger=wandb_logger, deterministic=True)
+    trainer.fit(model, data)
+
+
+def main_tabular(config=None):
+    '''
+    main function to run the multimodal architecture
+    '''
+    wandb.init(project="multimodal_training",
+               entity="multimodal_network", config=config)
+    wandb_logger = WandbLogger()
+
+    # get the model
+    model = TabularModel(learning_rate=wandb.config.learning_rate,
+                         weight_decay=wandb.config.weight_decay)
+    wandb.watch(model, log="all")
+
+    # load the data
+    data = MultimodalDataModule(
+        CSV_FILE, age=wandb.config.age, batch_size=wandb.config.batch_size, spatial_size=wandb.config.spatial_size)
+
+    accelerator = 'cpu'
+    devices = None
+    if torch.cuda.is_available():
+        accelerator = 'gpu'
+        devices = 1
+
+    # save the checkpoint in a different folder
+    # use datetime value in the file name
+    date_time = datetime.now()
+    dt_string = date_time.strftime("%d.%m.%Y-%H.%M")
+    checkpoint_callback = ModelCheckpoint(
+        dirpath=os.path.join(CHECKPOINT_DIR, 'tabular'), filename=dt_string+'-{epoch:03d}')
+
+    # Add learning rate scheduler monitoring
+    trainer = Trainer(accelerator=accelerator, devices=devices,
+                      max_epochs=wandb.config.max_epochs, logger=wandb_logger, callbacks=[checkpoint_callback], log_every_n_steps=10)
     trainer.fit(model, data)
 
 
@@ -68,8 +105,10 @@ def main_resnet(config=None):
     checkpoint_callback = ModelCheckpoint(
         dirpath=os.path.join(CHECKPOINT_DIR, 'resnet'), filename=dt_string+'-{epoch:03d}')
 
+    # Add learning rate scheduler monitoring
+    lr_monitor = LearningRateMonitor(logging_interval='epoch')
     trainer = Trainer(accelerator=accelerator, devices=devices,
-                      max_epochs=wandb.config.max_epochs, logger=wandb_logger, callbacks=[checkpoint_callback], log_every_n_steps=10)
+                      max_epochs=wandb.config.max_epochs, logger=wandb_logger, callbacks=[checkpoint_callback, lr_monitor], log_every_n_steps=10)
     trainer.fit(model, data)
 
 
@@ -299,6 +338,9 @@ if __name__ == '__main__':
     seed_everything(SEED, workers=True)
     torch.multiprocessing.set_sharing_strategy('file_system')
 
+    # run tabular
+    main_tabular(tabular_config)
+
     # run resnet
     # main_resnet(resnet_config)
 
@@ -312,4 +354,4 @@ if __name__ == '__main__':
     # main_kfold_multimodal(wandb, wandb_logger, fold_number = 5, learning_rate=1e-3, batch_size=8, max_epochs=100, age=None)
 
     # run grid search
-    run_grid_search('supervised')
+    # run_grid_search('supervised')

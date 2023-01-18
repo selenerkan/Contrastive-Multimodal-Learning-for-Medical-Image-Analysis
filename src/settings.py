@@ -17,10 +17,18 @@ TRAIN_SIZE = 1
 VAL_SIZE = 1
 TEST_SIZE = 1
 
-resnet_config = {
-    'batch_size': 16,
+tabular_config = {
+    'batch_size': 64,
     'max_epochs': 100,
-    'epochs': 5,
+    'age': None,
+    'spatial_size': (120, 120, 120),
+    'learning_rate': 0.001,
+    'weight_decay': 1e-4,
+}
+
+resnet_config = {
+    'batch_size': 32,
+    'max_epochs': 100,
     'age': None,
     'spatial_size': (120, 120, 120),
     'learning_rate': 0.01,
@@ -29,9 +37,8 @@ resnet_config = {
 
 
 supervised_config = {
-    'batch_size': 16,
+    'batch_size': 32,
     'max_epochs': 100,
-    'epochs': 5,
     'age': None,
     'spatial_size': (120, 120, 120),
     'learning_rate': 0.001,
@@ -41,7 +48,6 @@ supervised_config = {
 contrastive_config = {
     'batch_size': 8,
     'max_epochs': 100,
-    'epochs': 5,
     'age': None,
     'spatial_size': (120, 120, 120),
     'learning_rate': 0.0001,
