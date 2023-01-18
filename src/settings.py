@@ -23,7 +23,7 @@ resnet_config = {
     'epochs': 5,
     'age': None,
     'spatial_size': (120, 120, 120),
-    'learning_rate': 0.0001,
+    'learning_rate': 0.01,
     'weight_decay': 1e-4,
 }
 
