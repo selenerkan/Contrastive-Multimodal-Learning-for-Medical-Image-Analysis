@@ -6,7 +6,7 @@ from torch.nn import functional as F
 from models.model_blocks.resnet_block import ResNet
 import torchmetrics
 from torch.nn import Softmax
-from torch.optim.lr_scheduler import StepLR
+from torch.optim.lr_scheduler import StepLR, MultiStepLR
 
 
 class MultiModModel(LightningModule):
@@ -70,9 +70,10 @@ class MultiModModel(LightningModule):
 
         optimizer = torch.optim.Adam(
             self.parameters(), lr=self.lr, weight_decay=self.wd)
-        scheduler = StepLR(optimizer,
-                           step_size=10,  # Period of learning rate decay
-                           gamma=0.1)
+        scheduler = MultiStepLR(optimizer,
+                                # List of epoch indices
+                                milestones=[18, 27],
+                                gamma=0.1)  # Multiplicative factor of learning rate decay
 
         return [optimizer], [scheduler]
 

@@ -38,7 +38,7 @@ resnet_config = {
 
 supervised_config = {
     'batch_size': 32,
-    'max_epochs': 100,
+    'max_epochs': 30,
     'age': None,
     'spatial_size': (120, 120, 120),
     'learning_rate': 0.013,
