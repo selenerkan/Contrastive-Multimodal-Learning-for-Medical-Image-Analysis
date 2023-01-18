@@ -22,8 +22,7 @@ class MultiModModel(LightningModule):
 
         # IMAGE
         # resnet module for image data
-        self.resnet = ResNet(in_channels=1, n_outputs=3,
-                             bn_momentum=0.1, n_basefilters=64)
+        self.resnet = ResNet(in_channels=1, n_outputs=3)
 
         # TABULAR
         # fc layer for tabular data
@@ -41,6 +40,11 @@ class MultiModModel(LightningModule):
             task='multiclass', average='macro', num_classes=3, top_k=1)
         self.val_macro_accuracy = torchmetrics.Accuracy(
             task='multiclass', average='macro', num_classes=3, top_k=1)
+
+        self.train_micro_accuracy = torchmetrics.Accuracy(
+            task='multiclass', average='micro', num_classes=3, top_k=1)
+        self.val_micro_accuracy = torchmetrics.Accuracy(
+            task='multiclass', average='micro', num_classes=3, top_k=1)
 
         self.softmax = Softmax(dim=1)
 
@@ -98,6 +102,11 @@ class MultiModModel(LightningModule):
         train_acc = self.train_macro_accuracy(pred_label, y)
         self.log('train_macro_acc', train_acc, on_epoch=True, on_step=False)
 
+        # calculate and log accuracy
+        train_micro_acc = self.train_micro_accuracy(pred_label, y)
+        self.log('train_micro_acc', train_micro_acc,
+                 on_epoch=True, on_step=False)
+
         return loss
 
     def validation_step(self, batch, batch_idx):
@@ -123,6 +132,10 @@ class MultiModModel(LightningModule):
         # calculate and log accuracy
         val_acc = self.val_macro_accuracy(pred_label, y)
         self.log('val_macro_acc', val_acc, on_epoch=True, on_step=False)
+
+        # calculate and log accuracy
+        val_micro_acc = self.val_micro_accuracy(pred_label, y)
+        self.log('val_micro_acc', val_micro_acc, on_epoch=True, on_step=False)
 
         return loss
 
