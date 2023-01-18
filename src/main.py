@@ -225,7 +225,7 @@ def run_grid_search(network):
         'method': 'grid',
         'metric': {'goal': 'minimize', 'name': 'val_epoch_loss'},
         'parameters': {
-            'network': {'value': 'supervised'},
+            'network': {'value': network},
             'batch_size': {'value': 16},
             'max_epochs': {'value': 10},
             'epochs': {'value': 5},
