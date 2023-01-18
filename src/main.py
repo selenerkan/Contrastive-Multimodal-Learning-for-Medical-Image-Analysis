@@ -300,7 +300,7 @@ if __name__ == '__main__':
     torch.multiprocessing.set_sharing_strategy('file_system')
 
     # run resnet
-    main_resnet(resnet_config)
+    # main_resnet(resnet_config)
 
     # run multimodal
     # main_multimodal(supervised_config)
@@ -312,4 +312,4 @@ if __name__ == '__main__':
     # main_kfold_multimodal(wandb, wandb_logger, fold_number = 5, learning_rate=1e-3, batch_size=8, max_epochs=100, age=None)
 
     # run grid search
-    # run_grid_search('supervised')
+    run_grid_search('supervised')

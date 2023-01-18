@@ -26,7 +26,7 @@ class ResNetModel(LightningModule):
         self.resnet = ResNet()
 
         # add a new fc layer
-        resnet_out_dim = self.resnet.fc.out_features
+        resnet_out_dim = 32
         self.fc = nn.Linear(resnet_out_dim, 3)
 
         # track accuracy

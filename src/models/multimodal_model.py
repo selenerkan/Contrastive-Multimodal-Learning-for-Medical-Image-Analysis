@@ -30,7 +30,7 @@ class MultiModModel(LightningModule):
 
         # TABULAR + IMAGE DATA
         # mlp projection head which takes concatenated input
-        resnet_out_dim = self.resnet.fc.out_features
+        resnet_out_dim = 32
         self.fc2 = nn.Linear(resnet_out_dim + 10, 3)
 
         # track accuracy
