@@ -202,7 +202,7 @@ class ContrastiveLearningViewGenerator(object):
 
         # scale images between [0,1]
         min_val = x.min()
-        x = x - min_val / (x.max() - min_val)
+        x = (x - min_val) / (x.max() - min_val)
 
         x = torch.tensor(x)
 

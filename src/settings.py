@@ -19,7 +19,7 @@ TEST_SIZE = 1
 
 tabular_config = {
     'batch_size': 1,
-    'max_epochs': 100,
+    'max_epochs': 40,
     'age': None,
     'spatial_size': (120, 120, 120),
     'learning_rate': 0.001,

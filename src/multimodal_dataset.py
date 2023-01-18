@@ -51,7 +51,7 @@ class Multimodal_Dataset(Dataset):
         # change to numpy and scale images between [0,1]
         image = np.array(image, dtype=np.float32)
         min_val = image.min()
-        image = image - min_val / (image.max() - min_val)
+        image = (image - min_val) / (image.max() - min_val)
 
         image = torch.tensor(image)
 
