@@ -23,7 +23,7 @@ class ResNetModel(LightningModule):
 
         self.softmax = Softmax(dim=1)
 
-        self.resnet = ResNet()
+        self.resnet = ResNet(n_basefilters=64)
 
         # add a new fc layer
         resnet_out_dim = 32

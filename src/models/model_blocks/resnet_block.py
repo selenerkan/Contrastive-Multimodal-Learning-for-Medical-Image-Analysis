@@ -31,19 +31,19 @@ class ResBlock(nn.Module):
     def __init__(self, in_channels, out_channels, bn_momentum=0.05, stride=1):
         super().__init__()
         self.conv1 = conv3d(in_channels, out_channels, stride=stride)
-        # self.bn1 = nn.BatchNorm3d(out_channels, momentum=bn_momentum)
-        self.bn1 = nn.InstanceNorm3d(out_channels, affine=True)
+        self.bn1 = nn.BatchNorm3d(out_channels, momentum=bn_momentum)
+        # self.bn1 = nn.InstanceNorm3d(out_channels, affine=True)
         self.conv2 = conv3d(out_channels, out_channels)
-        # self.bn2 = nn.BatchNorm3d(out_channels, momentum=bn_momentum)
-        self.bn2 = nn.InstanceNorm3d(out_channels, affine=True)
+        self.bn2 = nn.BatchNorm3d(out_channels, momentum=bn_momentum)
+        # self.bn2 = nn.InstanceNorm3d(out_channels, affine=True)
         self.relu = nn.ReLU(inplace=True)
 
         if stride != 1 or in_channels != out_channels:
             self.downsample = nn.Sequential(
                 conv3d(in_channels, out_channels,
                        kernel_size=1, stride=stride),
-                # nn.BatchNorm3d(out_channels, momentum=bn_momentum),
-                nn.InstanceNorm3d(out_channels, affine=True)
+                nn.BatchNorm3d(out_channels, momentum=bn_momentum),
+                # nn.InstanceNorm3d(out_channels, affine=True)
             )
         else:
             self.downsample = None

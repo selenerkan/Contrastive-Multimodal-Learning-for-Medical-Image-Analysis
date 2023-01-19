@@ -4,8 +4,7 @@ from pytorch_lightning.core.module import LightningModule
 from torch.nn import functional as F
 # from monai.networks.nets.resnet_group import resnet10, resnet18, resnet34, resnet50
 from models.model_blocks.resnet_block import ResNet
-
-import torchmetrics
+from torch.optim.lr_scheduler import StepLR, MultiStepLR
 from pytorch_metric_learning import losses
 
 
@@ -23,18 +22,18 @@ class ContrastiveModel(LightningModule):
 
         # IMAGE DATA
         # output dimension is adapted from simCLR
-        self.resnet = ResNet(in_channels=1, n_outputs=3,
-                             bn_momentum=0.1, n_basefilters=64)  # output features are 32
+        self.resnet = ResNet()  # output features are 32
 
         # TABULAR DATA
         # fc layer for tabular data
-        self.fc1 = nn.Linear(13, 13)
+        self.fc1 = nn.Linear(13, 10)
 
         # TABULAR + IMAGE DATA
         # mlp projection head which takes concatenated input
-        resnet_out_dim = self.resnet.fc.out_features
-        self.mlp = nn.Sequential(
-            nn.Linear(resnet_out_dim + 13, resnet_out_dim + 13), nn.ReLU(), nn.Linear(resnet_out_dim + 13, resnet_out_dim + 13))
+        # self.mlp = nn.Sequential(
+        #     nn.Linear(resnet_out_dim + 13, resnet_out_dim + 13), nn.ReLU(), nn.Linear(resnet_out_dim + 13, resnet_out_dim + 13))
+        resnet_out_dim = 32
+        self.fc2 = nn.Linear(resnet_out_dim + 10, resnet_out_dim + 10)
 
     def forward(self, img, tab):
         """
@@ -57,7 +56,7 @@ class ContrastiveModel(LightningModule):
 
         # concat image and tabular data
         x = torch.cat((img, tab), dim=1)
-        out = self.mlp(x)
+        out = self.fc2(x)
 
         return out
 
@@ -66,7 +65,12 @@ class ContrastiveModel(LightningModule):
         # weight decay can be added, lr can be changed
         optimizer = torch.optim.Adam(
             self.parameters(), lr=self.lr, weight_decay=self.wd)
+        # scheduler = MultiStepLR(optimizer,
+        #                         # List of epoch indices
+        #                         milestones=[18, 27],
+        #                         gamma=0.1)  # Multiplicative factor of learning rate decay
 
+        # return [optimizer], [scheduler]
         return optimizer
 
     def training_step(self, batch, batch_idx):
