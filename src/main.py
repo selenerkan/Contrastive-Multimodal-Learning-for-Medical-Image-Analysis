@@ -253,8 +253,10 @@ def main_contrastive_learning(config=None):
     checkpoint_callback = ModelCheckpoint(
         dirpath=os.path.join(CHECKPOINT_DIR, 'contrastive'), filename=dt_string+'-{epoch:03d}')
 
+    # Add learning rate scheduler monitoring
+    lr_monitor = LearningRateMonitor(logging_interval='epoch')
     trainer = Trainer(accelerator=accelerator, devices=devices,
-                      max_epochs=wandb.config.max_epochs, logger=wandb_logger, callbacks=[checkpoint_callback], log_every_n_steps=10)
+                      max_epochs=wandb.config.max_epochs, logger=wandb_logger, callbacks=[checkpoint_callback, lr_monitor], log_every_n_steps=10)
     trainer.fit(model, data)
 
 
@@ -356,10 +358,10 @@ if __name__ == '__main__':
     # main_multimodal(supervised_config)
 
     # run contrastive learning
-    # main_contrastive_learning(contrastive_config)
+    main_contrastive_learning(contrastive_config)
 
     # run kfold multimodal
     # main_kfold_multimodal(wandb, wandb_logger, fold_number = 5, learning_rate=1e-3, batch_size=8, max_epochs=100, age=None)
 
     # run grid search
-    run_grid_search('tabular')
+    # run_grid_search('tabular')

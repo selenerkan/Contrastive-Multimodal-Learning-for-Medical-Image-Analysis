@@ -1,7 +1,7 @@
-IMAGE_PATH = r'C:\Users\Selen\Desktop\LMU\multimodal_network\data\adni\images\preprocessed'
-CSV_FILE = r"C:\Users\Selen\Desktop\LMU\multimodal_network\data\adni\tabular\adni_final.csv"
 TABULAR_DATA_FILE = r'C:\Users\Selen\Desktop\LMU\multimodal_network\data\adni\tabular'
-CHECKPOINT_DIR = r'C:\Users\Selen\Desktop\LMU\multimodal_network\checkpoints'
+CHECKPOINT_DIR = r'/home/guests/selen_erkan/experiments/checkpoints'
+IMAGE_PATH = r"/home/guests/selen_erkan/datasets/ADNI/images/preprocessed"
+CSV_FILE = r"/home/guests/selen_erkan/datasets/ADNI/tabular/adni_final.csv"
 
 FEATURES = ['age', 'gender_numeric', 'education', 'APOE4',
             'FDG', 'AV45', 'TAU', 'PTAU', 'MMSE', 'label_numeric',
@@ -18,12 +18,12 @@ VAL_SIZE = 1
 TEST_SIZE = 1
 
 tabular_config = {
-    'batch_size': 1,
-    'max_epochs': 40,
+    'batch_size': 32,
+    'max_epochs': 100,
     'age': None,
     'spatial_size': (120, 120, 120),
-    'learning_rate': 0.001,
-    'weight_decay': 1e-4,
+    'learning_rate': 0.0055,
+    'weight_decay': 0,
 }
 
 resnet_config = {
@@ -31,8 +31,8 @@ resnet_config = {
     'max_epochs': 100,
     'age': None,
     'spatial_size': (120, 120, 120),
-    'learning_rate': 0.01,
-    'weight_decay': 1e-4,
+    'learning_rate': 0.013,
+    'weight_decay': 0.01,
 }
 
 
@@ -46,10 +46,10 @@ supervised_config = {
 }
 
 contrastive_config = {
-    'batch_size': 8,
-    'max_epochs': 100,
+    'batch_size': 32,
+    'max_epochs': 30,
     'age': None,
     'spatial_size': (120, 120, 120),
-    'learning_rate': 0.0001,
-    'weight_decay': 1e-4,
+    'learning_rate': 0.013,
+    'weight_decay': 0.01,
 }
