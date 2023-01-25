@@ -126,13 +126,13 @@ def main_multimodal(config=None):
     wandb.watch(model, log="all")
 
     # check if the checkpoint flag is True
-    if config.checkpoint_flag:
+    if wandb.config.checkpoint_flag:
         # copy the weights from multimodal supervised model checkpoint
         model = MultiModModel.load_from_checkpoint(
             config.checkpoint, learning_rate=wandb.config.learning_rate, weight_decay=wandb.config.weight_decay)
-    elif config.contrastive_checkpoint_flag:
+    elif wandb.config.contrastive_checkpoint_flag:
         contrastive_model = ContrastiveModel.load_from_checkpoint(
-            config.contrastive_checkpoint)
+            wandb.config.contrastive_checkpoint)
         # copy the resnet and fc1 weights from contrastive learning model
         model.resnet = contrastive_model.resnet
         model.fc1 = contrastive_model.fc1
@@ -286,6 +286,10 @@ def run_grid_search(network):
             'spatial_size': {'value': (120, 120, 120)},
             'learning_rate': {'values': [0.03, 0.013, 0.0055, 0.0023, 0.001]},
             'weight_decay': {'values': [0, 1e-2, 1e-4]},
+            'checkpoint': {'value': r'/home/guests/selen_erkan/experiments/checkpoints/supervised/25.01.2023-18.49-epoch=029.ckpt'},
+            'contrastive_checkpoint': {'value': r'/home/guests/selen_erkan/experiments/checkpoints/contrastive/25.01.2023-17.14-epoch=029.ckpt'},
+            'checkpoint_flag': {'value': False},
+            'contrastive_checkpoint_flag': {'value': True}
         }
     }
 
@@ -329,6 +333,21 @@ def grid_search(config=None):
             # get the model
             model = MultiModModel(learning_rate=config.learning_rate,
                                   weight_decay=config.weight_decay)
+            
+            # check if the checkpoint flag is True
+            if wandb.config.checkpoint_flag:
+                # copy the weights from multimodal supervised model checkpoint
+                model = MultiModModel.load_from_checkpoint(
+                    config.checkpoint, learning_rate=wandb.config.learning_rate, weight_decay=wandb.config.weight_decay)
+
+            elif wandb.config.contrastive_checkpoint_flag:
+                contrastive_model = ContrastiveModel.load_from_checkpoint(
+                    wandb.config.contrastive_checkpoint)
+
+                # copy the resnet and fc1 weights from contrastive learning model
+                model.resnet = contrastive_model.resnet
+                model.fc1 = contrastive_model.fc1
+
             # load the data
             data = MultimodalDataModule(
                 CSV_FILE, age=config.age, batch_size=config.batch_size, spatial_size=config.spatial_size)
@@ -370,10 +389,10 @@ if __name__ == '__main__':
     # main_multimodal(supervised_config)
 
     # run contrastive learning
-    main_contrastive_learning(contrastive_config)
+    # main_contrastive_learning(contrastive_config)
 
     # run kfold multimodal
     # main_kfold_multimodal(wandb, wandb_logger, fold_number = 5, learning_rate=1e-3, batch_size=8, max_epochs=100, age=None)
 
     # run grid search
-    # run_grid_search('tabular')
+    run_grid_search('supervised')

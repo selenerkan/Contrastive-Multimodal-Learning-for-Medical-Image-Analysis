@@ -13,7 +13,7 @@ class ContrastiveModel(LightningModule):
     Uses ResNet for the image data, concatenates image and tabular data at the end
     '''
 
-    def __init__(self, learning_rate, weight_decay=1e-5):
+    def __init__(self, learning_rate=0.013, weight_decay=0.01):
 
         super().__init__()
         self.save_hyperparameters()
