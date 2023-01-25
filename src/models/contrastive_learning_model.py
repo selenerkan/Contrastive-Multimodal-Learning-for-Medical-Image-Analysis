@@ -46,6 +46,7 @@ class ContrastiveModel(LightningModule):
         img = img.flatten(0, 1)
         # run the model for the image
         img = self.resnet(img)
+        img = img.view(img.size(0), -1)
 
         # change the dtype of the tabular data
         tab = tab.to(torch.float32)
@@ -53,7 +54,7 @@ class ContrastiveModel(LightningModule):
         tab = torch.cat((tab, tab), dim=0)
         # forward tabular data
         tab = F.relu(self.fc1(tab))
-
+        
         # concat image and tabular data
         x = torch.cat((img, tab), dim=1)
         out = self.fc2(x)
