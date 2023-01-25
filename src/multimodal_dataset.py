@@ -8,7 +8,7 @@ import pytorch_lightning as pl
 import numpy as np
 from sklearn.model_selection import train_test_split
 
-from settings import IMAGE_PATH, FEATURES, TARGET
+from settings import IMAGE_PATH, FEATURES, TARGET, SEED
 from torch.utils.data import DataLoader
 from sklearn.model_selection import StratifiedKFold
 import sys
@@ -128,11 +128,11 @@ class MultimodalDataModule(pl.LightningDataModule):
             # get the subjects and labels fir train, test, validation
             self.subjects_train, self.subjects_test, self.labels_train, self.labels_test = train_test_split(patient_label_df.subject, patient_label_df.label_numeric,
                                                                                                             stratify=patient_label_df.label_numeric,
-                                                                                                            test_size=0.2)
+                                                                                                            test_size=0.2, random_state=SEED)
 
             self.subjects_train, self.subjects_val, self.labels_train, self.labels_val = train_test_split(self.subjects_train, self.labels_train,
                                                                                                           stratify=self.labels_train,
-                                                                                                          test_size=0.25)
+                                                                                                          test_size=0.25, random_state=SEED)
         except Exception as e:
             print('Dataset couldn\'t be split by patient. Possible cause is having only 1 patient in test or validation')
             print(e)
