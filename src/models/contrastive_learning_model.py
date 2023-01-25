@@ -16,6 +16,7 @@ class ContrastiveModel(LightningModule):
     def __init__(self, learning_rate, weight_decay=1e-5):
 
         super().__init__()
+        self.save_hyperparameters()
 
         self.lr = learning_rate
         self.wd = weight_decay
@@ -54,7 +55,7 @@ class ContrastiveModel(LightningModule):
         tab = torch.cat((tab, tab), dim=0)
         # forward tabular data
         tab = F.relu(self.fc1(tab))
-        
+
         # concat image and tabular data
         x = torch.cat((img, tab), dim=1)
         out = self.fc2(x)

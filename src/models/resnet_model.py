@@ -17,6 +17,7 @@ class ResNetModel(LightningModule):
     def __init__(self, learning_rate=1e-3, weight_decay=1e-5):
 
         super().__init__()
+        self.save_hyperparameters()
 
         self.lr = learning_rate
         self.wd = weight_decay

@@ -125,6 +125,18 @@ def main_multimodal(config=None):
                           weight_decay=wandb.config.weight_decay)
     wandb.watch(model, log="all")
 
+    # check if the checkpoint flag is True
+    if config.checkpoint_flag:
+        # copy the weights from multimodal supervised model checkpoint
+        model = MultiModModel.load_from_checkpoint(
+            config.checkpoint, learning_rate=wandb.config.learning_rate, weight_decay=wandb.config.weight_decay)
+    elif config.contrastive_checkpoint_flag:
+        contrastive_model = ContrastiveModel.load_from_checkpoint(
+            config.contrastive_checkpoint)
+        # copy the resnet and fc1 weights from contrastive learning model
+        model.resnet = contrastive_model.resnet
+        model.fc1 = contrastive_model.fc1
+
     # load the data
     data = MultimodalDataModule(
         CSV_FILE, age=wandb.config.age, batch_size=wandb.config.batch_size, spatial_size=wandb.config.spatial_size)

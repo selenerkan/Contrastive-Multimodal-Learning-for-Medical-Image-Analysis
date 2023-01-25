@@ -24,6 +24,8 @@ tabular_config = {
     'spatial_size': (120, 120, 120),
     'learning_rate': 0.0055,
     'weight_decay': 0,
+    'checkpoint': None,
+    'checkpoint_flag': False
 }
 
 resnet_config = {
@@ -33,6 +35,8 @@ resnet_config = {
     'spatial_size': (120, 120, 120),
     'learning_rate': 0.013,
     'weight_decay': 0.01,
+    'checkpoint': None,
+    'checkpoint_flag': False
 }
 
 
@@ -43,6 +47,10 @@ supervised_config = {
     'spatial_size': (120, 120, 120),
     'learning_rate': 0.013,
     'weight_decay': 0.01,
+    'checkpoint': None,
+    'contrastive_checkpoint': None,
+    'checkpoint_flag': False,
+    'contrastive_checkpoint_flag': False
 }
 
 contrastive_config = {
@@ -52,4 +60,6 @@ contrastive_config = {
     'spatial_size': (120, 120, 120),
     'learning_rate': 0.013,
     'weight_decay': 0.01,
+    'checkpoint': None,
+    'checkpoint_flag': False
 }
