@@ -24,7 +24,7 @@ class ResNetModel(LightningModule):
 
         self.softmax = Softmax(dim=1)
 
-        self.resnet = ResNet(n_basefilters=64)
+        self.resnet = ResNet()
 
         # add a new fc layer
         resnet_out_dim = 32
@@ -55,12 +55,13 @@ class ResNetModel(LightningModule):
 
         optimizer = torch.optim.Adam(
             self.parameters(), lr=self.lr, weight_decay=self.wd)
-        scheduler = MultiStepLR(optimizer,
-                                # List of epoch indices
-                                milestones=[18, 27],
-                                gamma=0.1)  # Multiplicative factor of learning rate decay
+        # scheduler = MultiStepLR(optimizer,
+        #                         # List of epoch indices
+        #                         milestones=[18, 27],
+        #                         gamma=0.1)  # Multiplicative factor of learning rate decay
 
-        return [optimizer], [scheduler]
+        # return [optimizer], [scheduler]
+        return optimizer
 
     def training_step(self, batch, batch_idx):
 

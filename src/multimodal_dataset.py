@@ -149,6 +149,7 @@ class MultimodalDataModule(pl.LightningDataModule):
 
         # print the patients in train
         print('number of patients in train: ', len(self.train_df))
+        print('patient IDs in train: ', self.train_df.subject.unique())
 
         # prepare test dataframe
         self.test_df = self.tabular_data[self.tabular_data['subject'].isin(
@@ -166,6 +167,7 @@ class MultimodalDataModule(pl.LightningDataModule):
 
         # print the patients in train
         print('number of patients in val: ', len(self.val_df))
+        print('patient IDs in val: ', self.val_df.subject.unique())
 
         # ----------------------------------------
 

@@ -3,6 +3,8 @@ import nibabel as nib
 import os
 import glob
 import numpy as np
+from monai import transforms
+import math
 
 # function to mask the hippocampus
 def mask_hippocampus(orj_img, segmented_img, class_val):
@@ -44,4 +46,42 @@ def masking():
         ni_masked_image = nib.Nifti1Image(masked_image, affine=np.eye(4))
         nib.save(ni_masked_image, os.path.join(dir_masked_img,img_name))
 
+def crop_image(image, size):
+
+    # get the mean of nonzero region
+    nonzero = np.nonzero(image)
+    x,y,z=math.ceil(np.unique(nonzero[0]).mean()),math.ceil(np.unique(nonzero[1]).mean()),math.ceil(np.unique(nonzero[2]).mean())
+
+    # get the size of the nonzero element
+    size_x = nonzero[0].max() - nonzero[0].min()
+    size_y = nonzero[1].max() - nonzero[1].min()
+    size_z = nonzero[2].max() - nonzero[2].min() 
+
+    # get the size of the crop
+    crop_size=max(size_x,size_y,size_z,size)
+    
+    crop=transforms.SpatialCrop(roi_center=(x,y,z), roi_size=(crop_size,crop_size,crop_size))
+    cropped_img=crop(np.expand_dims(image, axis=0))
+    
+    return cropped_img
+
+def cropping():
+    dir_hippo=r'/home/guests/selen_erkan/datasets/ADNI/images/hippocampus'
+    dir_cropped_hippo = r'/home/guests/selen_erkan/datasets/ADNI/images/cropped_hippocampus'
+
+    for img_name in os.listdir(dir_hippo):
+        img_name_path= os.path.join(dir_hippo,img_name)
+
+        # read one image
+        image = nib.load(img_name_path)
+        image= image.get_fdata()
+
+        print('IMAGE: ', img_name)
+        
+        cropped_img = crop_image(image,64)
+        
+        ni_masked_image = nib.Nifti1Image(cropped_img.numpy(), affine=np.eye(4))
+        nib.loadsave.save(ni_masked_image, os.path.join(dir_cropped_hippo,img_name))
+
 masking()
+cropping()

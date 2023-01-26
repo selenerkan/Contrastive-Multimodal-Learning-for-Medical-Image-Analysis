@@ -19,6 +19,7 @@ import torch
 from settings import CSV_FILE, SEED, CHECKPOINT_DIR, resnet_config, supervised_config, contrastive_config, tabular_config
 import torch.multiprocessing
 from datetime import datetime
+# from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 
 
 def main_conv3d(wandb, wandb_logger):
@@ -79,6 +80,9 @@ def main_resnet(config=None):
     '''
     main function to run the resnet architecture
     '''
+    print('YOU ARE RUNNING RESNET')
+    print(config)
+
     wandb.init(project="multimodal_training",
                entity="multimodal_network", config=config)
     wandb_logger = WandbLogger()
@@ -103,7 +107,7 @@ def main_resnet(config=None):
     date_time = datetime.now()
     dt_string = date_time.strftime("%d.%m.%Y-%H.%M")
     checkpoint_callback = ModelCheckpoint(
-        dirpath=os.path.join(CHECKPOINT_DIR, 'resnet'), filename=dt_string+'-{epoch:03d}')
+        dirpath=os.path.join(CHECKPOINT_DIR, 'resnet'), filename='lr='+wandb.config.learning_rate+'_wd='+wandb.config.weight_decay+'_'+dt_string+'-{epoch:03d}')
 
     # Add learning rate scheduler monitoring
     lr_monitor = LearningRateMonitor(logging_interval='epoch')
@@ -116,6 +120,10 @@ def main_multimodal(config=None):
     '''
     main function to run the multimodal architecture
     '''
+    
+    print('YOU ARE RUNNING SUPERVISED MULTIMODAL')
+    print(config)
+
     wandb.init(project="multimodal_training",
                entity="multimodal_network", config=config)
     wandb_logger = WandbLogger()
@@ -152,7 +160,7 @@ def main_multimodal(config=None):
     date_time = datetime.now()
     dt_string = date_time.strftime("%d.%m.%Y-%H.%M")
     checkpoint_callback = ModelCheckpoint(
-        dirpath=os.path.join(CHECKPOINT_DIR, 'supervised'), filename=dt_string+'-{epoch:03d}')
+        dirpath=os.path.join(CHECKPOINT_DIR, 'supervised'), filename='lr='+wandb.config.learning_rate+'_wd='+wandb.config.weight_decay+'_'+dt_string+'-{epoch:03d}')
 
     # Add learning rate scheduler monitoring
     lr_monitor = LearningRateMonitor(logging_interval='epoch')
@@ -239,6 +247,10 @@ def main_contrastive_learning(config=None):
     '''
     main function to run the multimodal architecture
     '''
+    
+    print('YOU ARE RUNNING CONTRASTIVE MODEL')
+    print(config)
+
     wandb.init(project="multimodal_training",
                entity="multimodal_network", config=config)
     wandb_logger = WandbLogger()
@@ -263,7 +275,7 @@ def main_contrastive_learning(config=None):
     date_time = datetime.now()
     dt_string = date_time.strftime("%d.%m.%Y-%H.%M")
     checkpoint_callback = ModelCheckpoint(
-        dirpath=os.path.join(CHECKPOINT_DIR, 'contrastive'), filename=dt_string+'-{epoch:03d}')
+        dirpath=os.path.join(CHECKPOINT_DIR, 'contrastive'), filename='lr='+wandb.config.learning_rate+'_wd='+wandb.config.weight_decay+'_'+dt_string+'-{epoch:03d}')
 
     # Add learning rate scheduler monitoring
     lr_monitor = LearningRateMonitor(logging_interval='epoch')
@@ -273,6 +285,8 @@ def main_contrastive_learning(config=None):
 
 
 def run_grid_search(network):
+    
+    print('YOU ARE RUNNING GRID SEARCH FOR: ', network)
 
     sweep_config = {
         'method': 'grid',
@@ -281,15 +295,15 @@ def run_grid_search(network):
             'network': {'value': network},
             'batch_size': {'value': 32},
             'max_epochs': {'value': 30},
-            'epochs': {'value': 5},
             'age': {'value': None},
             'spatial_size': {'value': (120, 120, 120)},
             'learning_rate': {'values': [0.03, 0.013, 0.0055, 0.0023, 0.001]},
             'weight_decay': {'values': [0, 1e-2, 1e-4]},
-            'checkpoint': {'value': r'/home/guests/selen_erkan/experiments/checkpoints/supervised/25.01.2023-18.49-epoch=029.ckpt'},
-            'contrastive_checkpoint': {'value': r'/home/guests/selen_erkan/experiments/checkpoints/contrastive/25.01.2023-17.14-epoch=029.ckpt'},
+            # checkpoints are implemented in case grid search wants to be tried with checkpoint weights
+            'checkpoint': {'value': r'/home/guests/selen_erkan/experiments/checkpoints/supervised/25.01.2023-18.49-epoch=029.ckpt'}, # put the checkpoint path here
+            'contrastive_checkpoint': {'value': r'/home/guests/selen_erkan/experiments/checkpoints/contrastive/25.01.2023-17.14-epoch=029.ckpt'}, # this is only for using contrastive model weights in supervised model
             'checkpoint_flag': {'value': False},
-            'contrastive_checkpoint_flag': {'value': True}
+            'contrastive_checkpoint_flag': {'value': False}
         }
     }
 
@@ -307,7 +321,6 @@ def grid_search(config=None):
     '''
     main function to run grif search on the models
     '''
-
     with wandb.init(config=config):
 
         config = wandb.config
@@ -333,7 +346,8 @@ def grid_search(config=None):
             # get the model
             model = MultiModModel(learning_rate=config.learning_rate,
                                   weight_decay=config.weight_decay)
-            
+
+            # below is used if grid search wants to be tried with checkpoint weights
             # check if the checkpoint flag is True
             if wandb.config.checkpoint_flag:
                 # copy the weights from multimodal supervised model checkpoint
@@ -367,8 +381,16 @@ def grid_search(config=None):
             accelerator = 'gpu'
             devices = 1
 
+        # save the checkpoint in a model specific folder
+        # use datetime value in the file name
+        date_time = datetime.now()
+        dt_string = date_time.strftime("%d.%m.%Y-%H.%M")
+        checkpoint_callback = ModelCheckpoint(
+            dirpath=os.path.join(CHECKPOINT_DIR, config.network), filename='grid_lr='+config.learning_rate+'_wd='+config.weight_decay+'_'+dt_string+'-{epoch:03d}')
+
+        # Add learning rate scheduler monitoring
         trainer = Trainer(accelerator=accelerator, devices=devices,
-                          max_epochs=config.max_epochs, logger=wandb_logger, log_every_n_steps=10)
+                        max_epochs=config.max_epochs, logger=wandb_logger, callbacks=[checkpoint_callback], log_every_n_steps=10)
         trainer.fit(model, data)
 
 
@@ -395,4 +417,4 @@ if __name__ == '__main__':
     # main_kfold_multimodal(wandb, wandb_logger, fold_number = 5, learning_rate=1e-3, batch_size=8, max_epochs=100, age=None)
 
     # run grid search
-    run_grid_search('supervised')
+    run_grid_search('resnet')
