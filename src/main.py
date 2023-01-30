@@ -120,7 +120,7 @@ def main_multimodal(config=None):
     '''
     main function to run the multimodal architecture
     '''
-    
+
     print('YOU ARE RUNNING SUPERVISED MULTIMODAL')
     print(config)
 
@@ -251,7 +251,7 @@ def main_contrastive_learning(config=None):
     '''
     main function to run the multimodal architecture
     '''
-    
+
     print('YOU ARE RUNNING CONTRASTIVE MODEL')
     print(config)
 
@@ -266,7 +266,7 @@ def main_contrastive_learning(config=None):
 
     # load the data
     data = ContrastiveDataModule(
-        CSV_FILE, age=wandb.config.age, batch_size=wandb.config.batch_size, spatial_size=wandb.config.spatial_size)
+        CSV_FILE, age=wandb.config.age, batch_size=wandb.config.batch_size, spatial_size=wandb.config.spatial_size, loss_name='contrastive')
 
     accelerator = 'cpu'
     devices = None
@@ -289,7 +289,7 @@ def main_contrastive_learning(config=None):
 
 
 def run_grid_search(network):
-    
+
     print('YOU ARE RUNNING GRID SEARCH FOR: ', network)
 
     sweep_config = {
@@ -373,7 +373,7 @@ def grid_search(config=None):
         elif config.network == 'contrastive':
             # get the model
             model = ContrastiveModel(learning_rate=config.learning_rate,
-                                  weight_decay=config.weight_decay)
+                                     weight_decay=config.weight_decay)
             # load the data
             data = ContrastiveDataModule(
                 CSV_FILE, age=config.age, batch_size=config.batch_size, spatial_size=config.spatial_size)
@@ -394,7 +394,7 @@ def grid_search(config=None):
 
         # Add learning rate scheduler monitoring
         trainer = Trainer(accelerator=accelerator, devices=devices,
-                        max_epochs=config.max_epochs, logger=wandb_logger, callbacks=[checkpoint_callback], log_every_n_steps=10)
+                          max_epochs=config.max_epochs, logger=wandb_logger, callbacks=[checkpoint_callback], log_every_n_steps=10)
         trainer.fit(model, data)
 
 

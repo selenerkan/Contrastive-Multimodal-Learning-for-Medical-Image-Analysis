@@ -15,6 +15,116 @@ import sys
 import numpy as np
 from monai import transforms
 # import torchio as tio
+import random
+
+
+class Triplet_Loss_Dataset(Dataset):
+
+    def __init__(self, tabular_data, image_base_dir, target, features, transform=None):
+        """
+
+        csv_dir: The directiry for the .csv file (tabular data) including the labels
+
+        image_base_dir:The directory of the folders containing the images
+
+        transform:The trasformations for the input images
+
+        Target_transform:The trasformations for the target(label)
+
+        """
+        # TABULAR DATA
+        # initialize the tabular data
+        self.tabular_data = tabular_data.copy()
+
+        # keep relevant features in the tabular data
+        self.features = features
+        self.tabular = self.tabular_data[self.features]
+
+        # Save target and predictors
+        self.target = target
+        self.X = self.tabular.drop(self.target, axis=1)
+        self.y = self.tabular[self.target]
+
+        # IMAGE DATA
+        self.imge_base_dir = image_base_dir
+        self.transform = transform
+
+    def __len__(self):
+
+        return len(self.tabular)
+
+    def preprocess(self, x):
+
+        # preprocess img
+        x = np.array(x, dtype=np.float32)
+
+        # scale images between [0,1]
+        min_val = x.min()
+        x = (x - min_val) / (x.max() - min_val)
+        x = torch.tensor(x)
+
+        # create the channel dimension
+        x = torch.unsqueeze(x, 0)
+        x = self.transform(x)
+
+        return x
+
+    def __getitem__(self, idx):
+
+        # Convert idx from tensor to list due to pandas bug (that arises when using pytorch's random_split)
+        if isinstance(idx, torch.Tensor):
+            idx = idx.tolist()
+
+        # get image name for the given index
+        img_folder_name = self.tabular_data['image_id'][idx]
+
+        # find a positive pair of the given image
+        # get the label of the image
+        label = self.tabular_data.loc[idx, self.target]
+        # remove the current image form the tabular data
+        tabular = self.tabular_data.drop(idx).reset_index()
+        # get the positive and negative pair names
+        positive_pairs = tabular[tabular[self.target]
+                                 == label]['image_id'].unique()
+        negative_pairs = tabular[tabular[self.target]
+                                 != label]['image_id'].unique()
+        # pick a random positive and negative image
+        positive_img_folder_name = random.choice(positive_pairs)
+        negative_img_folder_name = random.choice(negative_pairs)
+
+        # get the index of the positive and negative pairs
+        pos_idx = tabular.index[tabular['image_id']
+                                == positive_img_folder_name].tolist()
+        neg_idx = tabular.index[tabular['image_id']
+                                == negative_img_folder_name].tolist()
+
+        # get the paths for image and its positive and negative pairs
+        img_path = os.path.join(
+            self.imge_base_dir, img_folder_name + '.nii.gz')
+        pos_img_path = os.path.join(
+            self.imge_base_dir, positive_img_folder_name + '.nii.gz')
+        neg_img_path = os.path.join(
+            self.imge_base_dir, negative_img_folder_name + '.nii.gz')
+
+        # load all three images
+        image = nib.load(img_path)
+        image = image.get_fdata()
+        positive_img = nib.load(pos_img_path)
+        positive_img = positive_img.get_fdata()
+        negative_image = nib.load(neg_img_path)
+        negative_image = negative_image.get_fdata()
+
+        # Apply transformations
+        transformed_images = self.preprocess(image)
+        transformed_positive_images = self.preprocess(positive_img)
+        transformed_negative_images = self.preprocess(negative_image)
+
+        # get the tabular data for given index
+        tab = self.X.iloc[idx].values
+        positive_tab = self.X.iloc[pos_idx].values
+        negative_tab = self.X.iloc[neg_idx].values
+
+        return transformed_images, transformed_positive_images, transformed_negative_images, tab, positive_tab, negative_tab
 
 
 class Contrastive_Dataset(Dataset):
@@ -78,7 +188,7 @@ class Contrastive_Dataset(Dataset):
 
 class ContrastiveDataModule(pl.LightningDataModule):
 
-    def __init__(self, csv_dir, n_views=2, age=None, batch_size=1, spatial_size=(120, 120, 120)):
+    def __init__(self, csv_dir, loss_name='contrastive', n_views=2, age=None, batch_size=1, spatial_size=(120, 120, 120)):
 
         super().__init__()
         self.age = age
@@ -86,6 +196,7 @@ class ContrastiveDataModule(pl.LightningDataModule):
         self.n_views = n_views
         self.batch_size = batch_size
         self.spatial_size = spatial_size
+        self.loss_name = loss_name
 
         self.num_workers = 0
         if torch.cuda.is_available():
@@ -168,15 +279,27 @@ class ContrastiveDataModule(pl.LightningDataModule):
 
         # ----------------------------------------
 
-        # create the dataset object using the dataframes created above
-        self.train = Contrastive_Dataset(self.train_df, image_base_dir=IMAGE_PATH,
-                                         target=TARGET, features=FEATURES, transform=ContrastiveLearningViewGenerator(self.get_transforms(), self.n_views))
+        if self.loss_name == 'contrastive':
+            # create the dataset object using the dataframes created above for contrastive loss
+            self.train = Contrastive_Dataset(self.train_df, image_base_dir=IMAGE_PATH,
+                                             target=TARGET, features=FEATURES, transform=ContrastiveLearningViewGenerator(self.get_transforms(), self.n_views))
 
-        self.test = Contrastive_Dataset(self.test_df, image_base_dir=IMAGE_PATH,
-                                        target=TARGET, features=FEATURES, transform=ContrastiveLearningViewGenerator(self.get_transforms(), self.n_views))
+            self.test = Contrastive_Dataset(self.test_df, image_base_dir=IMAGE_PATH,
+                                            target=TARGET, features=FEATURES, transform=ContrastiveLearningViewGenerator(self.get_transforms(), self.n_views))
 
-        self.val = Contrastive_Dataset(self.val_df, image_base_dir=IMAGE_PATH,
-                                       target=TARGET, features=FEATURES, transform=ContrastiveLearningViewGenerator(self.get_transforms(), self.n_views))
+            self.val = Contrastive_Dataset(self.val_df, image_base_dir=IMAGE_PATH,
+                                           target=TARGET, features=FEATURES, transform=ContrastiveLearningViewGenerator(self.get_transforms(), self.n_views))
+
+        else:
+            # create the dataset object using the dataframes created above for triplet loss
+            self.train = Triplet_Loss_Dataset(self.train_df, image_base_dir=IMAGE_PATH,
+                                              target=TARGET, features=FEATURES, transform=self.get_transforms())
+
+            self.test = Triplet_Loss_Dataset(self.test_df, image_base_dir=IMAGE_PATH,
+                                             target=TARGET, features=FEATURES, transform=self.get_transforms())
+
+            self.val = Triplet_Loss_Dataset(self.val_df, image_base_dir=IMAGE_PATH,
+                                            target=TARGET, features=FEATURES, transform=self.get_transforms())
 
         return self.train_df, self.train
 
