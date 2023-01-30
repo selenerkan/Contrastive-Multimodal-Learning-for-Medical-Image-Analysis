@@ -68,7 +68,7 @@ def main_tabular(config=None):
     date_time = datetime.now()
     dt_string = date_time.strftime("%d.%m.%Y-%H.%M")
     checkpoint_callback = ModelCheckpoint(
-        dirpath=os.path.join(CHECKPOINT_DIR, 'tabular'), filename=dt_string+'-{epoch:03d}')
+        dirpath=os.path.join(CHECKPOINT_DIR, 'tabular'), filename='lr='+str(wandb.config.learning_rate)+'_wd='+str(wandb.config.weight_decay)+'_'+dt_string+'-{epoch:03d}')
 
     # Add learning rate scheduler monitoring
     trainer = Trainer(accelerator=accelerator, devices=devices,
@@ -107,7 +107,7 @@ def main_resnet(config=None):
     date_time = datetime.now()
     dt_string = date_time.strftime("%d.%m.%Y-%H.%M")
     checkpoint_callback = ModelCheckpoint(
-        dirpath=os.path.join(CHECKPOINT_DIR, 'resnet'), filename='lr='+wandb.config.learning_rate+'_wd='+wandb.config.weight_decay+'_'+dt_string+'-{epoch:03d}')
+        dirpath=os.path.join(CHECKPOINT_DIR, 'resnet'), filename='lr='+str(wandb.config.learning_rate)+'_wd='+str(wandb.config.weight_decay)+'_'+dt_string+'-{epoch:03d}')
 
     # Add learning rate scheduler monitoring
     lr_monitor = LearningRateMonitor(logging_interval='epoch')
@@ -145,6 +145,10 @@ def main_multimodal(config=None):
         model.resnet = contrastive_model.resnet
         model.fc1 = contrastive_model.fc1
 
+        # freeze network weights
+        # model.resnet.freeze()
+        # model.fc1.requires_grad_(False)
+
     # load the data
     data = MultimodalDataModule(
         CSV_FILE, age=wandb.config.age, batch_size=wandb.config.batch_size, spatial_size=wandb.config.spatial_size)
@@ -160,7 +164,7 @@ def main_multimodal(config=None):
     date_time = datetime.now()
     dt_string = date_time.strftime("%d.%m.%Y-%H.%M")
     checkpoint_callback = ModelCheckpoint(
-        dirpath=os.path.join(CHECKPOINT_DIR, 'supervised'), filename='lr='+wandb.config.learning_rate+'_wd='+wandb.config.weight_decay+'_'+dt_string+'-{epoch:03d}')
+        dirpath=os.path.join(CHECKPOINT_DIR, 'supervised'), filename='lr='+str(wandb.config.learning_rate)+'_wd='+str(wandb.config.weight_decay)+'_'+dt_string+'-{epoch:03d}')
 
     # Add learning rate scheduler monitoring
     lr_monitor = LearningRateMonitor(logging_interval='epoch')
@@ -275,7 +279,7 @@ def main_contrastive_learning(config=None):
     date_time = datetime.now()
     dt_string = date_time.strftime("%d.%m.%Y-%H.%M")
     checkpoint_callback = ModelCheckpoint(
-        dirpath=os.path.join(CHECKPOINT_DIR, 'contrastive'), filename='lr='+wandb.config.learning_rate+'_wd='+wandb.config.weight_decay+'_'+dt_string+'-{epoch:03d}')
+        dirpath=os.path.join(CHECKPOINT_DIR, 'contrastive'), filename='lr='+str(wandb.config.learning_rate)+'_wd='+str(wandb.config.weight_decay)+'_'+dt_string+'-{epoch:03d}')
 
     # Add learning rate scheduler monitoring
     lr_monitor = LearningRateMonitor(logging_interval='epoch')
@@ -368,11 +372,11 @@ def grid_search(config=None):
 
         elif config.network == 'contrastive':
             # get the model
-            model = MultiModModel(learning_rate=config.learning_rate,
+            model = ContrastiveModel(learning_rate=config.learning_rate,
                                   weight_decay=config.weight_decay)
             # load the data
-            data = MultimodalDataModule(
-                CSV_FILE, age=config.age, batch_size=8, spatial_size=config.spatial_size)
+            data = ContrastiveDataModule(
+                CSV_FILE, age=config.age, batch_size=config.batch_size, spatial_size=config.spatial_size)
 
         wandb.watch(model, log="all")
         accelerator = 'cpu'
@@ -386,7 +390,7 @@ def grid_search(config=None):
         date_time = datetime.now()
         dt_string = date_time.strftime("%d.%m.%Y-%H.%M")
         checkpoint_callback = ModelCheckpoint(
-            dirpath=os.path.join(CHECKPOINT_DIR, config.network), filename='grid_lr='+config.learning_rate+'_wd='+config.weight_decay+'_'+dt_string+'-{epoch:03d}')
+            dirpath=os.path.join(CHECKPOINT_DIR, config.network), filename='grid_lr='+str(config.learning_rate)+'_wd='+str(config.weight_decay)+'_'+dt_string+'-{epoch:03d}')
 
         # Add learning rate scheduler monitoring
         trainer = Trainer(accelerator=accelerator, devices=devices,
@@ -417,4 +421,4 @@ if __name__ == '__main__':
     # main_kfold_multimodal(wandb, wandb_logger, fold_number = 5, learning_rate=1e-3, batch_size=8, max_epochs=100, age=None)
 
     # run grid search
-    run_grid_search('resnet')
+    run_grid_search('contrastive')
