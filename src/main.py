@@ -17,7 +17,7 @@ from models.triplet_model import TripletModel
 from pytorch_lightning.callbacks import LearningRateMonitor
 
 import torch
-from settings import CSV_FILE, SEED, CHECKPOINT_DIR, resnet_config, supervised_config, contrastive_config, tabular_config, triplet_config
+from settings import CSV_FILE, SEED, CHECKPOINT_DIR, resnet_config, supervised_config, contrastive_config, tabular_config, triplet_config, knn_config
 import torch.multiprocessing
 from datetime import datetime
 # from pytorch_lightning.callbacks.early_stopping import EarlyStopping
@@ -440,6 +440,68 @@ def grid_search(config=None):
         trainer = Trainer(accelerator=accelerator, devices=devices,
                           max_epochs=config.max_epochs, logger=wandb_logger, callbacks=[checkpoint_callback], log_every_n_steps=10)
         trainer.fit(model, data)
+
+
+def knn():
+    pass
+
+
+def run_knn(config):
+
+    print('YOU ARE RUNNING KNN FOR', config['model'])
+    print(config)
+
+    wandb.init(project="multimodal_training",
+               entity="multimodal_network", config=config)
+    wandb_logger = WandbLogger()
+
+    # copy the weights from the checkpoint
+    model = TripletModel.load_from_checkpoint(
+        config.checkpoint, learning_rate=wandb.config.learning_rate, weight_decay=wandb.config.weight_decay)
+
+    # set the model to eval mode to run knn
+    torch.set_grad_enabled(False)
+    model.eval()
+
+    # load the data
+    data = ContrastiveDataModule(
+        CSV_FILE, age=wandb.config.age, batch_size=wandb.config.batch_size, spatial_size=wandb.config.spatial_size, loss_name='triplet')
+    data.prepare_data()
+
+    # get the train and val dataloaders
+    train_dataloader = data.train_dataloader()
+    val_dataloader = data.val_dataloader()
+
+    train_encodings = []
+    val_encodings = []
+    train_labels = []
+    val_labels = []
+
+    # get the training batches and calculate the encodings
+    for step, batch in enumerate(train_dataloader):
+
+        img, tab, label = batch[0], batch[3], batch[-1]
+        # calculate the encodings
+        encodings = model(img, tab)
+        # add encodings to the list
+        train_encodings.extend(list(encodings))
+        # add the labels to the list
+        train_labels.extend(list(label))
+
+    # get the validation batches and calculate the encodings
+    for step, batch in enumerate(val_dataloader):
+
+        img, tab, label = batch[0], batch[3], batch[-1]
+        # calculate the encodings
+        encodings = model(img, tab)
+        # add encodings to the list
+        val_encodings.extend(list(encodings))
+        # add the labels to the list
+        val_labels.extend(list(label))
+
+    # run knn model
+
+    pass
 
 
 if __name__ == '__main__':
