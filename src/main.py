@@ -470,51 +470,16 @@ def grid_search(config=None):
         trainer.fit(model, train_dataloader, val_dataloader)
 
 
-def knn(wandb, wandb_logger, train_encodings, train_labels, val_encodings, val_labels, n_neighbors=5):
+def get_embeddings(config, wandb=None, wandb_logger=None):
 
-    # track macro and micro accuracy
-    knn_macro_accuracy = torchmetrics.Accuracy(
-        task='multiclass', average='macro', num_classes=3, top_k=1)
-    knn_micro_accuracy = torchmetrics.Accuracy(
-        task='multiclass', average='micro', num_classes=3, top_k=1)
-
-    knn = KNeighborsClassifier(n_neighbors=n_neighbors)
-    knn.fit(train_encodings, train_labels)
-
-    # get predictions
-    pred = knn.predict(val_encodings)
-
-    # accuracy: (tp + tn) / (p + n)
-    micro_acc = knn_micro_accuracy(pred, val_labels)
-    print('Micro Accuracy: %f' % micro_acc)
-    wandb.log({"KNN micro Acc": micro_acc})
-
-    macro_acc = knn_macro_accuracy(pred, val_labels)
-    print('Macro Accuracy: %f' % macro_acc)
-    wandb.log({"KNN macro Acc": macro_acc})
-
-    # precision tp / (tp + fp)
-    precision = precision_score(val_labels, pred)
-    print('Precision: %f' % precision)
-    wandb.log({"KNN Precision": precision})
-    # recall: tp / (tp + fn)
-    recall = recall_score(val_labels, pred)
-    print('Recall: %f' % recall)
-    wandb.log({"KNN Recall": recall})
-    # f1: 2 tp / (2 tp + fp + fn)
-    f1 = f1_score(val_labels, pred)
-    print('F1 score: %f' % f1)
-    wandb.log({"KNN F1 Score": f1})
-
-
-def run_knn(config):
-
-    print('YOU ARE RUNNING KNN FOR: ', config['model'])
+    print('YOU ARE RETRIEVING AND VISUALIZING EMBEDDINGS OF: ',
+          config['model'])
     print(config)
 
-    wandb.init(project="multimodal_training",
-               entity="multimodal_network", config=config)
-    wandb_logger = WandbLogger()
+    if not wandb:
+        wandb.init(project="multimodal_training",
+                   entity="multimodal_network", config=config)
+        wandb_logger = WandbLogger()
 
     # copy the weights from the checkpoint
     # use triplet model for both triplet loss and contrastive loss because the models are exactly the same
@@ -562,9 +527,74 @@ def run_knn(config):
         # add the labels to the list
         val_labels.extend(list(label))
 
-    # run knn model
-    knn(wandb, wandb_logger, train_encodings,
-        train_labels, val_encodings, val_labels, wandb.config.n_neighbors)
+    # generate embedding projection table in wandb
+    wandb.log({
+        "train_embeddings": wandb.Table(
+            data=train_encodings
+        )
+    })
+    wandb.log({
+        "val_embeddings": wandb.Table(
+            data=val_encodings
+        )
+    })
+
+    wandb.log({
+        "all_embeddings": wandb.Table(
+            data=train_encodings.extend(val_encodings)
+        )
+    })
+
+    return train_encodings, train_labels, val_encodings, val_labels
+
+
+def knn(wandb, wandb_logger, config):
+
+    print('YOU ARE RUNNING KNN FOR: ',
+          config['model'])
+    print(config)
+
+    wandb.init(project="multimodal_training",
+               entity="multimodal_network", config=config)
+    wandb_logger = WandbLogger()
+
+    # get the embeddings of the model
+    train_encodings, train_labels, val_encodings, val_labels = get_embeddings(config,
+                                                                              wandb, wandb_logger)
+
+    # track macro and micro accuracy
+    knn_macro_accuracy = torchmetrics.Accuracy(
+        task='multiclass', average='macro', num_classes=3, top_k=1)
+    knn_micro_accuracy = torchmetrics.Accuracy(
+        task='multiclass', average='micro', num_classes=3, top_k=1)
+
+    knn = KNeighborsClassifier(n_neighbors=wandb.config.n_neighbors)
+    knn.fit(train_encodings, train_labels)
+
+    # get predictions
+    pred = knn.predict(val_encodings)
+
+    # accuracy: (tp + tn) / (p + n)
+    micro_acc = knn_micro_accuracy(pred, val_labels)
+    print('Micro Accuracy: %f' % micro_acc)
+    wandb.log({"KNN micro Acc": micro_acc})
+
+    macro_acc = knn_macro_accuracy(pred, val_labels)
+    print('Macro Accuracy: %f' % macro_acc)
+    wandb.log({"KNN macro Acc": macro_acc})
+
+    # precision tp / (tp + fp)
+    precision = precision_score(val_labels, pred)
+    print('Precision: %f' % precision)
+    wandb.log({"KNN Precision": precision})
+    # recall: tp / (tp + fn)
+    recall = recall_score(val_labels, pred)
+    print('Recall: %f' % recall)
+    wandb.log({"KNN Recall": recall})
+    # f1: 2 tp / (2 tp + fp + fn)
+    f1 = f1_score(val_labels, pred)
+    print('F1 score: %f' % f1)
+    wandb.log({"KNN F1 Score": f1})
 
 
 if __name__ == '__main__':
@@ -593,7 +623,10 @@ if __name__ == '__main__':
     # main_triplet(triplet_config)
 
     # run knn after triplet/contrastive loss model
-    run_knn(knn_config)
+    knn(knn_config)
+
+    # generate embedding visualizations
+    get_embeddings(knn_config)
 
     # run grid search
     # run_grid_search('contrastive')
