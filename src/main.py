@@ -3,6 +3,8 @@ from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.callbacks import ModelCheckpoint
 import os
+from sklearn.neighbors import KNeighborsClassifier
+import torchmetrics
 
 from adni_dataset import AdniDataModule, KfoldMultimodalDataModule
 
@@ -18,6 +20,7 @@ import torch
 from settings import CSV_FILE, SEED, CHECKPOINT_DIR, resnet_config, supervised_config, contrastive_config, tabular_config, triplet_config, knn_config
 import torch.multiprocessing
 from datetime import datetime
+from sklearn.metrics import roc_curve, roc_auc_score, precision_score, recall_score, f1_score
 # from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 
 
@@ -467,13 +470,46 @@ def grid_search(config=None):
         trainer.fit(model, train_dataloader, val_dataloader)
 
 
-def knn():
-    pass
+def knn(wandb, wandb_logger, train_encodings, train_labels, val_encodings, val_labels, n_neighbors=5):
+
+    # track macro and micro accuracy
+    knn_macro_accuracy = torchmetrics.Accuracy(
+        task='multiclass', average='macro', num_classes=3, top_k=1)
+    knn_micro_accuracy = torchmetrics.Accuracy(
+        task='multiclass', average='micro', num_classes=3, top_k=1)
+
+    knn = KNeighborsClassifier(n_neighbors=n_neighbors)
+    knn.fit(train_encodings, train_labels)
+
+    # get predictions
+    pred = knn.predict(val_encodings)
+
+    # accuracy: (tp + tn) / (p + n)
+    micro_acc = knn_micro_accuracy(pred, val_labels)
+    print('Micro Accuracy: %f' % micro_acc)
+    wandb.log({"KNN micro Acc": micro_acc})
+
+    macro_acc = knn_macro_accuracy(pred, val_labels)
+    print('Macro Accuracy: %f' % macro_acc)
+    wandb.log({"KNN macro Acc": macro_acc})
+
+    # precision tp / (tp + fp)
+    precision = precision_score(val_labels, pred)
+    print('Precision: %f' % precision)
+    wandb.log({"KNN Precision": precision})
+    # recall: tp / (tp + fn)
+    recall = recall_score(val_labels, pred)
+    print('Recall: %f' % recall)
+    wandb.log({"KNN Recall": recall})
+    # f1: 2 tp / (2 tp + fp + fn)
+    f1 = f1_score(val_labels, pred)
+    print('F1 score: %f' % f1)
+    wandb.log({"KNN F1 Score": f1})
 
 
 def run_knn(config):
 
-    print('YOU ARE RUNNING KNN FOR', config['model'])
+    print('YOU ARE RUNNING KNN FOR: ', config['model'])
     print(config)
 
     wandb.init(project="multimodal_training",
@@ -503,10 +539,11 @@ def run_knn(config):
     train_labels = []
     val_labels = []
 
+    # load the data as batches to fit it into the memory
     # get the training batches and calculate the encodings
     for step, batch in enumerate(train_dataloader):
 
-        img, tab, label = batch[0], batch[3], batch[-1]
+        img, tab, label = batch[0], batch[1], batch[2]
         # calculate the encodings
         encodings = model(img, tab)
         # add encodings to the list
@@ -517,7 +554,7 @@ def run_knn(config):
     # get the validation batches and calculate the encodings
     for step, batch in enumerate(val_dataloader):
 
-        img, tab, label = batch[0], batch[3], batch[-1]
+        img, tab, label = batch[0], batch[1], batch[2]
         # calculate the encodings
         encodings = model(img, tab)
         # add encodings to the list
@@ -526,8 +563,8 @@ def run_knn(config):
         val_labels.extend(list(label))
 
     # run knn model
-
-    pass
+    knn(wandb, wandb_logger, train_encodings,
+        train_labels, val_encodings, val_labels, wandb.config.n_neighbors)
 
 
 if __name__ == '__main__':
@@ -553,7 +590,10 @@ if __name__ == '__main__':
     # main_kfold_multimodal(wandb, wandb_logger, fold_number = 5, learning_rate=1e-3, batch_size=8, max_epochs=100, age=None)
 
     # run triplet loss model
-    main_triplet(triplet_config)
+    # main_triplet(triplet_config)
+
+    # run knn after triplet/contrastive loss model
+    run_knn(knn_config)
 
     # run grid search
     # run_grid_search('contrastive')
