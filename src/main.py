@@ -4,17 +4,16 @@ from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.callbacks import ModelCheckpoint
 import os
 
-from conv3D.model import AdniModel
-from contrastive_loss_dataset import ContrastiveDataModule
 from adni_dataset import AdniDataModule, KfoldMultimodalDataModule
 
+from conv3D.model import AdniModel
 from models.resnet_model import ResNetModel
 from models.multimodal_model import MultiModModel
 from models.tabular_model import TabularModel
 from models.contrastive_learning_model import ContrastiveModel
 from models.triplet_model import TripletModel
-from pytorch_lightning.callbacks import LearningRateMonitor
 
+from pytorch_lightning.callbacks import LearningRateMonitor
 import torch
 from settings import CSV_FILE, SEED, CHECKPOINT_DIR, resnet_config, supervised_config, contrastive_config, tabular_config, triplet_config, knn_config
 import torch.multiprocessing
@@ -279,8 +278,12 @@ def main_contrastive_learning(config=None):
     wandb.watch(model, log="all")
 
     # load the data
-    data = ContrastiveDataModule(
-        CSV_FILE, age=wandb.config.age, batch_size=wandb.config.batch_size, spatial_size=wandb.config.spatial_size, loss_name='contrastive')
+    data = AdniDataModule(
+        CSV_FILE, age=wandb.config.age, batch_size=wandb.config.batch_size, spatial_size=wandb.config.spatial_size)
+    data.prepare_data()
+    data.set_contrastive_loss_dataloader()
+    train_dataloader = data.train_dataloader()
+    val_dataloader = data.val_dataloader()
 
     accelerator = 'cpu'
     devices = None
@@ -299,7 +302,8 @@ def main_contrastive_learning(config=None):
     lr_monitor = LearningRateMonitor(logging_interval='epoch')
     trainer = Trainer(accelerator=accelerator, devices=devices,
                       max_epochs=wandb.config.max_epochs, logger=wandb_logger, callbacks=[checkpoint_callback, lr_monitor], log_every_n_steps=10)
-    trainer.fit(model, data)
+    trainer.fit(model, train_dataloaders=train_dataloader,
+                val_dataloaders=val_dataloader)
 
 
 def main_triplet(config=None):
@@ -320,8 +324,12 @@ def main_triplet(config=None):
     wandb.watch(model, log="all")
 
     # load the data
-    data = ContrastiveDataModule(
-        CSV_FILE, age=wandb.config.age, batch_size=wandb.config.batch_size, spatial_size=wandb.config.spatial_size, loss_name='triplet')
+    data = AdniDataModule(
+        CSV_FILE, age=wandb.config.age, batch_size=wandb.config.batch_size, spatial_size=wandb.config.spatial_size)
+    data.prepare_data()
+    data.set_triplet_loss_dataloader()
+    train_dataloader = data.train_dataloader()
+    val_dataloader = data.val_dataloader()
 
     accelerator = 'cpu'
     devices = None
@@ -340,7 +348,8 @@ def main_triplet(config=None):
     lr_monitor = LearningRateMonitor(logging_interval='epoch')
     trainer = Trainer(accelerator=accelerator, devices=devices,
                       max_epochs=wandb.config.max_epochs, logger=wandb_logger, callbacks=[checkpoint_callback, lr_monitor], log_every_n_steps=10)
-    trainer.fit(model, data)
+    trainer.fit(model, train_dataloaders=train_dataloader,
+                val_dataloaders=val_dataloader)
 
 
 def run_grid_search(network):
@@ -431,8 +440,7 @@ def grid_search(config=None):
             model = ContrastiveModel(learning_rate=config.learning_rate,
                                      weight_decay=config.weight_decay)
             # load the data
-            data = ContrastiveDataModule(
-                CSV_FILE, age=config.age, batch_size=config.batch_size, spatial_size=config.spatial_size, loss_name=config.network)
+            data.set_contrastive_loss_dataloader()
 
         # get dataloaders
         train_dataloader = data.train_dataloader()
@@ -473,6 +481,7 @@ def run_knn(config):
     wandb_logger = WandbLogger()
 
     # copy the weights from the checkpoint
+    # use triplet model for both triplet loss and contrastive loss because the models are exactly the same
     model = TripletModel.load_from_checkpoint(
         config.checkpoint, learning_rate=wandb.config.learning_rate, weight_decay=wandb.config.weight_decay)
 
@@ -481,11 +490,11 @@ def run_knn(config):
     model.eval()
 
     # load the data
-    data = ContrastiveDataModule(
-        CSV_FILE, age=wandb.config.age, batch_size=wandb.config.batch_size, spatial_size=wandb.config.spatial_size, loss_name='triplet')
+    data = AdniDataModule(
+        CSV_FILE, age=wandb.config.age, batch_size=wandb.config.batch_size, spatial_size=wandb.config.spatial_size)
     data.prepare_data()
-
-    # get the train and val dataloaders
+    # use supervised multimodal dataset because we only need images and tabular data woth labels (no negative and positive pairs for contrastive learning)
+    data.set_supervised_multimodal_dataloader()
     train_dataloader = data.train_dataloader()
     val_dataloader = data.val_dataloader()
 

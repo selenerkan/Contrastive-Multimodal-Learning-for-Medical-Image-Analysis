@@ -14,6 +14,7 @@ from monai import transforms
 from sklearn.model_selection import StratifiedKFold
 
 import torch
+import random
 
 
 class Resnet_Dataset(Dataset):
@@ -161,6 +162,176 @@ class Supervised_Multimodal_Dataset(Dataset):
         return image, tab, label
 
 
+class Contrastive_Loss_Dataset(Dataset):
+
+    def __init__(self, tabular_data, image_base_dir, target, features, transform=None):
+        """ initializes the dataset class for the contrastive learning model using contrastive loss
+
+        tabular_data: The dataframe object holding the info about patients, the name of the MRI images and the labels
+
+        image_base_dir:The directory of the folders containing the images
+
+        target: name of the target feature in the tabular_data dataframe 
+
+        features: subset feaures in the tabular data to be used in the model
+
+        transform:The trasformations for the input images
+
+        """
+        # TABULAR DATA
+        # initialize the tabular data
+        self.tabular_data = tabular_data.copy()
+
+        # keep relevant features in the tabular data
+        self.features = features
+        self.tabular = self.tabular_data[self.features]
+
+        # Save target and predictors
+        self.target = target
+        self.X = self.tabular.drop(self.target, axis=1)
+        self.y = self.tabular[self.target]
+
+        # IMAGE DATA
+        self.imge_base_dir = image_base_dir
+        self.transform = transform
+
+    def __len__(self):
+
+        return len(self.tabular)
+
+    def __getitem__(self, idx):
+
+        # Convert idx from tensor to list due to pandas bug (that arises when using pytorch's random_split)
+        if isinstance(idx, torch.Tensor):
+            idx = idx.tolist()
+
+        # get the tabular data for given index
+        tab = self.X.iloc[idx].values
+
+        # get image name for the given index
+        img_folder_name = self.tabular_data['image_id'][idx]
+
+        img_path = os.path.join(
+            self.imge_base_dir, img_folder_name + '.nii.gz')
+
+        image = nib.load(img_path)
+        image = image.get_fdata()
+
+        # Apply transformations
+        transformed_images = self.transform(image)
+
+        return transformed_images, tab
+
+
+class Triplet_Loss_Dataset(Dataset):
+
+    def __init__(self, tabular_data, image_base_dir, target, features, transform=None):
+        """
+
+        csv_dir: The directiry for the .csv file (tabular data) including the labels
+
+        image_base_dir:The directory of the folders containing the images
+
+        transform:The trasformations for the input images
+
+        Target_transform:The trasformations for the target(label)
+
+        """
+        # TABULAR DATA
+        # initialize the tabular data
+        self.tabular_data = tabular_data.copy()
+
+        # keep relevant features in the tabular data
+        self.features = features
+        self.tabular = self.tabular_data[self.features]
+
+        # Save target and predictors
+        self.target = target
+        self.X = self.tabular.drop(self.target, axis=1)
+        self.y = self.tabular[self.target]
+
+        # IMAGE DATA
+        self.imge_base_dir = image_base_dir
+        self.transform = transform
+
+    def __len__(self):
+
+        return len(self.tabular)
+
+    def preprocess(self, x):
+
+        # preprocess img
+        x = np.array(x, dtype=np.float32)
+
+        # scale images between [0,1]
+        min_val = x.min()
+        x = (x - min_val) / (x.max() - min_val)
+        x = torch.tensor(x)
+
+        # create the channel dimension
+        x = torch.unsqueeze(x, 0)
+        x = self.transform(x)
+
+        return x
+
+    def __getitem__(self, idx):
+
+        # Convert idx from tensor to list due to pandas bug (that arises when using pytorch's random_split)
+        if isinstance(idx, torch.Tensor):
+            idx = idx.tolist()
+
+        # get image name for the given index
+        img_folder_name = self.tabular_data['image_id'][idx]
+
+        # find a positive pair of the given image
+        # get the label of the image
+        label = self.tabular_data.loc[idx, self.target]
+        # remove the current image form the tabular data
+        tabular = self.tabular_data.drop(idx).reset_index()
+        # get the positive and negative pair names
+        positive_pairs = tabular[tabular[self.target]
+                                 == label]['image_id'].unique()
+        negative_pairs = tabular[tabular[self.target]
+                                 != label]['image_id'].unique()
+        # pick a random positive and negative image
+        positive_img_folder_name = random.choice(positive_pairs)
+        negative_img_folder_name = random.choice(negative_pairs)
+
+        # get the index of the positive and negative pairs
+        pos_idx = tabular.index[tabular['image_id']
+                                == positive_img_folder_name].tolist()
+        neg_idx = tabular.index[tabular['image_id']
+                                == negative_img_folder_name].tolist()
+
+        # get the paths for image and its positive and negative pairs
+        img_path = os.path.join(
+            self.imge_base_dir, img_folder_name + '.nii.gz')
+        pos_img_path = os.path.join(
+            self.imge_base_dir, positive_img_folder_name + '.nii.gz')
+        neg_img_path = os.path.join(
+            self.imge_base_dir, negative_img_folder_name + '.nii.gz')
+
+        # load all three images
+        image = nib.load(img_path)
+        image = image.get_fdata()
+        positive_img = nib.load(pos_img_path)
+        positive_img = positive_img.get_fdata()
+        negative_image = nib.load(neg_img_path)
+        negative_image = negative_image.get_fdata()
+
+        # Apply transformations
+        transformed_images = self.preprocess(image)
+        transformed_positive_images = self.preprocess(positive_img)
+        transformed_negative_images = self.preprocess(negative_image)
+
+        # get the tabular data for given index
+        tab = self.X.iloc[idx].values
+        positive_tab = self.X.iloc[pos_idx].values
+        negative_tab = self.X.iloc[neg_idx].values
+
+        return transformed_images, transformed_positive_images, transformed_negative_images, tab, positive_tab.squeeze(), negative_tab.squeeze()
+
+
 class AdniDataModule(pl.LightningDataModule):
 
     def __init__(self, csv_dir, age=None, batch_size=1, spatial_size=(120, 120, 120)):
@@ -175,6 +346,32 @@ class AdniDataModule(pl.LightningDataModule):
         if torch.cuda.is_available():
             self.num_workers = 16
         print(self.num_workers)
+
+    def get_transforms(self, spatial_size=(120, 120, 120)):
+        """Return a set of data augmentation transformations"""
+        data_transforms = transforms.Compose([
+            # tio.RandomElasticDeformation(p=0.5, num_control_points=(10),  # or just 7
+            #                              locked_borders=0),
+            # tio.RandomBiasField(p=0.5, coefficients=0.5, order=3),
+            # tio.RandomSwap(p=0.6, patch_size=15, num_iterations=80),
+            # tio.RandomGamma(p=0.5, log_gamma=(-0.3, 0.3))
+
+            # MONAI TRANSFORMS
+            # transforms.RandSpatialCrop(
+            #     (80, 80, 80), random_center=True, random_size=False),
+            # final image shape 160,120,120
+            transforms.Resize(spatial_size=self.spatial_size),
+            transforms.RandFlip(
+                prob=0.5, spatial_axis=0),
+            transforms.RandAdjustContrast(  # randomly change the contrast
+                prob=0.5, gamma=(1.5, 2)),
+            transforms.RandGaussianSmooth(
+                sigma_x=(0.25, 1.5), prob=0.5),
+            transforms.ToTensor(
+                dtype=None, device=None, wrap_sequence=True, track_meta=None)
+        ])
+
+        return data_transforms
 
     def prepare_data(self):
 
@@ -210,42 +407,30 @@ class AdniDataModule(pl.LightningDataModule):
             print(e)
             sys.exit(e)
         # ----------------------------------------
-        # prepare the train, test, validation datasets using the subjects assigned to them
 
+        # prepare the train, test, validation datasets using the subjects assigned to them
         # prepare train dataframe
         self.train_df = self.tabular_data[self.tabular_data['subject'].isin(
             self.subjects_train)].reset_index()
-
-        # ONLY FOR OVERFITTING ON ONE IMAGE
-        # self.train_df = self.train_df.iloc[:1]
-
-        # print the patients in train
-        print('number of patients in train: ', len(self.train_df))
-        print('patient IDs in train: ', self.train_df.subject.unique())
-
         # prepare test dataframe
         self.test_df = self.tabular_data[self.tabular_data['subject'].isin(
             self.subjects_test)].reset_index()
-
-        # ONLY FOR OVERFITTING ON ONE IMAGE
-        # self.test_df = self.train_df
-
         # prepare val dataframe
         self.val_df = self.tabular_data[self.tabular_data['subject'].isin(
             self.subjects_val)].reset_index()
 
         # ONLY FOR OVERFITTING ON ONE IMAGE
+        # self.train_df = self.train_df.iloc[:1]
         # self.val_df = self.train_df
+        # self.test_df = self.train_df
 
-        # print the patients in train
+        # print the patients in train and val
+        print('number of patients in train: ', len(self.train_df))
+        print('patient IDs in train: ', self.train_df.subject.unique())
         print('number of patients in val: ', len(self.val_df))
         print('patient IDs in val: ', self.val_df.subject.unique())
 
         # ----------------------------------------
-    def get_transforms(self, spatial_size=(120, 120, 120)):
-        """Return a set of data augmentation transformations"""
-        data_transforms = None
-        return data_transforms
 
     def set_resnet_dataset(self):
         # create the dataset object using the dataframes created above
@@ -269,6 +454,26 @@ class AdniDataModule(pl.LightningDataModule):
 
         self.val = Supervised_Multimodal_Dataset(self.val_df, image_base_dir=IMAGE_PATH,
                                                  target=TARGET, features=FEATURES, transform=transforms.Resize(spatial_size=self.spatial_size))
+
+    def set_contrastive_loss_dataloader(self, n_views=2):
+        self.train = Contrastive_Loss_Dataset(self.train_df, image_base_dir=IMAGE_PATH,
+                                              target=TARGET, features=FEATURES, transform=ContrastiveLearningViewGenerator(self.get_transforms(), n_views))
+
+        self.test = Contrastive_Loss_Dataset(self.test_df, image_base_dir=IMAGE_PATH,
+                                             target=TARGET, features=FEATURES, transform=ContrastiveLearningViewGenerator(self.get_transforms(), n_views))
+
+        self.val = Contrastive_Loss_Dataset(self.val_df, image_base_dir=IMAGE_PATH,
+                                            target=TARGET, features=FEATURES, transform=ContrastiveLearningViewGenerator(self.get_transforms(), n_views))
+
+    def set_triplet_loss_dataloader(self):
+        self.train = Triplet_Loss_Dataset(self.train_df, image_base_dir=IMAGE_PATH,
+                                          target=TARGET, features=FEATURES, transform=self.get_transforms())
+
+        self.test = Triplet_Loss_Dataset(self.test_df, image_base_dir=IMAGE_PATH,
+                                         target=TARGET, features=FEATURES, transform=self.get_transforms())
+
+        self.val = Triplet_Loss_Dataset(self.val_df, image_base_dir=IMAGE_PATH,
+                                        target=TARGET, features=FEATURES, transform=self.get_transforms())
 
     def train_dataloader(self):
 
@@ -331,3 +536,35 @@ class KfoldMultimodalDataModule(pl.LightningDataModule):
                 self.val, batch_size=self.batch_size, shuffle=True, num_workers=16))
 
         return train_dataloaders, val_dataloaders
+
+
+class ContrastiveLearningViewGenerator(object):
+    """Take two random crops of one image as the query and key.
+
+    Params:
+        - base_transform: the transform to apply
+        - n_views: how many transforms of the same image to create
+
+    Returns:
+        - the stacked tensor of augmented images (shape: n_views x 1 x width x height x depth)
+    """
+
+    def __init__(self, base_transform, n_views=2):
+        self.base_transform = base_transform
+        self.n_views = n_views
+
+    def __call__(self, x):
+
+        # change the dtype
+        x = np.array(x, dtype=np.float32)
+
+        # scale images between [0,1]
+        min_val = x.min()
+        x = (x - min_val) / (x.max() - min_val)
+
+        x = torch.tensor(x)
+
+        # create the channel dimension
+        x = torch.unsqueeze(x, 0)
+
+        return torch.stack([self.base_transform(x) for _ in range(self.n_views)])
