@@ -65,3 +65,14 @@ contrastive_config = {
     'checkpoint': None,
     'checkpoint_flag': False
 }
+
+triplet_config = {
+    'batch_size': 32,
+    'max_epochs': 80,
+    'age': None,
+    'spatial_size': (120, 120, 120),
+    'learning_rate': 0.013,
+    'weight_decay': 0.01,
+    'checkpoint': None,
+    'checkpoint_flag': False
+}

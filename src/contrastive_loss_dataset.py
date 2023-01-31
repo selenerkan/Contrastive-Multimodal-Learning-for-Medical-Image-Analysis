@@ -124,7 +124,7 @@ class Triplet_Loss_Dataset(Dataset):
         positive_tab = self.X.iloc[pos_idx].values
         negative_tab = self.X.iloc[neg_idx].values
 
-        return transformed_images, transformed_positive_images, transformed_negative_images, tab, positive_tab, negative_tab
+        return transformed_images, transformed_positive_images, transformed_negative_images, tab, positive_tab.squeeze(), negative_tab.squeeze()
 
 
 class Contrastive_Dataset(Dataset):

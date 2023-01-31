@@ -13,10 +13,11 @@ from models.resnet_model import ResNetModel
 from models.multimodal_model import MultiModModel
 from models.tabular_model import TabularModel
 from models.contrastive_learning_model import ContrastiveModel
+from models.triplet_model import TripletModel
 from pytorch_lightning.callbacks import LearningRateMonitor
 
 import torch
-from settings import CSV_FILE, SEED, CHECKPOINT_DIR, resnet_config, supervised_config, contrastive_config, tabular_config
+from settings import CSV_FILE, SEED, CHECKPOINT_DIR, resnet_config, supervised_config, contrastive_config, tabular_config, triplet_config
 import torch.multiprocessing
 from datetime import datetime
 # from pytorch_lightning.callbacks.early_stopping import EarlyStopping
@@ -288,6 +289,47 @@ def main_contrastive_learning(config=None):
     trainer.fit(model, data)
 
 
+def main_triplet(config=None):
+    '''
+    main function to run the multimodal architecture
+    '''
+
+    print('YOU ARE RUNNING TRIPLET LOSS MODEL')
+    print(config)
+
+    wandb.init(project="multimodal_training",
+               entity="multimodal_network", config=config)
+    wandb_logger = WandbLogger()
+
+    # get the model
+    model = TripletModel(
+        learning_rate=wandb.config.learning_rate, weight_decay=wandb.config.weight_decay)
+    wandb.watch(model, log="all")
+
+    # load the data
+    data = ContrastiveDataModule(
+        CSV_FILE, age=wandb.config.age, batch_size=wandb.config.batch_size, spatial_size=wandb.config.spatial_size, loss_name='triplet')
+
+    accelerator = 'cpu'
+    devices = None
+    if torch.cuda.is_available():
+        accelerator = 'gpu'
+        devices = 1
+
+    # save the checkpoint in a different folder
+    # use datetime value in the file name
+    date_time = datetime.now()
+    dt_string = date_time.strftime("%d.%m.%Y-%H.%M")
+    checkpoint_callback = ModelCheckpoint(
+        dirpath=os.path.join(CHECKPOINT_DIR, 'triplet'), filename='lr='+str(wandb.config.learning_rate)+'_wd='+str(wandb.config.weight_decay)+'_'+dt_string+'-{epoch:03d}')
+
+    # Add learning rate scheduler monitoring
+    lr_monitor = LearningRateMonitor(logging_interval='epoch')
+    trainer = Trainer(accelerator=accelerator, devices=devices,
+                      max_epochs=wandb.config.max_epochs, logger=wandb_logger, callbacks=[checkpoint_callback, lr_monitor], log_every_n_steps=10)
+    trainer.fit(model, data)
+
+
 def run_grid_search(network):
 
     print('YOU ARE RUNNING GRID SEARCH FOR: ', network)
@@ -304,8 +346,10 @@ def run_grid_search(network):
             'learning_rate': {'values': [0.03, 0.013, 0.0055, 0.0023, 0.001]},
             'weight_decay': {'values': [0, 1e-2, 1e-4]},
             # checkpoints are implemented in case grid search wants to be tried with checkpoint weights
-            'checkpoint': {'value': r'/home/guests/selen_erkan/experiments/checkpoints/supervised/25.01.2023-18.49-epoch=029.ckpt'}, # put the checkpoint path here
-            'contrastive_checkpoint': {'value': r'/home/guests/selen_erkan/experiments/checkpoints/contrastive/25.01.2023-17.14-epoch=029.ckpt'}, # this is only for using contrastive model weights in supervised model
+            # put the checkpoint path here
+            'checkpoint': {'value': r'/home/guests/selen_erkan/experiments/checkpoints/supervised/25.01.2023-18.49-epoch=029.ckpt'},
+            # this is only for using contrastive model weights in supervised model
+            'contrastive_checkpoint': {'value': r'/home/guests/selen_erkan/experiments/checkpoints/contrastive/25.01.2023-17.14-epoch=029.ckpt'},
             'checkpoint_flag': {'value': False},
             'contrastive_checkpoint_flag': {'value': False}
         }
@@ -376,7 +420,7 @@ def grid_search(config=None):
                                      weight_decay=config.weight_decay)
             # load the data
             data = ContrastiveDataModule(
-                CSV_FILE, age=config.age, batch_size=config.batch_size, spatial_size=config.spatial_size)
+                CSV_FILE, age=config.age, batch_size=config.batch_size, spatial_size=config.spatial_size, loss_name=config.network)
 
         wandb.watch(model, log="all")
         accelerator = 'cpu'
@@ -420,5 +464,8 @@ if __name__ == '__main__':
     # run kfold multimodal
     # main_kfold_multimodal(wandb, wandb_logger, fold_number = 5, learning_rate=1e-3, batch_size=8, max_epochs=100, age=None)
 
+    # run triplet loss model
+    main_triplet(triplet_config)
+
     # run grid search
-    run_grid_search('contrastive')
+    # run_grid_search('contrastive')
