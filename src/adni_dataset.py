@@ -1,32 +1,103 @@
 from torch.utils.data import Dataset
-import pandas as pd
-import torch
 import os
+import pandas as pd
 import nibabel as nib
+import numpy as np
 
 import pytorch_lightning as pl
-import numpy as np
-from sklearn.model_selection import train_test_split
 
-from settings import IMAGE_PATH, FEATURES, TARGET, SEED
+from settings import IMAGE_PATH, TARGET, SEED, FEATURES
 from torch.utils.data import DataLoader
-from sklearn.model_selection import StratifiedKFold
+from sklearn.model_selection import train_test_split
 import sys
 from monai import transforms
+from sklearn.model_selection import StratifiedKFold
+
+import torch
 
 
-class Multimodal_Dataset(Dataset):
+class Resnet_Dataset(Dataset):
 
-    def __init__(self, tabular_data, image_base_dir, target, features, transform=None):
-        """
+    def __init__(self, tabular_data, image_base_dir, target, transform=None):
+        """ initializes the dataset class for the resnet model
 
-        csv_dir: The directiry for the .csv file (tabular data) including the labels
+        tabular_data: The dataframe object holding the info about patients, the name of the MRI images and the labels
 
         image_base_dir:The directory of the folders containing the images
 
+        target: name of the target feature in the tabular_data dataframe 
+
         transform:The trasformations for the input images
 
-        Target_transform:The trasformations for the target(label)
+        """
+
+        # TABULAR DATA
+        # initialize the tabular data
+        self.tabular_data = tabular_data.copy()
+
+        # Save target
+        self.target = target
+        self.y = self.tabular_data[self.target]
+
+        # IMAGE DATA
+        self.imge_base_dir = image_base_dir
+        self.transform = transform
+
+    def image_preprocess(self, image, transform):
+
+        # change to numpy and scale images between [0,1]
+        image = np.array(image, dtype=np.float32)
+        min_val = image.min()
+        image = (image - min_val) / (image.max() - min_val)
+
+        image = torch.tensor(image)
+
+        # create the channel dimension
+        image = torch.unsqueeze(image, 0)
+
+        if transform:
+            image = transform(image)
+
+        return image
+
+    def __len__(self):
+
+        return len(self.tabular_data)
+
+    def __getitem__(self, idx):
+
+        # get the label
+        label = self.y[idx]
+
+        # get image name in the given index
+        img_folder_name = self.tabular_data['image_id'][idx]
+        img_path = os.path.join(
+            self.imge_base_dir, img_folder_name + '.nii.gz')
+
+        image = nib.load(img_path)
+        image = image.get_fdata()
+        image = self.image_preprocess(image, self.transform)
+
+        if self.transform:
+            image = self.transform(image)
+
+        return image, label
+
+
+class Supervised_Multimodal_Dataset(Dataset):
+
+    def __init__(self, tabular_data, image_base_dir, target, features, transform=None):
+        """ initializes the dataset class for the supervised multimodal model
+
+        tabular_data: The dataframe object holding the info about patients, the name of the MRI images and the labels
+
+        image_base_dir:The directory of the folders containing the images
+
+        target: name of the target feature in the tabular_data dataframe 
+
+        features: subset feaures in the tabular data to be used in the model
+
+        transform:The trasformations for the input images
 
         """
         # TABULAR DATA
@@ -90,7 +161,7 @@ class Multimodal_Dataset(Dataset):
         return image, tab, label
 
 
-class MultimodalDataModule(pl.LightningDataModule):
+class AdniDataModule(pl.LightningDataModule):
 
     def __init__(self, csv_dir, age=None, batch_size=1, spatial_size=(120, 120, 120)):
 
@@ -100,9 +171,10 @@ class MultimodalDataModule(pl.LightningDataModule):
         self.batch_size = batch_size
         self.spatial_size = spatial_size
 
-        self.num_workers = 0
+        self.num_workers = 8
         if torch.cuda.is_available():
             self.num_workers = 16
+        print(self.num_workers)
 
     def prepare_data(self):
 
@@ -145,7 +217,7 @@ class MultimodalDataModule(pl.LightningDataModule):
             self.subjects_train)].reset_index()
 
         # ONLY FOR OVERFITTING ON ONE IMAGE
-        # self.train_df = self.train_df.iloc[:15]
+        # self.train_df = self.train_df.iloc[:1]
 
         # print the patients in train
         print('number of patients in train: ', len(self.train_df))
@@ -156,39 +228,47 @@ class MultimodalDataModule(pl.LightningDataModule):
             self.subjects_test)].reset_index()
 
         # ONLY FOR OVERFITTING ON ONE IMAGE
-        #self.test_df = self.train_df
+        # self.test_df = self.train_df
 
         # prepare val dataframe
         self.val_df = self.tabular_data[self.tabular_data['subject'].isin(
             self.subjects_val)].reset_index()
 
         # ONLY FOR OVERFITTING ON ONE IMAGE
-        #self.val_df = self.train_df
+        # self.val_df = self.train_df
 
         # print the patients in train
         print('number of patients in val: ', len(self.val_df))
         print('patient IDs in val: ', self.val_df.subject.unique())
 
         # ----------------------------------------
+    def get_transforms(self, spatial_size=(120, 120, 120)):
+        """Return a set of data augmentation transformations"""
+        data_transforms = None
+        return data_transforms
+
+    def set_resnet_dataset(self):
+        # create the dataset object using the dataframes created above
+        self.train = Resnet_Dataset(self.train_df, image_base_dir=IMAGE_PATH,
+                                    target=TARGET, transform=transforms.Resize(spatial_size=self.spatial_size))
+
+        self.test = Resnet_Dataset(self.test_df, image_base_dir=IMAGE_PATH,
+                                   target=TARGET, transform=transforms.Resize(spatial_size=self.spatial_size))
+
+        self.val = Resnet_Dataset(self.val_df, image_base_dir=IMAGE_PATH,
+                                  target=TARGET, transform=transforms.Resize(spatial_size=self.spatial_size))
+
+    def set_supervised_multimodal_dataloader(self):
 
         # create the dataset object using the dataframes created above
-        self.train = Multimodal_Dataset(self.train_df, image_base_dir=IMAGE_PATH,
-                                        target=TARGET, features=FEATURES, transform=self.get_transforms(self.spatial_size))
+        self.train = Supervised_Multimodal_Dataset(self.train_df, image_base_dir=IMAGE_PATH,
+                                                   target=TARGET, features=FEATURES, transform=transforms.Resize(spatial_size=self.spatial_size))
 
-        self.test = Multimodal_Dataset(self.test_df, image_base_dir=IMAGE_PATH,
-                                       target=TARGET, features=FEATURES, transform=self.get_transforms(self.spatial_size))
+        self.test = Supervised_Multimodal_Dataset(self.test_df, image_base_dir=IMAGE_PATH,
+                                                  target=TARGET, features=FEATURES, transform=transforms.Resize(spatial_size=self.spatial_size))
 
-        self.val = Multimodal_Dataset(self.val_df, image_base_dir=IMAGE_PATH,
-                                      target=TARGET, features=FEATURES, transform=self.get_transforms(self.spatial_size))
-
-    def get_transforms(self, spatial_size=(120, 120, 120)):
-        """Return a set of data augmentation transformations as described in the SimCLR paper."""
-        data_transforms = None
-        if spatial_size:
-            data_transforms = transforms.Compose([
-                transforms.Resize(spatial_size=spatial_size)
-            ])
-        return data_transforms
+        self.val = Supervised_Multimodal_Dataset(self.val_df, image_base_dir=IMAGE_PATH,
+                                                 target=TARGET, features=FEATURES, transform=transforms.Resize(spatial_size=self.spatial_size))
 
     def train_dataloader(self):
 
@@ -238,11 +318,11 @@ class KfoldMultimodalDataModule(pl.LightningDataModule):
                 items=val_index, axis=0).reset_index()
 
             # create datasets from these dataframes
-            self.train = Multimodal_Dataset(self.train_df, image_base_dir=IMAGE_PATH,
-                                            target=TARGET, features=FEATURES)
+            self.train = Supervised_Multimodal_Dataset(self.train_df, image_base_dir=IMAGE_PATH,
+                                                       target=TARGET, features=FEATURES)
 
-            self.val = Multimodal_Dataset(self.val_df, image_base_dir=IMAGE_PATH,
-                                          target=TARGET, features=FEATURES)
+            self.val = Supervised_Multimodal_Dataset(self.val_df, image_base_dir=IMAGE_PATH,
+                                                     target=TARGET, features=FEATURES)
 
             # create dataloaders and add them to a list
             train_dataloaders.append(DataLoader(

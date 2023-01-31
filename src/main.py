@@ -5,9 +5,8 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 import os
 
 from conv3D.model import AdniModel
-from dataset import AdniDataModule
-from multimodal_dataset import MultimodalDataModule, KfoldMultimodalDataModule
 from contrastive_loss_dataset import ContrastiveDataModule
+from adni_dataset import AdniDataModule, KfoldMultimodalDataModule
 
 from models.resnet_model import ResNetModel
 from models.multimodal_model import MultiModModel
@@ -55,8 +54,12 @@ def main_tabular(config=None):
     wandb.watch(model, log="all")
 
     # load the data
-    data = MultimodalDataModule(
+    data = AdniDataModule(
         CSV_FILE, age=wandb.config.age, batch_size=wandb.config.batch_size, spatial_size=wandb.config.spatial_size)
+    data.prepare_data()
+    data.set_supervised_multimodal_dataloader()
+    train_dataloader = data.train_dataloader()
+    val_dataloader = data.val_dataloader()
 
     accelerator = 'cpu'
     devices = None
@@ -74,7 +77,8 @@ def main_tabular(config=None):
     # Add learning rate scheduler monitoring
     trainer = Trainer(accelerator=accelerator, devices=devices,
                       max_epochs=wandb.config.max_epochs, logger=wandb_logger, callbacks=[checkpoint_callback], log_every_n_steps=10)
-    trainer.fit(model, data)
+    trainer.fit(model, train_dataloaders=train_dataloader,
+                val_dataloaders=val_dataloader)
 
 
 def main_resnet(config=None):
@@ -96,6 +100,10 @@ def main_resnet(config=None):
     # load the data
     data = AdniDataModule(
         CSV_FILE, age=wandb.config.age, batch_size=wandb.config.batch_size, spatial_size=wandb.config.spatial_size)
+    data.prepare_data()
+    data.set_resnet_dataset()
+    train_dataloader = data.train_dataloader()
+    val_dataloader = data.val_dataloader()
 
     accelerator = 'cpu'
     devices = None
@@ -114,12 +122,13 @@ def main_resnet(config=None):
     lr_monitor = LearningRateMonitor(logging_interval='epoch')
     trainer = Trainer(accelerator=accelerator, devices=devices,
                       max_epochs=wandb.config.max_epochs, logger=wandb_logger, callbacks=[checkpoint_callback, lr_monitor], log_every_n_steps=10)
-    trainer.fit(model, data)
+    trainer.fit(model, train_dataloaders=train_dataloader,
+                val_dataloaders=val_dataloader)
 
 
-def main_multimodal(config=None):
+def main_supervised_multimodal(config=None):
     '''
-    main function to run the multimodal architecture
+    main function to run the supervised multimodal architecture
     '''
 
     print('YOU ARE RUNNING SUPERVISED MULTIMODAL')
@@ -151,8 +160,12 @@ def main_multimodal(config=None):
         # model.fc1.requires_grad_(False)
 
     # load the data
-    data = MultimodalDataModule(
+    data = AdniDataModule(
         CSV_FILE, age=wandb.config.age, batch_size=wandb.config.batch_size, spatial_size=wandb.config.spatial_size)
+    data.prepare_data()
+    data.set_supervised_multimodal_dataloader()
+    train_dataloader = data.train_dataloader()
+    val_dataloader = data.val_dataloader()
 
     accelerator = 'cpu'
     devices = None
@@ -171,7 +184,8 @@ def main_multimodal(config=None):
     lr_monitor = LearningRateMonitor(logging_interval='epoch')
     trainer = Trainer(accelerator=accelerator, devices=devices,
                       max_epochs=wandb.config.max_epochs, logger=wandb_logger, callbacks=[checkpoint_callback, lr_monitor], log_every_n_steps=10)
-    trainer.fit(model, data)
+    trainer.fit(model, train_dataloaders=train_dataloader,
+                val_dataloaders=val_dataloader)
 
 
 def main_kfold_multimodal(wandb, wandb_logger, fold_number=2, learning_rate=1e-3, batch_size=8, max_epochs=60, age=None):
@@ -186,7 +200,6 @@ def main_kfold_multimodal(wandb, wandb_logger, fold_number=2, learning_rate=1e-3
     # create kfold data object
     data_module = KfoldMultimodalDataModule(
         csv_dir, fold_number=fold_number, age=age, batch_size=batch_size)
-
     # get dataloaders for every fold
     train_dataloaders, val_dataloaders = data_module.prepare_data()
 
@@ -374,21 +387,22 @@ def grid_search(config=None):
         config = wandb.config
         wandb_logger = WandbLogger()
 
+        # load the data
+        data = AdniDataModule(
+            CSV_FILE, age=config.age, batch_size=config.batch_size, spatial_size=config.spatial_size)
+        data.prepare_data()
+
         if config.network == 'resnet':
             # get the model
             model = ResNetModel(learning_rate=config.learning_rate,
                                 weight_decay=config.weight_decay)
-            # load the data
-            data = AdniDataModule(
-                CSV_FILE, age=config.age, batch_size=config.batch_size, spatial_size=config.spatial_size)
+            data.set_resnet_dataset()
 
         elif config.network == 'tabular':
             # get the model
             model = TabularModel(learning_rate=config.learning_rate,
                                  weight_decay=config.weight_decay)
-            # load the data
-            data = MultimodalDataModule(
-                CSV_FILE, age=config.age, batch_size=config.batch_size, spatial_size=config.spatial_size)
+            data.set_supervised_multimodal_dataloader()
 
         elif config.network == 'supervised':
             # get the model
@@ -397,22 +411,20 @@ def grid_search(config=None):
 
             # below is used if grid search wants to be tried with checkpoint weights
             # check if the checkpoint flag is True
-            if wandb.config.checkpoint_flag:
+            if config.checkpoint_flag:
                 # copy the weights from multimodal supervised model checkpoint
                 model = MultiModModel.load_from_checkpoint(
-                    config.checkpoint, learning_rate=wandb.config.learning_rate, weight_decay=wandb.config.weight_decay)
+                    config.checkpoint, learning_rate=config.learning_rate, weight_decay=config.weight_decay)
 
-            elif wandb.config.contrastive_checkpoint_flag:
+            elif config.contrastive_checkpoint_flag:
                 contrastive_model = ContrastiveModel.load_from_checkpoint(
-                    wandb.config.contrastive_checkpoint)
+                    config.contrastive_checkpoint)
 
                 # copy the resnet and fc1 weights from contrastive learning model
                 model.resnet = contrastive_model.resnet
                 model.fc1 = contrastive_model.fc1
 
-            # load the data
-            data = MultimodalDataModule(
-                CSV_FILE, age=config.age, batch_size=config.batch_size, spatial_size=config.spatial_size)
+            data.set_supervised_multimodal_dataloader()
 
         elif config.network == 'contrastive':
             # get the model
@@ -421,6 +433,10 @@ def grid_search(config=None):
             # load the data
             data = ContrastiveDataModule(
                 CSV_FILE, age=config.age, batch_size=config.batch_size, spatial_size=config.spatial_size, loss_name=config.network)
+
+        # get dataloaders
+        train_dataloader = data.train_dataloader()
+        val_dataloader = data.val_dataloader()
 
         wandb.watch(model, log="all")
         accelerator = 'cpu'
@@ -439,7 +455,8 @@ def grid_search(config=None):
         # Add learning rate scheduler monitoring
         trainer = Trainer(accelerator=accelerator, devices=devices,
                           max_epochs=config.max_epochs, logger=wandb_logger, callbacks=[checkpoint_callback], log_every_n_steps=10)
-        trainer.fit(model, data)
+        # trainer.fit(model, data)
+        trainer.fit(model, train_dataloader, val_dataloader)
 
 
 def knn():
@@ -518,7 +535,7 @@ if __name__ == '__main__':
     # main_resnet(resnet_config)
 
     # run multimodal
-    # main_multimodal(supervised_config)
+    # main_supervised_multimodal(supervised_config)
 
     # run contrastive learning
     # main_contrastive_learning(contrastive_config)
