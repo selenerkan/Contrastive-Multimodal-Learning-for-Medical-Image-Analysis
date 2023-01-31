@@ -30,13 +30,10 @@ class TripletModel(LightningModule):
         self.fc1 = nn.Linear(13, 10)
 
         # TABULAR + IMAGE DATA
-        # mlp projection head which takes concatenated input
-        # self.mlp = nn.Sequential(
-        #     nn.Linear(resnet_out_dim + 13, resnet_out_dim + 13), nn.ReLU(), nn.Linear(resnet_out_dim + 13, resnet_out_dim + 13))
         resnet_out_dim = 32
         self.fc2 = nn.Linear(resnet_out_dim + 10, resnet_out_dim + 10)
 
-    def forward(self, img, positive, negative, tab, positive_tab, negative_tab):
+    def forward(self, img, tab):
         """
 
         img is the input image data ()
@@ -46,29 +43,17 @@ class TripletModel(LightningModule):
         # run the model for the image
         img = self.resnet(img)
         img = img.view(img.size(0), -1)
-        positive = self.resnet(positive)
-        positive = positive.view(positive.size(0), -1)
-        negative = self.resnet(negative)
-        negative = negative.view(negative.size(0), -1)
 
         # change the dtype of the tabular data
         tab = tab.to(torch.float32)
-        positive_tab = positive_tab.to(torch.float32)
-        negative_tab = negative_tab.to(torch.float32)
         # forward tabular data
         tab = F.relu(self.fc1(tab))
-        positive_tab = F.relu(self.fc1(positive_tab))
-        negative_tab = F.relu(self.fc1(negative_tab))
 
         # concat image and tabular data
         x = torch.cat((img, tab), dim=1)
         out = self.fc2(x)
-        x_pos = torch.cat((positive, positive_tab), dim=1)
-        out_pos = self.fc2(x_pos)
-        x_neg = torch.cat((negative, negative_tab), dim=1)
-        out_neg = self.fc2(x_neg)
 
-        return out, out_pos, out_neg
+        return out
 
     def configure_optimizers(self):
 
@@ -89,8 +74,9 @@ class TripletModel(LightningModule):
         img, positive, negative, tab, positive_tab, negative_tab = batch[
             0], batch[1], batch[2], batch[3], batch[4], batch[5]
 
-        embeddings, pos_embeddings, neg_embeddings = self(img, positive, negative, tab,
-                                                          positive_tab, negative_tab)
+        embeddings = self(img, tab)
+        pos_embeddings = self(positive, positive_tab)
+        neg_embeddings = self(negative, negative_tab)
 
         loss_function = nn.TripletMarginLoss()
         loss = loss_function(embeddings, pos_embeddings, neg_embeddings)
@@ -106,8 +92,9 @@ class TripletModel(LightningModule):
         img, positive, negative, tab, positive_tab, negative_tab = batch[
             0], batch[1], batch[2], batch[3], batch[4], batch[5]
 
-        embeddings, pos_embeddings, neg_embeddings = self(img, positive, negative, tab,
-                                                          positive_tab, negative_tab)
+        embeddings = self(img, tab)
+        pos_embeddings = self(positive, positive_tab)
+        neg_embeddings = self(negative, negative_tab)
 
         loss_function = nn.TripletMarginLoss()
         loss = loss_function(embeddings, pos_embeddings, neg_embeddings)
@@ -123,8 +110,9 @@ class TripletModel(LightningModule):
         img, positive, negative, tab, positive_tab, negative_tab = batch[
             0], batch[1], batch[2], batch[3], batch[4], batch[5]
 
-        embeddings, pos_embeddings, neg_embeddings = self(img, positive, negative, tab,
-                                                          positive_tab, negative_tab)
+        embeddings = self(img, tab)
+        pos_embeddings = self(positive, positive_tab)
+        neg_embeddings = self(negative, negative_tab)
 
         loss_function = nn.TripletMarginLoss()
         loss = loss_function(embeddings, pos_embeddings, neg_embeddings)
