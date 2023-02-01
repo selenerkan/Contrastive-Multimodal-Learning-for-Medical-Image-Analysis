@@ -136,6 +136,7 @@ def main_supervised_multimodal(config=None):
     '''
 
     print('YOU ARE RUNNING SUPERVISED MULTIMODAL')
+    print('LAYERS ARE FROZEN')
     print(config)
 
     wandb.init(project="multimodal_training",
@@ -160,8 +161,8 @@ def main_supervised_multimodal(config=None):
         model.fc1 = contrastive_model.fc1
 
         # freeze network weights
-        # model.resnet.freeze()
-        # model.fc1.requires_grad_(False)
+        model.resnet.freeze()
+        model.fc1.requires_grad_(False)
 
     # load the data
     data = AdniDataModule(
@@ -569,7 +570,7 @@ def knn(config):
     knn_micro_accuracy = torchmetrics.Accuracy(
         task='multiclass', average='micro', num_classes=3, top_k=1)
 
-    knn = KNeighborsClassifier(n_neighbors=wandb.config.n_neighbors)
+    knn = KNeighborsClassifier(n_neighbors=wandb.config.n_neighbors, n_jobs=-1)
     knn.fit(train_encodings, train_labels)
 
     # get predictions
