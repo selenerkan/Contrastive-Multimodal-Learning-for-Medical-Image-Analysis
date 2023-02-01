@@ -546,6 +546,7 @@ def get_embeddings(wandb, wandb_logger):
     data = pd.DataFrame(all_encodings)
     data['target'] = all_labels
     data['split'] = split
+    data.columns = [str(col) for col in data.columns]
 
     wandb.log({"encodings": wandb.Table(dataframe=data)})
 
