@@ -21,6 +21,8 @@ from settings import CSV_FILE, SEED, CHECKPOINT_DIR, resnet_config, supervised_c
 import torch.multiprocessing
 from datetime import datetime
 from sklearn.metrics import roc_curve, roc_auc_score, precision_score, recall_score, f1_score
+import pandas as pd
+import numpy as np
 # from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 
 
@@ -448,7 +450,7 @@ def grid_search(config=None):
         elif config.network == 'triplet':
             # get the model
             model = TripletModel(learning_rate=config.learning_rate,
-                                     weight_decay=config.weight_decay)
+                                 weight_decay=config.weight_decay)
             # load the data
             data.set_triplet_loss_dataloader()
 
@@ -477,16 +479,11 @@ def grid_search(config=None):
         trainer.fit(model, train_dataloader, val_dataloader)
 
 
-def get_embeddings(config, wandb=None, wandb_logger=None):
+def get_embeddings(wandb, wandb_logger):
 
     print('YOU ARE RETRIEVING AND VISUALIZING EMBEDDINGS OF: ',
-          config['model'])
-    print(config)
-
-    if not wandb:
-        wandb.init(project="multimodal_training",
-                   entity="multimodal_network", config=config)
-        wandb_logger = WandbLogger()
+          wandb.config.model)
+    print(wandb.config)
 
     # copy the weights from the checkpoint
     # use triplet model for both triplet loss and contrastive loss because the models are exactly the same
@@ -519,9 +516,9 @@ def get_embeddings(config, wandb=None, wandb_logger=None):
         # calculate the encodings
         encodings = model(img, tab)
         # add encodings to the list
-        train_encodings.extend(list(encodings))
+        train_encodings.extend(encodings.numpy())
         # add the labels to the list
-        train_labels.extend(list(label))
+        train_labels.extend(label.tolist())
 
     # get the validation batches and calculate the encodings
     for step, batch in enumerate(val_dataloader):
@@ -530,19 +527,20 @@ def get_embeddings(config, wandb=None, wandb_logger=None):
         # calculate the encodings
         encodings = model(img, tab)
         # add encodings to the list
-        val_encodings.extend(list(encodings))
+        val_encodings.extend(encodings.numpy())
         # add the labels to the list
-        val_labels.extend(list(label))
-    
+        val_labels.extend(label.tolist())
+
     # generate a list to store a boolean var showing if the data is from train or val
     split = ['train']*len(train_labels) + ['val']*len(val_labels)
 
     # generate embedding projection table in wandb
     # Load the dataset
-    all_encodings=train_encodings.extend(val_encodings)
-    all_labels=train_labels.extend(val_labels)
+    all_encodings = np.concatenate(
+        train_encodings.extend(val_encodings), axis=0)
+    all_labels = np.concatenate(train_labels.extend(val_labels), axis=0)
 
-    data=pd.DataFrame(all_encodings)
+    data = pd.DataFrame(all_encodings)
     data['target'] = all_labels
     data['split'] = split
 
@@ -626,10 +624,13 @@ if __name__ == '__main__':
     # main_triplet(triplet_config)
 
     # run knn after triplet/contrastive loss model
-    knn(knn_config)
+    # knn(knn_config)
 
     # generate embedding visualizations
-    # get_embeddings(knn_config)
+    wandb.init(project="multimodal_training",
+               entity="multimodal_network", config=knn_config)
+    wandb_logger = WandbLogger()
+    get_embeddings(wandb, wandb_logger)
 
     # run grid search
     # run_grid_search('triplet')
