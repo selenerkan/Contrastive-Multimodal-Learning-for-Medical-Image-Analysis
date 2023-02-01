@@ -445,6 +445,13 @@ def grid_search(config=None):
             # load the data
             data.set_contrastive_loss_dataloader()
 
+        elif config.network == 'triplet':
+            # get the model
+            model = TripletModel(learning_rate=config.learning_rate,
+                                     weight_decay=config.weight_decay)
+            # load the data
+            data.set_triplet_loss_dataloader()
+
         # get dataloaders
         train_dataloader = data.train_dataloader()
         val_dataloader = data.val_dataloader()
@@ -484,7 +491,7 @@ def get_embeddings(config, wandb=None, wandb_logger=None):
     # copy the weights from the checkpoint
     # use triplet model for both triplet loss and contrastive loss because the models are exactly the same
     model = TripletModel.load_from_checkpoint(
-        config.checkpoint, learning_rate=wandb.config.learning_rate, weight_decay=wandb.config.weight_decay)
+        wandb.config.checkpoint, learning_rate=wandb.config.learning_rate, weight_decay=wandb.config.weight_decay)
 
     # set the model to eval mode to run knn
     torch.set_grad_enabled(False)
@@ -526,29 +533,25 @@ def get_embeddings(config, wandb=None, wandb_logger=None):
         val_encodings.extend(list(encodings))
         # add the labels to the list
         val_labels.extend(list(label))
+    
+    # generate a list to store a boolean var showing if the data is from train or val
+    split = ['train']*len(train_labels) + ['val']*len(val_labels)
 
     # generate embedding projection table in wandb
-    wandb.log({
-        "train_embeddings": wandb.Table(
-            data=train_encodings
-        )
-    })
-    wandb.log({
-        "val_embeddings": wandb.Table(
-            data=val_encodings
-        )
-    })
+    # Load the dataset
+    all_encodings=train_encodings.extend(val_encodings)
+    all_labels=train_labels.extend(val_labels)
 
-    wandb.log({
-        "all_embeddings": wandb.Table(
-            data=train_encodings.extend(val_encodings)
-        )
-    })
+    data=pd.DataFrame(all_encodings)
+    data['target'] = all_labels
+    data['split'] = split
+
+    wandb.log({"encodings": wandb.Table(dataframe=data)})
 
     return train_encodings, train_labels, val_encodings, val_labels
 
 
-def knn(wandb, wandb_logger, config):
+def knn(config):
 
     print('YOU ARE RUNNING KNN FOR: ',
           config['model'])
@@ -559,7 +562,7 @@ def knn(wandb, wandb_logger, config):
     wandb_logger = WandbLogger()
 
     # get the embeddings of the model
-    train_encodings, train_labels, val_encodings, val_labels = get_embeddings(config,
+    train_encodings, train_labels, val_encodings, val_labels = get_embeddings(wandb.config,
                                                                               wandb, wandb_logger)
 
     # track macro and micro accuracy
@@ -626,7 +629,7 @@ if __name__ == '__main__':
     knn(knn_config)
 
     # generate embedding visualizations
-    get_embeddings(knn_config)
+    # get_embeddings(knn_config)
 
     # run grid search
-    # run_grid_search('contrastive')
+    # run_grid_search('triplet')
