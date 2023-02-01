@@ -117,7 +117,7 @@ class ContrastiveModel(LightningModule):
         loss = loss_function(embeddings, labels)
 
         # Log loss on every epoch
-        self.log('validation_epoch_loss', loss, on_epoch=True, on_step=False)
+        self.log('val_epoch_loss', loss, on_epoch=True, on_step=False)
 
         return loss
 
