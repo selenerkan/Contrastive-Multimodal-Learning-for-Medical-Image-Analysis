@@ -537,9 +537,11 @@ def get_embeddings(wandb, wandb_logger):
 
     # generate embedding projection table in wandb
     # Load the dataset
-    all_encodings = np.concatenate(
-        train_encodings.extend(val_encodings), axis=0)
-    all_labels = np.concatenate(train_labels.extend(val_labels), axis=0)
+    train_encodings.extend(val_encodings)
+    all_encodings = np.stack(
+        train_encodings, axis=0)
+    train_labels.extend(val_labels)
+    all_labels = np.stack(train_labels, axis=0)
 
     data = pd.DataFrame(all_encodings)
     data['target'] = all_labels
