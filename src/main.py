@@ -579,23 +579,27 @@ def get_embeddings(wandb, wandb_logger):
         # add the labels to the list
         val_labels.extend(label.tolist())
 
-    # generate a list to store a boolean var showing if the data is from train or val
-    split = ['train']*len(train_labels) + ['val']*len(val_labels)
-
     # generate embedding projection table in wandb
     # Load the dataset
-    train_encodings.extend(val_encodings)
-    all_encodings = np.stack(
+    val_encodings = np.stack(
+        val_encodings, axis=0)
+    train_encodings = np.stack(
         train_encodings, axis=0)
-    train_labels.extend(val_labels)
-    all_labels = np.stack(train_labels, axis=0)
 
-    data = pd.DataFrame(all_encodings)
-    data['target'] = all_labels
-    data['split'] = split
-    data.columns = [str(col) for col in data.columns]
+    val_labels = np.stack(val_labels, axis=0)
+    train_labels = np.stack(train_labels, axis=0)
 
-    wandb.log({"encodings": wandb.Table(dataframe=data)})
+    val_data = pd.DataFrame(val_encodings)
+    val_data['target'] = val_labels
+    val_data.columns = [str(col) for col in val_data.columns]
+    print('val_data: ',val_data)
+
+    train_data = pd.DataFrame(train_encodings)
+    train_data['target'] = train_labels
+    train_data.columns = [str(col) for col in train_data.columns]
+
+    wandb.log({"val_encodings": wandb.Table(dataframe=val_data)})
+    wandb.log({"train_encodings": wandb.Table(dataframe=train_data)})
 
     return train_encodings, train_labels, val_encodings, val_labels
 
@@ -611,8 +615,7 @@ def knn(config):
     wandb_logger = WandbLogger()
 
     # get the embeddings of the model
-    train_encodings, train_labels, val_encodings, val_labels = get_embeddings(wandb.config,
-                                                                              wandb, wandb_logger)
+    train_encodings, train_labels, val_encodings, val_labels = get_embeddings(wandb, wandb_logger)
 
     # track macro and micro accuracy
     knn_macro_accuracy = torchmetrics.Accuracy(
@@ -627,26 +630,26 @@ def knn(config):
     pred = knn.predict(val_encodings)
 
     # accuracy: (tp + tn) / (p + n)
-    micro_acc = knn_micro_accuracy(pred, val_labels)
+    micro_acc = knn_micro_accuracy(torch.tensor(pred), torch.tensor(val_labels))
     print('Micro Accuracy: %f' % micro_acc)
     wandb.log({"KNN micro Acc": micro_acc})
 
-    macro_acc = knn_macro_accuracy(pred, val_labels)
+    macro_acc = knn_macro_accuracy(torch.tensor(pred), torch.tensor(val_labels))
     print('Macro Accuracy: %f' % macro_acc)
     wandb.log({"KNN macro Acc": macro_acc})
 
     # precision tp / (tp + fp)
-    precision = precision_score(val_labels, pred)
-    print('Precision: %f' % precision)
-    wandb.log({"KNN Precision": precision})
+    precision = precision_score(val_labels, pred, average='macro')
+    print('Precision macro: %f' % precision)
+    wandb.log({"KNN Precision macro": precision})
     # recall: tp / (tp + fn)
-    recall = recall_score(val_labels, pred)
-    print('Recall: %f' % recall)
-    wandb.log({"KNN Recall": recall})
+    recall = recall_score(val_labels, pred, average='macro')
+    print('Recall macro: %f' % recall)
+    wandb.log({"KNN Recall macro": recall})
     # f1: 2 tp / (2 tp + fp + fn)
-    f1 = f1_score(val_labels, pred)
-    print('F1 score: %f' % f1)
-    wandb.log({"KNN F1 Score": f1})
+    f1 = f1_score(val_labels, pred, average='macro')
+    print('F1 score macro: %f' % f1)
+    wandb.log({"KNN F1 Score macro": f1})
 
 
 if __name__ == '__main__':
@@ -687,4 +690,4 @@ if __name__ == '__main__':
     # get_embeddings(wandb, wandb_logger)
 
     # run grid search
-    # run_grid_search('triplet')
+    run_grid_search('triplet')
