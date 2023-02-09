@@ -14,10 +14,11 @@ from models.multimodal_model import MultiModModel
 from models.tabular_model import TabularModel
 from models.contrastive_learning_model import ContrastiveModel
 from models.triplet_model import TripletModel
+from models.daft_model import DaftModel
 
 from pytorch_lightning.callbacks import LearningRateMonitor
 import torch
-from settings import CSV_FILE, SEED, CHECKPOINT_DIR, resnet_config, supervised_config, contrastive_config, tabular_config, triplet_config, knn_config
+from settings import CSV_FILE, SEED, CHECKPOINT_DIR, resnet_config, supervised_config, contrastive_config, tabular_config, triplet_config, knn_config, daft_config
 import torch.multiprocessing
 from datetime import datetime
 from sklearn.metrics import roc_curve, roc_auc_score, precision_score, recall_score, f1_score
@@ -358,6 +359,52 @@ def main_triplet(config=None):
                 val_dataloaders=val_dataloader)
 
 
+def main_daft(config=None):
+    '''
+    main function to run the multimodal architecture
+    '''
+
+    print('YOU ARE RUNNING DAFT MODEL')
+    print(config)
+
+    wandb.init(project="multimodal_training",
+               entity="multimodal_network", config=config)
+    wandb_logger = WandbLogger()
+
+    # get the model
+    model = DaftModel(
+        learning_rate=wandb.config.learning_rate, weight_decay=wandb.config.weight_decay)
+    wandb.watch(model, log="all")
+
+    # load the data
+    data = AdniDataModule(
+        CSV_FILE, age=wandb.config.age, batch_size=wandb.config.batch_size, spatial_size=wandb.config.spatial_size)
+    data.prepare_data()
+    data.set_supervised_multimodal_dataloader()
+    train_dataloader = data.train_dataloader()
+    val_dataloader = data.val_dataloader()
+
+    accelerator = 'cpu'
+    devices = None
+    if torch.cuda.is_available():
+        accelerator = 'gpu'
+        devices = 1
+
+    # save the checkpoint in a different folder
+    # use datetime value in the file name
+    date_time = datetime.now()
+    dt_string = date_time.strftime("%d.%m.%Y-%H.%M")
+    checkpoint_callback = ModelCheckpoint(
+        dirpath=os.path.join(CHECKPOINT_DIR, 'daft'), filename='lr='+str(wandb.config.learning_rate)+'_wd='+str(wandb.config.weight_decay)+'_'+dt_string+'-{epoch:03d}')
+
+    # Add learning rate scheduler monitoring
+    lr_monitor = LearningRateMonitor(logging_interval='epoch')
+    trainer = Trainer(accelerator=accelerator, devices=devices,
+                      max_epochs=wandb.config.max_epochs, logger=wandb_logger, callbacks=[checkpoint_callback, lr_monitor], log_every_n_steps=10)
+    trainer.fit(model, train_dataloaders=train_dataloader,
+                val_dataloaders=val_dataloader)
+
+
 def run_grid_search(network):
 
     print('YOU ARE RUNNING GRID SEARCH FOR: ', network)
@@ -618,6 +665,9 @@ if __name__ == '__main__':
     # run multimodal
     # main_supervised_multimodal(supervised_config)
 
+    # run daft
+    main_daft(daft_config)
+
     # run contrastive learning
     # main_contrastive_learning(contrastive_config)
 
@@ -631,10 +681,10 @@ if __name__ == '__main__':
     # knn(knn_config)
 
     # generate embedding visualizations
-    wandb.init(project="multimodal_training",
-               entity="multimodal_network", config=knn_config)
-    wandb_logger = WandbLogger()
-    get_embeddings(wandb, wandb_logger)
+    # wandb.init(project="multimodal_training",
+    #            entity="multimodal_network", config=knn_config)
+    # wandb_logger = WandbLogger()
+    # get_embeddings(wandb, wandb_logger)
 
     # run grid search
     # run_grid_search('triplet')

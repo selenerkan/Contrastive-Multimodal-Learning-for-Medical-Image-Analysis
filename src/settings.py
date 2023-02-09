@@ -55,6 +55,19 @@ supervised_config = {
     'contrastive_checkpoint_flag': False
 }
 
+daft_config = {
+    'batch_size': 32,
+    'max_epochs': 80,
+    'age': None,
+    'spatial_size': (120, 120, 120),
+    'learning_rate': 0.013,
+    'weight_decay': 0.01,
+    'checkpoint': r'/home/guests/selen_erkan/experiments/checkpoints/supervised/25.01.2023-18.49-epoch=029.ckpt',
+    'contrastive_checkpoint': r'/home/guests/selen_erkan/experiments/checkpoints/contrastive/25.01.2023-17.14-epoch=029.ckpt',
+    'checkpoint_flag': False,
+    'contrastive_checkpoint_flag': False
+}
+
 contrastive_config = {
     'batch_size': 32,
     'max_epochs': 80,
