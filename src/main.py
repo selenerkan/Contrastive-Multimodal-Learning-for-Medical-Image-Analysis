@@ -15,6 +15,7 @@ from models.tabular_model import TabularModel
 from models.contrastive_learning_model import ContrastiveModel
 from models.triplet_model import TripletModel
 from models.daft_model import DaftModel
+from models.multi_loss_model import MultiLossModel
 
 from pytorch_lightning.callbacks import LearningRateMonitor
 import torch
@@ -359,6 +360,52 @@ def main_triplet(config=None):
                 val_dataloaders=val_dataloader)
 
 
+def main_multiloss(config=None):
+    '''
+    main function to run the multimodal architecture
+    '''
+
+    print('YOU ARE RUNNING MULTI LOSS MODEL WITH TRIPLET + CROSS ENTROPY LOSSES')
+    print(config)
+
+    wandb.init(project="multimodal_training",
+               entity="multimodal_network", config=config)
+    wandb_logger = WandbLogger()
+
+    # get the modela
+    model = MultiLossModel(
+        learning_rate=wandb.config.learning_rate, weight_decay=wandb.config.weight_decay)
+    wandb.watch(model, log="all")
+
+    # load the data
+    data = AdniDataModule(
+        CSV_FILE, age=wandb.config.age, batch_size=wandb.config.batch_size, spatial_size=wandb.config.spatial_size)
+    data.prepare_data()
+    data.set_triplet_loss_dataloader()
+    train_dataloader = data.train_dataloader()
+    val_dataloader = data.val_dataloader()
+
+    accelerator = 'cpu'
+    devices = None
+    if torch.cuda.is_available():
+        accelerator = 'gpu'
+        devices = 1
+
+    # save the checkpoint in a different folder
+    # use datetime value in the file name
+    date_time = datetime.now()
+    dt_string = date_time.strftime("%d.%m.%Y-%H.%M")
+    checkpoint_callback = ModelCheckpoint(
+        dirpath=os.path.join(CHECKPOINT_DIR, 'multi_loss'), filename='lr='+str(wandb.config.learning_rate)+'_wd='+str(wandb.config.weight_decay)+'_'+dt_string+'-{epoch:03d}')
+
+    # Add learning rate scheduler monitoring
+    lr_monitor = LearningRateMonitor(logging_interval='epoch')
+    trainer = Trainer(accelerator=accelerator, devices=devices,
+                      max_epochs=wandb.config.max_epochs, logger=wandb_logger, callbacks=[checkpoint_callback, lr_monitor], log_every_n_steps=10)
+    trainer.fit(model, train_dataloaders=train_dataloader,
+                val_dataloaders=val_dataloader)
+
+
 def main_daft(config=None):
     '''
     main function to run the multimodal architecture
@@ -592,7 +639,7 @@ def get_embeddings(wandb, wandb_logger):
     val_data = pd.DataFrame(val_encodings)
     val_data['target'] = val_labels
     val_data.columns = [str(col) for col in val_data.columns]
-    print('val_data: ',val_data)
+    print('val_data: ', val_data)
 
     train_data = pd.DataFrame(train_encodings)
     train_data['target'] = train_labels
@@ -615,7 +662,8 @@ def knn(config):
     wandb_logger = WandbLogger()
 
     # get the embeddings of the model
-    train_encodings, train_labels, val_encodings, val_labels = get_embeddings(wandb, wandb_logger)
+    train_encodings, train_labels, val_encodings, val_labels = get_embeddings(
+        wandb, wandb_logger)
 
     # track macro and micro accuracy
     knn_macro_accuracy = torchmetrics.Accuracy(
@@ -630,11 +678,13 @@ def knn(config):
     pred = knn.predict(val_encodings)
 
     # accuracy: (tp + tn) / (p + n)
-    micro_acc = knn_micro_accuracy(torch.tensor(pred), torch.tensor(val_labels))
+    micro_acc = knn_micro_accuracy(
+        torch.tensor(pred), torch.tensor(val_labels))
     print('Micro Accuracy: %f' % micro_acc)
     wandb.log({"KNN micro Acc": micro_acc})
 
-    macro_acc = knn_macro_accuracy(torch.tensor(pred), torch.tensor(val_labels))
+    macro_acc = knn_macro_accuracy(
+        torch.tensor(pred), torch.tensor(val_labels))
     print('Macro Accuracy: %f' % macro_acc)
     wandb.log({"KNN macro Acc": macro_acc})
 
@@ -669,7 +719,7 @@ if __name__ == '__main__':
     # main_supervised_multimodal(supervised_config)
 
     # run daft
-    main_daft(daft_config)
+    # main_daft(daft_config)
 
     # run contrastive learning
     # main_contrastive_learning(contrastive_config)
@@ -679,6 +729,9 @@ if __name__ == '__main__':
 
     # run triplet loss model
     # main_triplet(triplet_config)
+
+    # run multiloss model (triplet + cross entropy)
+    main_multiloss(supervised_config)
 
     # run knn after triplet/contrastive loss model
     # knn(knn_config)
@@ -690,4 +743,4 @@ if __name__ == '__main__':
     # get_embeddings(wandb, wandb_logger)
 
     # run grid search
-    run_grid_search('triplet')
+    # run_grid_search('triplet')
