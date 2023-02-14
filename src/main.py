@@ -720,7 +720,7 @@ if __name__ == '__main__':
     # main_kfold_multimodal(wandb, wandb_logger, fold_number = 5, learning_rate=1e-3, batch_size=8, max_epochs=100, age=None)
 
     # run triplet loss model
-    # main_triplet(triplet_config)
+    main_triplet(triplet_config)
 
     # run multiloss model (triplet + cross entropy)
     # main_multiloss(supervised_config)

@@ -1,4 +1,3 @@
-TABULAR_DATA_FILE = r'C:\Users\Selen\Desktop\LMU\multimodal_network\data\adni\tabular'
 CHECKPOINT_DIR = r'/home/guests/selen_erkan/experiments/checkpoints'
 IMAGE_PATH = r"/home/guests/selen_erkan/datasets/ADNI/images/preprocessed"
 CSV_FILE = r"/home/guests/selen_erkan/datasets/ADNI/tabular/adni_final.csv"
