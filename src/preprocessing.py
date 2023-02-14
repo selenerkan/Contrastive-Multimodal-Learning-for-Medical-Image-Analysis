@@ -1,4 +1,4 @@
-# this file is generated to rearrange the folder structure after getting segmentated images of brain MRIs
+# this file is generated to rearrange the folder structure after getting segmentated images of ADNI brain MRIs
 import nibabel as nib
 import os
 import glob

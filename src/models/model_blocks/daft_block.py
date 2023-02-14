@@ -144,7 +144,7 @@ class DAFTBlock(FilmBase):
         activation: str = "linear",
         scale: bool = True,
         shift: bool = True,
-        bottleneck_dim: int = 7,
+        bottleneck_dim: int = 32,
     ) -> None:
 
         super().__init__(

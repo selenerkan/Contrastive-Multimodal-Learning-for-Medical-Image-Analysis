@@ -34,7 +34,8 @@ class MultiLossModel(LightningModule):
         # TABULAR + IMAGE DATA
         # mlp projection head which takes concatenated input
         resnet_out_dim = 32
-        self.fc2 = nn.Linear(resnet_out_dim + 10, 3)
+        self.fc2 = nn.Linear(resnet_out_dim + 10, resnet_out_dim + 10)
+        self.fc3 = nn.Linear(resnet_out_dim + 10, 3)
 
         # track accuracy
         self.train_macro_accuracy = torchmetrics.Accuracy(
@@ -67,19 +68,19 @@ class MultiLossModel(LightningModule):
 
         # concat image and tabular data
         x = torch.cat((img, tab), dim=1)
-        # get the output for triplet loss
-        out1 = x
+        # get the final concatenated embedding
+        out1 = self.fc2(x)
 
-        # calculate the output for classification loss
-        out2 = self.fc2(x)
+        # calculate the output of classification head
+        out2 = self.fc3(F.relu(out1))
 
         return out1, out2
 
     def configure_optimizers(self):
-
-        # weight decay can be added, lr can be changed
         optimizer = torch.optim.Adam(
             self.parameters(), lr=self.lr, weight_decay=self.wd)
+
+        # UNCOMMENT FOR LR SCHEDULER
         # scheduler = MultiStepLR(optimizer,
         #                         # List of epoch indices
         #                         milestones=[18, 27],
@@ -116,11 +117,11 @@ class MultiLossModel(LightningModule):
         # get the index of max value
         pred_label = torch.argmax(y_pred_softmax, dim=1)
 
-        # calculate and log accuracy
+        # calculate and log macro accuracy
         train_acc = self.train_macro_accuracy(pred_label, y)
         self.log('train_macro_acc', train_acc, on_epoch=True, on_step=False)
 
-        # calculate and log accuracy
+        # calculate and log micro accuracy
         train_micro_acc = self.train_micro_accuracy(pred_label, y)
         self.log('train_micro_acc', train_micro_acc,
                  on_epoch=True, on_step=False)

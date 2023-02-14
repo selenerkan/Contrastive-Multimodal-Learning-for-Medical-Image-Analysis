@@ -22,7 +22,6 @@ class ContrastiveModel(LightningModule):
         self.wd = weight_decay
 
         # IMAGE DATA
-        # output dimension is adapted from simCLR
         self.resnet = ResNet()  # output features are 32
 
         # TABULAR DATA
@@ -30,9 +29,6 @@ class ContrastiveModel(LightningModule):
         self.fc1 = nn.Linear(13, 10)
 
         # TABULAR + IMAGE DATA
-        # mlp projection head which takes concatenated input
-        # self.mlp = nn.Sequential(
-        #     nn.Linear(resnet_out_dim + 13, resnet_out_dim + 13), nn.ReLU(), nn.Linear(resnet_out_dim + 13, resnet_out_dim + 13))
         resnet_out_dim = 32
         self.fc2 = nn.Linear(resnet_out_dim + 10, resnet_out_dim + 10)
 

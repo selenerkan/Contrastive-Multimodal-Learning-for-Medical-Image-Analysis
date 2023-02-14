@@ -25,9 +25,9 @@ from datetime import datetime
 from sklearn.metrics import roc_curve, roc_auc_score, precision_score, recall_score, f1_score
 import pandas as pd
 import numpy as np
-# from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 
-
+# THIS FUNCTION IS NOT BEING USED
+# IT WILL BE DELETED LATER
 def main_conv3d(wandb, wandb_logger):
     '''
     main function to run the conv3d architecture
@@ -158,13 +158,13 @@ def main_supervised_multimodal(config=None):
     elif wandb.config.contrastive_checkpoint_flag:
         contrastive_model = ContrastiveModel.load_from_checkpoint(
             wandb.config.contrastive_checkpoint)
-        # copy the resnet and fc1 weights from contrastive learning model
+        # copy the resnet and fc1 weights from contrastive learning model (pretrainening)
         model.resnet = contrastive_model.resnet
         model.fc1 = contrastive_model.fc1
 
-        # freeze network weights
-        model.resnet.freeze()
-        model.fc1.requires_grad_(False)
+        # freeze network weights (uncomment if you want to freeze the network weights)
+        # model.resnet.freeze()
+        # model.fc1.requires_grad_(False)
 
     # load the data
     data = AdniDataModule(
@@ -195,6 +195,7 @@ def main_supervised_multimodal(config=None):
                 val_dataloaders=val_dataloader)
 
 
+# WILL BE UPDATED 
 def main_kfold_multimodal(wandb, wandb_logger, fold_number=2, learning_rate=1e-3, batch_size=8, max_epochs=60, age=None):
     '''
     main function to run the multimodal architecture with cross validation
@@ -467,19 +468,12 @@ def run_grid_search(network):
             'spatial_size': {'value': (120, 120, 120)},
             'learning_rate': {'values': [0.03, 0.013, 0.0055, 0.0023, 0.001]},
             'weight_decay': {'values': [0, 1e-2, 1e-4]},
-            # checkpoints are implemented in case grid search wants to be tried with checkpoint weights
-            # put the checkpoint path here
-            'checkpoint': {'value': r'/home/guests/selen_erkan/experiments/checkpoints/supervised/25.01.2023-18.49-epoch=029.ckpt'},
-            # this is only for using contrastive model weights in supervised model
-            'contrastive_checkpoint': {'value': r'/home/guests/selen_erkan/experiments/checkpoints/contrastive/25.01.2023-17.14-epoch=029.ckpt'},
-            'checkpoint_flag': {'value': False},
-            'contrastive_checkpoint_flag': {'value': False}
         }
     }
 
     count = len(sweep_config['parameters']['learning_rate']['values']) * \
         len(sweep_config['parameters']['weight_decay']['values'])
-
+    
     # sweep
     sweep_id = wandb.sweep(
         sweep_config, project="multimodal_training", entity="multimodal_network")
@@ -489,7 +483,7 @@ def run_grid_search(network):
 
 def grid_search(config=None):
     '''
-    main function to run grif search on the models
+    main function to run grid search on the models
     '''
     with wandb.init(config=config):
 
@@ -517,22 +511,6 @@ def grid_search(config=None):
             # get the model
             model = MultiModModel(learning_rate=config.learning_rate,
                                   weight_decay=config.weight_decay)
-
-            # below is used if grid search wants to be tried with checkpoint weights
-            # check if the checkpoint flag is True
-            if config.checkpoint_flag:
-                # copy the weights from multimodal supervised model checkpoint
-                model = MultiModModel.load_from_checkpoint(
-                    config.checkpoint, learning_rate=config.learning_rate, weight_decay=config.weight_decay)
-
-            elif config.contrastive_checkpoint_flag:
-                contrastive_model = ContrastiveModel.load_from_checkpoint(
-                    config.contrastive_checkpoint)
-
-                # copy the resnet and fc1 weights from contrastive learning model
-                model.resnet = contrastive_model.resnet
-                model.fc1 = contrastive_model.fc1
-
             data.set_supervised_multimodal_dataloader()
 
         elif config.network == 'contrastive':
@@ -546,6 +524,20 @@ def grid_search(config=None):
             # get the model
             model = TripletModel(learning_rate=config.learning_rate,
                                  weight_decay=config.weight_decay)
+            # load the data
+            data.set_triplet_loss_dataloader()
+        
+        elif config.network=='daft':
+            # get the model
+            model = DaftModel(learning_rate=config.learning_rate,
+                                 weight_decay=config.weight_decay)
+            # load the data
+            data.set_supervised_multimodal_dataloader()
+
+        elif config.network=='multi_loss':
+            # get the model
+            model = MultiLossModel(
+                learning_rate=wandb.config.learning_rate, weight_decay=wandb.config.weight_decay)
             # load the data
             data.set_triplet_loss_dataloader()
 
@@ -724,23 +716,24 @@ if __name__ == '__main__':
     # run contrastive learning
     # main_contrastive_learning(contrastive_config)
 
-    # run kfold multimodal
+    # run kfold multimodal (will be tested)
     # main_kfold_multimodal(wandb, wandb_logger, fold_number = 5, learning_rate=1e-3, batch_size=8, max_epochs=100, age=None)
 
     # run triplet loss model
     # main_triplet(triplet_config)
 
     # run multiloss model (triplet + cross entropy)
-    main_multiloss(supervised_config)
+    # main_multiloss(supervised_config)
 
-    # run knn after triplet/contrastive loss model
+    # run knn (this can be run after the models for triplet or contrastive loss)
     # knn(knn_config)
 
     # generate embedding visualizations
+    # used the visualize the embeddings gathered from an encoder model (visualized in wandb)
     # wandb.init(project="multimodal_training",
     #            entity="multimodal_network", config=knn_config)
     # wandb_logger = WandbLogger()
     # get_embeddings(wandb, wandb_logger)
 
     # run grid search
-    # run_grid_search('triplet')
+    # run_grid_search('multi_loss')

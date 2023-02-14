@@ -34,7 +34,6 @@ class MultiModModel(LightningModule):
         # mlp projection head which takes concatenated input
         resnet_out_dim = 32
         self.fc2 = nn.Linear(resnet_out_dim + 10, 3)
-        # self.fc2 = nn.Linear(resnet_out_dim + 10, 1)
 
         # track accuracy
         self.train_macro_accuracy = torchmetrics.Accuracy(
@@ -46,17 +45,6 @@ class MultiModModel(LightningModule):
             task='multiclass', average='micro', num_classes=3, top_k=1)
         self.val_micro_accuracy = torchmetrics.Accuracy(
             task='multiclass', average='micro', num_classes=3, top_k=1)
-
-        # THIS IS FOR BINARY CLASSIFICATION (PREDICTING GENDER)
-        # self.train_macro_accuracy = torchmetrics.Accuracy(
-        #     task='multiclass', average='macro', num_classes=2, top_k=1)
-        # self.val_macro_accuracy = torchmetrics.Accuracy(
-        #     task='multiclass', average='macro', num_classes=2, top_k=1)
-
-        # self.train_micro_accuracy = torchmetrics.Accuracy(
-        #     task='multiclass', average='micro', num_classes=2, top_k=1)
-        # self.val_micro_accuracy = torchmetrics.Accuracy(
-        #     task='multiclass', average='micro', num_classes=2, top_k=1)
 
         self.softmax = Softmax(dim=1)
 
@@ -97,11 +85,7 @@ class MultiModModel(LightningModule):
         img, tab, y = batch
 
         y_pred = self(img, tab)
-
         loss = F.cross_entropy(y_pred, y.squeeze())
-        # loss = F.binary_cross_entropy(torch.sigmoid(
-        #     y_pred), y.unsqueeze(-1).to(torch.float32))
-
         # Log loss on every epoch
         self.log('train_epoch_loss', loss, on_epoch=True, on_step=False)
 
@@ -110,7 +94,6 @@ class MultiModModel(LightningModule):
         if len(y_pred.shape) == 1:
             y_pred = y_pred.unsqueeze(0)
         y_pred_softmax = self.softmax(y_pred)
-        # y_pred_softmax = torch.sigmoid(y_pred)
 
         # get the index of max value
         pred_label = torch.argmax(y_pred_softmax, dim=1)
@@ -131,11 +114,7 @@ class MultiModModel(LightningModule):
         img, tab, y = batch
 
         y_pred = self(img, tab)
-
         loss = F.cross_entropy(y_pred, y.squeeze())
-        # loss = F.binary_cross_entropy(torch.sigmoid(
-        #     y_pred), y.unsqueeze(-1).to(torch.float32))
-
         # Log loss
         self.log('val_epoch_loss', loss, on_epoch=True, on_step=False)
 
@@ -144,7 +123,6 @@ class MultiModModel(LightningModule):
         if len(y_pred.shape) == 1:
             y_pred = y_pred.unsqueeze(0)
         y_pred_softmax = self.softmax(y_pred)
-        # y_pred_softmax = torch.sigmoid(y_pred)
 
         # get the index of max value
         pred_label = torch.argmax(y_pred_softmax, dim=1)
@@ -162,12 +140,8 @@ class MultiModModel(LightningModule):
     def test_step(self, batch, batch_idx):
 
         img, tab, y = batch
-
         y_pred = self(img, tab)
-
         loss = F.cross_entropy(y_pred, y.squeeze())
-        # loss = F.binary_cross_entropy(torch.sigmoid(
-        #     y_pred), y.unsqueeze(-1).to(torch.float32))
 
         self.log("test_loss", loss)
 

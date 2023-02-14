@@ -56,8 +56,6 @@ class TripletModel(LightningModule):
         return out
 
     def configure_optimizers(self):
-
-        # weight decay can be added, lr can be changed
         optimizer = torch.optim.Adam(
             self.parameters(), lr=self.lr, weight_decay=self.wd)
         # scheduler = MultiStepLR(optimizer,

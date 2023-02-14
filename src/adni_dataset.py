@@ -226,15 +226,17 @@ class Contrastive_Loss_Dataset(Dataset):
 class Triplet_Loss_Dataset(Dataset):
 
     def __init__(self, tabular_data, image_base_dir, target, features, transform=None):
-        """
+        """ initializes the dataset class for the contrastive learning model using triplet loss
 
-        csv_dir: The directiry for the .csv file (tabular data) including the labels
+        tabular_data: The dataframe object holding the info about patients, the name of the MRI images and the labels
 
         image_base_dir:The directory of the folders containing the images
 
-        transform:The trasformations for the input images
+        target: name of the target feature in the tabular_data dataframe 
 
-        Target_transform:The trasformations for the target(label)
+        features: subset feaures in the tabular data to be used in the model
+
+        transform:The trasformations for the input images
 
         """
         # TABULAR DATA
@@ -350,16 +352,16 @@ class AdniDataModule(pl.LightningDataModule):
     def get_transforms(self, spatial_size=(120, 120, 120)):
         """Return a set of data augmentation transformations"""
         data_transforms = transforms.Compose([
-            # tio.RandomElasticDeformation(p=0.5, num_control_points=(10),  # or just 7
+            # TORCHIO TRANSFORMATIONS
+            # -------------------------------------------------------------------------------
+            # tio.RandomElasticDeformation(p=0.5, num_control_points=(10), 
             #                              locked_borders=0),
             # tio.RandomBiasField(p=0.5, coefficients=0.5, order=3),
             # tio.RandomSwap(p=0.6, patch_size=15, num_iterations=80),
             # tio.RandomGamma(p=0.5, log_gamma=(-0.3, 0.3))
 
             # MONAI TRANSFORMS
-            # transforms.RandSpatialCrop(
-            #     (80, 80, 80), random_center=True, random_size=False),
-            # final image shape 160,120,120
+            # ------------------------------------------------------------------------------
             transforms.Resize(spatial_size=self.spatial_size),
             transforms.RandFlip(
                 prob=0.5, spatial_axis=0),
@@ -487,7 +489,7 @@ class AdniDataModule(pl.LightningDataModule):
 
         return DataLoader(self.test, batch_size=self.batch_size, shuffle=False, num_workers=self.num_workers)
 
-
+# WILL BE CHECKED LATER
 class KfoldMultimodalDataModule(pl.LightningDataModule):
 
     def __init__(self, csv_dir, fold_number=2, age=None, batch_size=1):

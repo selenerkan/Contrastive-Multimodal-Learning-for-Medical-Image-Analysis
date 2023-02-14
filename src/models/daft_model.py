@@ -37,17 +37,6 @@ class DaftModel(LightningModule):
         self.val_micro_accuracy = torchmetrics.Accuracy(
             task='multiclass', average='micro', num_classes=3, top_k=1)
 
-        # THIS IS FOR BINARY CLASSIFICATION (PREDICTING GENDER)
-        # self.train_macro_accuracy = torchmetrics.Accuracy(
-        #     task='multiclass', average='macro', num_classes=2, top_k=1)
-        # self.val_macro_accuracy = torchmetrics.Accuracy(
-        #     task='multiclass', average='macro', num_classes=2, top_k=1)
-
-        # self.train_micro_accuracy = torchmetrics.Accuracy(
-        #     task='multiclass', average='micro', num_classes=2, top_k=1)
-        # self.val_micro_accuracy = torchmetrics.Accuracy(
-        #     task='multiclass', average='micro', num_classes=2, top_k=1)
-
         self.softmax = Softmax(dim=1)
 
     def forward(self, img, tab):
