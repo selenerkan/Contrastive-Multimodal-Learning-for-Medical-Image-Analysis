@@ -9,7 +9,7 @@ FEATURES = ['age', 'gender_numeric', 'education', 'APOE4',
 
 TARGET = 'label_numeric'
 # use below code for run gender prediction
-# TARGET = 'gender_numeric' 
+# TARGET = 'gender_numeric'
 
 IMAGE_SIZE = (182, 218, 182)
 

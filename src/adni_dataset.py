@@ -344,7 +344,7 @@ class AdniDataModule(pl.LightningDataModule):
         self.batch_size = batch_size
         self.spatial_size = spatial_size
 
-        self.num_workers = 8
+        self.num_workers = 0
         if torch.cuda.is_available():
             self.num_workers = 16
         print(self.num_workers)
