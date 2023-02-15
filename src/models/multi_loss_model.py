@@ -8,6 +8,7 @@ from torch.optim.lr_scheduler import StepLR, MultiStepLR
 from pytorch_metric_learning import losses
 import torchmetrics
 from torch.nn import Softmax
+from center_loss import compute_center_loss, get_center_delta
 
 
 class MultiLossModel(LightningModule):
@@ -22,10 +23,21 @@ class MultiLossModel(LightningModule):
 
         self.lr = learning_rate
         self.wd = weight_decay
+        # weights of the losses
+        self.alpha_center = 0.2
+        self.alpha_triplet = 0.4
+        self.alpha_cross_ent = 0.4
+
+        # parameters for center loss
+        self.num_classes = 3
+        self.feature_dim = 42
+        self.centers = (
+            (torch.rand(self.num_classes, self.feature_dim) - 0.5) * 2)
+        self.center_deltas = torch.zeros(self.num_classes, self.feature_dim)
 
         # IMAGE DATA
         # output dimension is adapted from simCLR
-        self.resnet = ResNet(n_basefilters=32)  # output features are 128
+        self.resnet = ResNet(n_outputs=128)  # output features are 128
 
         # TABULAR DATA
         # fc layer for tabular data
@@ -64,7 +76,6 @@ class MultiLossModel(LightningModule):
         # run the model for the image
         img = self.resnet(img)
         img = F.relu(self.fc2(img))
-        img = img.view(img.size(0), -1)
 
         # change the dtype of the tabular data
         tab = tab.to(torch.float32)
@@ -105,12 +116,18 @@ class MultiLossModel(LightningModule):
         pos_embeddings, _ = self(positive, positive_tab)
         neg_embeddings, _ = self(negative, negative_tab)
 
+        # triplet loss
         triplet_loss_function = nn.TripletMarginLoss()
-        triplet_loss = 0.5 * triplet_loss_function(
+        triplet_loss = self.alpha_triplet * triplet_loss_function(
             embeddings, pos_embeddings, neg_embeddings)
-        cross_entropy_loss = 0.5 * F.cross_entropy(y_pred, y.squeeze())
+        # cross entropy loss
+        cross_entropy_loss = self.alpha_cross_ent * \
+            F.cross_entropy(y_pred, y.squeeze())
+        # center loss
+        center_loss = self.alpha_center * \
+            compute_center_loss(embeddings, self.centers, y)
         # sum the losses
-        loss = triplet_loss + cross_entropy_loss
+        loss = cross_entropy_loss + center_loss
 
         # Log loss on every epoch
         self.log('train_epoch_loss', loss, on_epoch=True, on_step=False)
@@ -135,6 +152,9 @@ class MultiLossModel(LightningModule):
 
         return loss
 
+    def on_train_batch_end(self, *args, **kwargs):
+        self.centers = self.centers - self.center_deltas
+
     def validation_step(self, batch, batch_idx):
 
         # get tabular and image data from the batch
@@ -146,12 +166,18 @@ class MultiLossModel(LightningModule):
         pos_embeddings, _ = self(positive, positive_tab)
         neg_embeddings, _ = self(negative, negative_tab)
 
+        # triplet loss
         triplet_loss_function = nn.TripletMarginLoss()
-        triplet_loss = 0.5 * triplet_loss_function(
+        triplet_loss = self.alpha_triplet * triplet_loss_function(
             embeddings, pos_embeddings, neg_embeddings)
-        cross_entropy_loss = 0.5 * F.cross_entropy(y_pred, y.squeeze())
+        # cross entropy loss
+        cross_entropy_loss = self.alpha_cross_ent * \
+            F.cross_entropy(y_pred, y.squeeze())
+        # center loss
+        center_loss = self.alpha_center * \
+            compute_center_loss(embeddings, self.centers, y)
         # sum the losses
-        loss = triplet_loss + cross_entropy_loss
+        loss = cross_entropy_loss + center_loss
 
         # Log loss on every epoch
         self.log('val_epoch_loss', loss, on_epoch=True, on_step=False)
@@ -187,12 +213,18 @@ class MultiLossModel(LightningModule):
         pos_embeddings, _ = self(positive, positive_tab)
         neg_embeddings, _ = self(negative, negative_tab)
 
+        # triplet loss
         triplet_loss_function = nn.TripletMarginLoss()
-        triplet_loss = 0.5 * triplet_loss_function(
+        triplet_loss = self.alpha_triplet * triplet_loss_function(
             embeddings, pos_embeddings, neg_embeddings)
-        cross_entropy_loss = 0.5 * F.cross_entropy(y_pred, y.squeeze())
+        # cross entropy loss
+        cross_entropy_loss = self.alpha_cross_ent * \
+            F.cross_entropy(y_pred, y.squeeze())
+        # center loss
+        center_loss = self.alpha_center * \
+            compute_center_loss(embeddings, self.centers, y)
         # sum the losses
-        loss = triplet_loss + cross_entropy_loss
+        loss = cross_entropy_loss + center_loss
 
         # Log loss on every epoch
         self.log('test_epoch_loss', loss, on_epoch=True, on_step=False)

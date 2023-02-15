@@ -24,11 +24,11 @@ class ResNetModel(LightningModule):
 
         self.softmax = Softmax(dim=1)
 
-        self.resnet = ResNet()
+        self.resnet = ResNet(n_outputs=3)
 
         # add a new fc layer
-        resnet_out_dim = 32
-        self.fc = nn.Linear(resnet_out_dim, 3)
+        # resnet_out_dim = 32
+        # self.fc = nn.Linear(resnet_out_dim, 3)
 
         # track accuracy
         self.train_macro_accuracy = torchmetrics.Accuracy(
@@ -46,9 +46,6 @@ class ResNetModel(LightningModule):
         x is the image data
         """
         out = self.resnet(x)
-        out = out.view(out.size(0), -1)
-        out = self.fc(out)
-
         return out
 
     def configure_optimizers(self):

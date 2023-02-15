@@ -23,7 +23,7 @@ class TripletModel(LightningModule):
 
         # IMAGE DATA
         # output dimension is adapted from simCLR
-        self.resnet = ResNet(n_basefilters=32)  # output features are 128
+        self.resnet = ResNet(n_outputs=128)  # output features are 128
 
         # TABULAR DATA
         # fc layer for tabular data
@@ -48,7 +48,6 @@ class TripletModel(LightningModule):
         # run the model for the image
         img = self.resnet(img)
         img = F.relu(self.fc2(img))
-        img = img.view(img.size(0), -1)
 
         # change the dtype of the tabular data
         tab = tab.to(torch.float32)
