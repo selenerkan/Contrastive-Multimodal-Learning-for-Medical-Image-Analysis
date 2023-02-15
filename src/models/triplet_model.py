@@ -6,6 +6,8 @@ from torch.nn import functional as F
 from models.model_blocks.resnet_block import ResNet
 from torch.optim.lr_scheduler import StepLR, MultiStepLR
 from pytorch_metric_learning import losses
+import torchmetrics
+from sklearn.neighbors import KNeighborsClassifier
 
 
 class TripletModel(LightningModule):
@@ -37,6 +39,15 @@ class TripletModel(LightningModule):
         concatanation_dimension = 128
         # outputs will be used in triplet loss
         self.fc3 = nn.Linear(concatanation_dimension, 32)
+
+        # set knn neighbor parameter
+        self.knn_neighbor = 5
+
+        # track accuracy with knn
+        self.knn_macro_accuracy = torchmetrics.Accuracy(
+            task='multiclass', average='macro', num_classes=3, top_k=1)
+        self.knn_micro_accuracy = torchmetrics.Accuracy(
+            task='multiclass', average='micro', num_classes=3, top_k=1)
 
     def forward(self, img, tab):
         """
@@ -72,11 +83,15 @@ class TripletModel(LightningModule):
         # return [optimizer], [scheduler]
         return optimizer
 
+    def on_train_epoch_start(self):
+        self.knn = KNeighborsClassifier(
+            n_neighbors=self.knn_neighbor, n_jobs=-1)
+
     def training_step(self, batch, batch_idx):
 
         # get tabular and image data from the batch
-        img, positive, negative, tab, positive_tab, negative_tab = batch[
-            0], batch[1], batch[2], batch[3], batch[4], batch[5]
+        img, positive, negative, tab, positive_tab, negative_tab, y = batch[
+            0], batch[1], batch[2], batch[3], batch[4], batch[5], batch[6]
 
         embeddings = self(img, tab)
         pos_embeddings = self(positive, positive_tab)
@@ -88,13 +103,16 @@ class TripletModel(LightningModule):
         # Log loss on every epoch
         self.log('train_epoch_loss', loss, on_epoch=True, on_step=False)
 
+        # fit the knn model
+        self.knn.fit(embeddings, y)
+
         return loss
 
     def validation_step(self, batch, batch_idx):
 
         # get tabular and image data from the batch
-        img, positive, negative, tab, positive_tab, negative_tab = batch[
-            0], batch[1], batch[2], batch[3], batch[4], batch[5]
+        img, positive, negative, tab, positive_tab, negative_tab, y = batch[
+            0], batch[1], batch[2], batch[3], batch[4], batch[5], batch[6]
 
         embeddings = self(img, tab)
         pos_embeddings = self(positive, positive_tab)
@@ -105,6 +123,20 @@ class TripletModel(LightningModule):
 
         # Log loss on every epoch
         self.log('val_epoch_loss', loss, on_epoch=True, on_step=False)
+
+        # do prediction using knn
+        # get predictions
+        y_pred = self.knn.predict(embeddings)
+
+        # log knn metrics
+        # accuracy: (tp + tn) / (p + n)
+        micro_acc = self.knn_micro_accuracy(
+            y_pred, y)
+        self.log("KNN micro Acc", micro_acc, on_epoch=True, on_step=False)
+
+        macro_acc = self.knn_macro_accuracy(
+            y_pred, y)
+        self.log("KNN macro Acc", macro_acc, on_epoch=True, on_step=False)
 
         return loss
 
