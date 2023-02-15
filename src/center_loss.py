@@ -3,7 +3,7 @@ import torch
 
 def compute_center_loss(features, centers, targets):
     features = features.view(features.size(0), -1)
-    target_centers = centers[targets]
+    target_centers = centers[targets.cpu()]
     criterion = torch.nn.MSELoss()
     center_loss = criterion(features, target_centers)
     return center_loss
