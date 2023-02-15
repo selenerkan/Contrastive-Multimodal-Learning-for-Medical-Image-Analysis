@@ -117,9 +117,9 @@ class MultiLossModel(LightningModule):
         neg_embeddings, _ = self(negative, negative_tab)
 
         # triplet loss
-        triplet_loss_function = nn.TripletMarginLoss()
-        triplet_loss = self.alpha_triplet * triplet_loss_function(
-            embeddings, pos_embeddings, neg_embeddings)
+        # triplet_loss_function = nn.TripletMarginLoss()
+        # triplet_loss = self.alpha_triplet * triplet_loss_function(
+        #     embeddings, pos_embeddings, neg_embeddings)
         # cross entropy loss
         cross_entropy_loss = self.alpha_cross_ent * \
             F.cross_entropy(y_pred, y.squeeze())

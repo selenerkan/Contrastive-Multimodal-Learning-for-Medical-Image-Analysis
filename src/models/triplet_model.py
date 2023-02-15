@@ -42,12 +42,15 @@ class TripletModel(LightningModule):
 
         # set knn neighbor parameter
         self.knn_neighbor = 5
-
+        self.knn = KNeighborsClassifier(
+            n_neighbors=self.knn_neighbor, n_jobs=-1)
+            
         # track accuracy with knn
         self.knn_macro_accuracy = torchmetrics.Accuracy(
             task='multiclass', average='macro', num_classes=3, top_k=1)
         self.knn_micro_accuracy = torchmetrics.Accuracy(
             task='multiclass', average='micro', num_classes=3, top_k=1)
+        
 
     def forward(self, img, tab):
         """
@@ -83,9 +86,9 @@ class TripletModel(LightningModule):
         # return [optimizer], [scheduler]
         return optimizer
 
-    def on_train_epoch_start(self):
-        self.knn = KNeighborsClassifier(
-            n_neighbors=self.knn_neighbor, n_jobs=-1)
+    # def on_train_epoch_start(self):
+    #     self.knn = KNeighborsClassifier(
+    #         n_neighbors=self.knn_neighbor, n_jobs=-1)
 
     def training_step(self, batch, batch_idx):
 

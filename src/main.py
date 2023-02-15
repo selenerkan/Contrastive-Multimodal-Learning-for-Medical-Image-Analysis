@@ -48,7 +48,7 @@ def main_conv3d(wandb, wandb_logger):
 
 def main_tabular(config=None):
     '''
-    main function to run the multimodal architecture
+    main function to run the only tabular architecture
     '''
     wandb.init(project="multimodal_training",
                entity="multimodal_network", config=config)
@@ -366,7 +366,7 @@ def main_multiloss(config=None):
     main function to run the multimodal architecture
     '''
 
-    print('YOU ARE RUNNING MULTI LOSS MODEL WITH TRIPLET + CROSS ENTROPY LOSSES')
+    print('YOU ARE RUNNING MULTI LOSS MODEL WITH CENTER + CROSS ENTROPY LOSSES')
     print(config)
 
     wandb.init(project="multimodal_training",
