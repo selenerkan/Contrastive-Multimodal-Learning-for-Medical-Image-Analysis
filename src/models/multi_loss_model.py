@@ -30,7 +30,7 @@ class MultiLossModel(LightningModule):
 
         # parameters for center loss
         self.num_classes = 3
-        self.feature_dim = 42
+        self.feature_dim = 32
         self.centers = (
             (torch.rand(self.num_classes, self.feature_dim) - 0.5) * 2)
         self.center_deltas = torch.zeros(self.num_classes, self.feature_dim)
@@ -49,8 +49,8 @@ class MultiLossModel(LightningModule):
         # TABULAR + IMAGE DATA
         # mlp projection head which takes concatenated input
         concatanation_dimension = 128
-        # outputs will be used in triplet loss
-        self.fc3 = nn.Linear(concatanation_dimension, 32)
+        # outputs will be used in triplet/center loss
+        self.fc3 = nn.Linear(concatanation_dimension, self.feature_dim)
         self.fc4 = nn.Linear(32, 3)  # classification head
 
         # track accuracy
