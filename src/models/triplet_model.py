@@ -23,15 +23,20 @@ class TripletModel(LightningModule):
 
         # IMAGE DATA
         # output dimension is adapted from simCLR
-        self.resnet = ResNet()  # output features are 32
+        self.resnet = ResNet(n_basefilters=32)  # output features are 128
 
         # TABULAR DATA
         # fc layer for tabular data
-        self.fc1 = nn.Linear(13, 10)
+        self.fc1 = nn.Linear(13, 128)  # output features are 128
+
+        # shared FC layer
+        self.fc2 = nn.Linear(128, 64)
 
         # TABULAR + IMAGE DATA
-        resnet_out_dim = 32
-        self.fc2 = nn.Linear(resnet_out_dim + 10, resnet_out_dim + 10)
+        # mlp projection head which takes concatenated input
+        concatanation_dimension = 128
+        # outputs will be used in triplet loss
+        self.fc3 = nn.Linear(concatanation_dimension, 32)
 
     def forward(self, img, tab):
         """
@@ -42,16 +47,18 @@ class TripletModel(LightningModule):
         """
         # run the model for the image
         img = self.resnet(img)
+        img = F.relu(self.fc2(img))
         img = img.view(img.size(0), -1)
 
         # change the dtype of the tabular data
         tab = tab.to(torch.float32)
         # forward tabular data
         tab = F.relu(self.fc1(tab))
+        tab = F.relu(self.fc2(tab))
 
         # concat image and tabular data
         x = torch.cat((img, tab), dim=1)
-        out = self.fc2(x)
+        out = self.fc3(x)
 
         return out
 
