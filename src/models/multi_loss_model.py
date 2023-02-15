@@ -75,13 +75,12 @@ class MultiLossModel(LightningModule):
         """
         # run the model for the image
         img = self.resnet(img)
-        img = F.relu(self.fc2(img))
+        img = self.fc2(F.relu(img))
 
-        # change the dtype of the tabular data
+        # forward pass for tabular data
         tab = tab.to(torch.float32)
-        # forward tabular data
         tab = F.relu(self.fc1(tab))
-        tab = F.relu(self.fc2(tab))
+        tab = self.fc2(tab)
 
         # concat image and tabular data
         x = torch.cat((img, tab), dim=1)

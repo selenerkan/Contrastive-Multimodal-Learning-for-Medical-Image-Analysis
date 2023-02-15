@@ -44,13 +44,12 @@ class TripletModel(LightningModule):
         self.knn_neighbor = 5
         self.knn = KNeighborsClassifier(
             n_neighbors=self.knn_neighbor, n_jobs=-1)
-            
+
         # track accuracy with knn
         self.knn_macro_accuracy = torchmetrics.Accuracy(
             task='multiclass', average='macro', num_classes=3, top_k=1)
         self.knn_micro_accuracy = torchmetrics.Accuracy(
             task='multiclass', average='micro', num_classes=3, top_k=1)
-        
 
     def forward(self, img, tab):
         """
@@ -61,13 +60,12 @@ class TripletModel(LightningModule):
         """
         # run the model for the image
         img = self.resnet(img)
-        img = F.relu(self.fc2(img))
+        img = self.fc2(F.relu(img))
 
-        # change the dtype of the tabular data
+        # forward pass for tabular data
         tab = tab.to(torch.float32)
-        # forward tabular data
         tab = F.relu(self.fc1(tab))
-        tab = F.relu(self.fc2(tab))
+        tab = self.fc2(tab)
 
         # concat image and tabular data
         x = torch.cat((img, tab), dim=1)

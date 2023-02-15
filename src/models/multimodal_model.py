@@ -61,12 +61,12 @@ class MultiModModel(LightningModule):
 
         # run the model for the image
         img = self.resnet(img)
-        img = F.relu(self.fc2(img))
+        img = self.fc2(F.relu(img))
 
         # forward pass for tabular data
         tab = tab.to(torch.float32)
         tab = F.relu(self.fc1(tab))
-        tab = F.relu(self.fc2(tab))
+        tab = self.fc2(tab)
 
         # concat image and tabular data
         x = torch.cat((img, tab), dim=1)
