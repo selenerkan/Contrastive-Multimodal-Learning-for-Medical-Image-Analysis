@@ -2,8 +2,17 @@ import torch
 
 
 def compute_center_loss(features, centers, targets):
+
+    device = 'cpu'
+    if torch.cuda.is_available():
+        device = 'cuda'
+
+    features = features.to(device)
+    centers = centers.to(device)
+    targets = targets.to(device)
+
     features = features.view(features.size(0), -1)
-    target_centers = centers[targets.cpu()]
+    target_centers = centers[targets]
     criterion = torch.nn.MSELoss()
     center_loss = criterion(features, target_centers)
     return center_loss
@@ -15,6 +24,11 @@ def get_center_delta(features, centers, targets, alpha):
     if torch.cuda.is_available():
         device = 'cuda'
 
+    features = features.to(device)
+    centers = centers.to(device)
+    targets = targets.to(device)
+    alpha = alpha.to(device)
+
     # implementation equation (4) in the center-loss paper
     features = features.view(features.size(0), -1)
     targets, indices = torch.sort(targets)
@@ -23,7 +37,7 @@ def get_center_delta(features, centers, targets, alpha):
 
     delta_centers = target_centers - features
     uni_targets, indices = torch.unique(
-        targets.cpu(), sorted=True, return_inverse=True)
+        targets, sorted=True, return_inverse=True)
 
     uni_targets = uni_targets.to(device)
     indices = indices.to(device)
