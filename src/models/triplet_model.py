@@ -42,8 +42,9 @@ class TripletModel(LightningModule):
 
         # set knn neighbor parameter
         self.knn_neighbor = 5
-        self.knn = KNeighborsClassifier(
-            n_neighbors=self.knn_neighbor, n_jobs=-1)
+        self.knn = None
+        # self.knn = KNeighborsClassifier(
+        #     n_neighbors=self.knn_neighbor, n_jobs=-1)
 
         # track accuracy with knn
         self.knn_macro_accuracy = torchmetrics.Accuracy(
@@ -84,9 +85,9 @@ class TripletModel(LightningModule):
         # return [optimizer], [scheduler]
         return optimizer
 
-    # def on_train_epoch_start(self):
-    #     self.knn = KNeighborsClassifier(
-    #         n_neighbors=self.knn_neighbor, n_jobs=-1)
+    def on_train_epoch_start(self):
+        self.knn = KNeighborsClassifier(
+            n_neighbors=self.knn_neighbor, n_jobs=-1)
 
     def training_step(self, batch, batch_idx):
 
@@ -125,19 +126,20 @@ class TripletModel(LightningModule):
         # Log loss on every epoch
         self.log('val_epoch_loss', loss, on_epoch=True, on_step=False)
 
-        # do prediction using knn
-        # get predictions
-        y_pred = self.knn.predict(embeddings)
+        if self.knn is not None:
+            # do prediction using knn
+            # get predictions
+            y_pred = self.knn.predict(embeddings)
 
-        # log knn metrics
-        # accuracy: (tp + tn) / (p + n)
-        micro_acc = self.knn_micro_accuracy(
-            y_pred, y)
-        self.log("KNN micro Acc", micro_acc, on_epoch=True, on_step=False)
+            # log knn metrics
+            # accuracy: (tp + tn) / (p + n)
+            micro_acc = self.knn_micro_accuracy(
+                y_pred, y)
+            self.log("KNN micro Acc", micro_acc, on_epoch=True, on_step=False)
 
-        macro_acc = self.knn_macro_accuracy(
-            y_pred, y)
-        self.log("KNN macro Acc", macro_acc, on_epoch=True, on_step=False)
+            macro_acc = self.knn_macro_accuracy(
+                y_pred, y)
+            self.log("KNN macro Acc", macro_acc, on_epoch=True, on_step=False)
 
         return loss
 
