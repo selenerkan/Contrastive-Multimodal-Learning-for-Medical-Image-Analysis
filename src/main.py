@@ -28,6 +28,8 @@ import numpy as np
 
 # THIS FUNCTION IS NOT BEING USED
 # IT WILL BE DELETED LATER
+
+
 def main_conv3d(wandb, wandb_logger):
     '''
     main function to run the conv3d architecture
@@ -473,7 +475,7 @@ def run_grid_search(network):
 
     count = len(sweep_config['parameters']['learning_rate']['values']) * \
         len(sweep_config['parameters']['weight_decay']['values'])
-    
+
     # sweep
     sweep_id = wandb.sweep(
         sweep_config, project="multimodal_training", entity="multimodal_network")
@@ -526,15 +528,15 @@ def grid_search(config=None):
                                  weight_decay=config.weight_decay)
             # load the data
             data.set_triplet_loss_dataloader()
-        
-        elif config.network=='daft':
+
+        elif config.network == 'daft':
             # get the model
             model = DaftModel(learning_rate=config.learning_rate,
-                                 weight_decay=config.weight_decay)
+                              weight_decay=config.weight_decay)
             # load the data
             data.set_supervised_multimodal_dataloader()
 
-        elif config.network=='multi_loss':
+        elif config.network == 'multi_loss':
             # get the model
             model = MultiLossModel(
                 learning_rate=wandb.config.learning_rate, weight_decay=wandb.config.weight_decay)
@@ -708,7 +710,7 @@ if __name__ == '__main__':
     # main_resnet(resnet_config)
 
     # run multimodal
-    # main_supervised_multimodal(supervised_config)
+    main_supervised_multimodal(supervised_config)
 
     # run daft
     # main_daft(daft_config)
@@ -720,7 +722,7 @@ if __name__ == '__main__':
     # main_kfold_multimodal(wandb, wandb_logger, fold_number = 5, learning_rate=1e-3, batch_size=8, max_epochs=100, age=None)
 
     # run triplet loss model
-    main_triplet(triplet_config)
+    # main_triplet(triplet_config)
 
     # run multiloss model (triplet + cross entropy)
     # main_multiloss(supervised_config)

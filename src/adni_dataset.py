@@ -354,7 +354,7 @@ class AdniDataModule(pl.LightningDataModule):
         data_transforms = transforms.Compose([
             # TORCHIO TRANSFORMATIONS
             # -------------------------------------------------------------------------------
-            # tio.RandomElasticDeformation(p=0.5, num_control_points=(10), 
+            # tio.RandomElasticDeformation(p=0.5, num_control_points=(10),
             #                              locked_borders=0),
             # tio.RandomBiasField(p=0.5, coefficients=0.5, order=3),
             # tio.RandomSwap(p=0.6, patch_size=15, num_iterations=80),
@@ -421,11 +421,18 @@ class AdniDataModule(pl.LightningDataModule):
         self.val_df = self.tabular_data[self.tabular_data['subject'].isin(
             self.subjects_val)].reset_index()
 
-        # ONLY FOR OVERFITTING ON ONE IMAGE
-        # self.train_df = self.train_df.iloc[:1]
+        # # ONLY FOR OVERFITTING ON ONE IMAGE
+        # # self.train_df = self.train_df.iloc[:10]
+        # self.train_df = self.train_df.groupby(
+        #     'label_numeric').apply(lambda x: x.sample(1)).droplevel(0).reset_index()
         # self.val_df = self.train_df
         # self.test_df = self.train_df
 
+        # print('image ids in train: ', self.train_df.image_id)
+        # print('classes in train: ', self.train_df.label_numeric)
+
+        # print('image ids in val: ', self.val_df.image_id)
+        # print('classes in val: ', self.val_df.label_numeric)
         # print the patients in train and val
         print('number of patients in train: ', len(self.train_df))
         print('patient IDs in train: ', self.train_df.subject.unique())
@@ -490,6 +497,8 @@ class AdniDataModule(pl.LightningDataModule):
         return DataLoader(self.test, batch_size=self.batch_size, shuffle=False, num_workers=self.num_workers)
 
 # WILL BE CHECKED LATER
+
+
 class KfoldMultimodalDataModule(pl.LightningDataModule):
 
     def __init__(self, csv_dir, fold_number=2, age=None, batch_size=1):
