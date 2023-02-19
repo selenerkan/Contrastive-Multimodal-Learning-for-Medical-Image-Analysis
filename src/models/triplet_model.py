@@ -106,7 +106,7 @@ class TripletModel(LightningModule):
         self.log('train_epoch_loss', loss, on_epoch=True, on_step=False)
 
         # fit the knn model
-        self.knn.fit(embeddings, y)
+        self.knn.fit(embeddings.cpu(), y.cpu())
 
         return loss
 
@@ -129,7 +129,7 @@ class TripletModel(LightningModule):
         if self.knn is not None:
             # do prediction using knn
             # get predictions
-            y_pred = self.knn.predict(embeddings)
+            y_pred = self.knn.predict(embeddings.cpu())
 
             # log knn metrics
             # accuracy: (tp + tn) / (p + n)

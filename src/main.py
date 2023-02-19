@@ -140,10 +140,9 @@ def main_supervised_multimodal(config=None):
     '''
 
     print('YOU ARE RUNNING SUPERVISED MULTIMODAL')
-    print('LAYERS ARE FROZEN')
     print(config)
 
-    wandb.init(project="multimodal_training",
+    wandb.init(group='supervised_multimodal',project="multimodal_training",
                entity="multimodal_network", config=config)
     wandb_logger = WandbLogger()
 
@@ -154,10 +153,12 @@ def main_supervised_multimodal(config=None):
 
     # check if the checkpoint flag is True
     if wandb.config.checkpoint_flag:
+        print('YOU ARE USING A CHECKPOINT OF A SUPERVISED MULTIMODAL NETWORK')
         # copy the weights from multimodal supervised model checkpoint
         model = MultiModModel.load_from_checkpoint(
             config.checkpoint, learning_rate=wandb.config.learning_rate, weight_decay=wandb.config.weight_decay)
     elif wandb.config.contrastive_checkpoint_flag:
+        print('YOU ARE USING A CONTRASTIVE LEARNING WEIGHTS ON SUPERVISED MULTIMODAL NETWORK FOR FINETUNING')
         contrastive_model = ContrastiveModel.load_from_checkpoint(
             wandb.config.contrastive_checkpoint)
         # copy the resnet and fc1 weights from contrastive learning model (pretrainening)

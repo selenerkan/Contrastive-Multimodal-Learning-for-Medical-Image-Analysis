@@ -83,7 +83,7 @@ class MultiModModel(LightningModule):
             self.parameters(), lr=self.lr, weight_decay=self.wd)
         # scheduler = MultiStepLR(optimizer,
         #                         # List of epoch indices
-        #                         milestones=[18, 27],
+        #                         milestones=[30, 60],
         #                         gamma=0.1)  # Multiplicative factor of learning rate decay
 
         # return [optimizer], [scheduler]
