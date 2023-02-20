@@ -170,6 +170,19 @@ class HAMDataModule(pl.LightningDataModule):
         self.val_df = self.tabular_data[self.tabular_data['lesion_id'].isin(
             self.val_patients.lesion_id)].reset_index()
 
+        # # ONLY FOR OVERFITTING ON ONE IMAGE
+        # # self.train_df = self.train_df.iloc[:20]
+        # self.train_df = self.train_df.groupby(
+        #     'label').apply(lambda x: x.sample(1)).droplevel(0).reset_index()
+        # self.val_df = self.train_df
+        # self.test_df = self.train_df
+
+        # print('image ids in train: ', self.train_df.image_id)
+        # print('classes in train: ', self.train_df.label)
+
+        # print('image ids in val: ', self.val_df.image_id)
+        # print('classes in val: ', self.val_df.label)
+
         print('number of patients in train: ', len(self.train_df))
         print('patient IDs in train: ', self.train_df.lesion_id.unique())
         print('number of patients in val: ', len(self.val_df))

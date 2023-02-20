@@ -96,7 +96,7 @@ class SupervisedModel(LightningModule):
         img, tab, y = batch
 
         y_pred = self(img, tab)
-        loss = F.cross_entropy(y_pred, y.squeeze())
+        loss = F.cross_entropy(y_pred, y)
         # Log loss on every epoch
         self.log('train_epoch_loss', loss, on_epoch=True, on_step=False)
 
@@ -125,7 +125,7 @@ class SupervisedModel(LightningModule):
         img, tab, y = batch
 
         y_pred = self(img, tab)
-        loss = F.cross_entropy(y_pred, y.squeeze())
+        loss = F.cross_entropy(y_pred, y)
         # Log loss
         self.log('val_epoch_loss', loss, on_epoch=True, on_step=False)
 
