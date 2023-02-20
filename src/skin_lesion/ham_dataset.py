@@ -271,7 +271,9 @@ class HAMDataModule(pl.LightningDataModule):
         # # ONLY FOR OVERFITTING ON ONE IMAGE
         # # self.train_df = self.train_df.iloc[:20]
         # self.train_df = self.train_df.groupby(
-        #     'label').apply(lambda x: x.sample(1)).droplevel(0).reset_index()
+        #     'label').apply(lambda x: x.sample(2)).droplevel(0).reset_index()
+        # self.train_df = self.train_df.drop(
+        #     ['level_0', 'index', 'Unnamed: 0'], axis=1)
         # self.val_df = self.train_df
         # self.test_df = self.train_df
 
