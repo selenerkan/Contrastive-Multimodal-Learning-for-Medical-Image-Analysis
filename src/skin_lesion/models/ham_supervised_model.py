@@ -24,7 +24,7 @@ class SupervisedModel(LightningModule):
         # IMAGE DATA
         # output dimension is adapted from simCLR
         self.resnet = torchvision.models.resnet18(
-            pretrained=False)  # output features are 1000
+            pretrained=True)  # output features are 1000
         # change resnet fc output to 128 features
         self.resnet.fc = nn.Linear(512, 128)
 

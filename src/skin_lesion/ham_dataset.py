@@ -306,7 +306,7 @@ class HAMDataModule(pl.LightningDataModule):
 
         # create the dataset object using the dataframes created above
         self.train = Triplet_Loss_Dataset(self.train_df, image_base_dir=image_dir,
-                                          target=TARGET, features=FEATURES, transform=self.get_transforms()['val'])
+                                          target=TARGET, features=FEATURES, transform=self.get_transforms()['train'])
 
         self.test = Triplet_Loss_Dataset(self.test_df, image_base_dir=image_dir,
                                          target=TARGET, features=FEATURES, transform=self.get_transforms()['val'])
