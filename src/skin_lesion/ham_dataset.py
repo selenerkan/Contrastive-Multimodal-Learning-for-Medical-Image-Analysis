@@ -86,10 +86,10 @@ class Triplet_Loss_Dataset(Dataset):
         img_name = self.tabular_data['image_id'][idx]
         img_path = os.path.join(
             self.imge_base_dir, img_folder_name, img_name + '.jpg')
-        pos_img_folder_name = self.tabular_data.dx[pos_idx]
+        pos_img_folder_name = tabular.dx[pos_idx]
         pos_img_path = os.path.join(
             self.imge_base_dir, pos_img_folder_name, positive_img_name + '.jpg')
-        neg_img_folder_name = self.tabular_data.dx[neg_idx]
+        neg_img_folder_name = tabular.dx[neg_idx]
         neg_img_path = os.path.join(
             self.imge_base_dir, neg_img_folder_name, negative_img_name + '.jpg')
 
