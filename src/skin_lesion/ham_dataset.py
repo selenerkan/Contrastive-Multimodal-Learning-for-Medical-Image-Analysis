@@ -15,6 +15,104 @@ import torchvision.transforms as transforms
 import torch
 from torchvision.io import read_image
 
+import random
+
+
+class Triplet_Loss_Dataset(Dataset):
+
+    def __init__(self, tabular_data, image_base_dir, target, features, transform=None):
+        """ initializes the dataset class for the contrastive learning model using triplet loss
+
+        tabular_data: The dataframe object holding the info about patients, the name of the MRI images and the labels
+
+        image_base_dir:The directory of the folders containing the images
+
+        target: name of the target feature in the tabular_data dataframe 
+
+        features: subset feaures in the tabular data to be used in the model
+
+        transform:The trasformations for the input images
+
+        """
+        # TABULAR DATA
+        # initialize the tabular data
+        self.tabular_data = tabular_data.copy()
+
+        # keep relevant features in the tabular data
+        self.features = features
+        self.tabular = self.tabular_data[self.features]
+
+        # Save target and predictors
+        self.target = target
+        self.X = self.tabular.drop(self.target, axis=1)
+        self.y = self.tabular[self.target]
+
+        # IMAGE DATA
+        self.imge_base_dir = image_base_dir
+        self.transform = transform
+
+    def __len__(self):
+
+        return len(self.tabular)
+
+    def __getitem__(self, idx):
+
+        # Convert idx from tensor to list due to pandas bug (that arises when using pytorch's random_split)
+        if isinstance(idx, torch.Tensor):
+            idx = idx.tolist()
+
+        label_anchor = self.y[idx]
+        # remove the current image form the tabular data
+        tabular = self.tabular_data.drop(idx).reset_index()
+        # get the positive and negative pair names
+        # TODO: dont get the images form the same person as positive pairs?
+        positive_pairs = tabular[tabular.label
+                                 == label_anchor]['image_id'].unique()
+        negative_pairs = tabular[tabular.label
+                                 != label_anchor]['image_id'].unique()
+
+        # pick a random positive and negative image
+        positive_img_name = random.choice(positive_pairs)
+        negative_img_name = random.choice(negative_pairs)
+
+        # get the index of the positive and negative pairs
+        pos_idx = tabular.index[tabular['image_id']
+                                == positive_img_name][0]
+        neg_idx = tabular.index[tabular['image_id']
+                                == negative_img_name][0]
+
+        # get image name for the given index
+        img_folder_name = self.tabular_data.dx[idx]
+        img_name = self.tabular_data['image_id'][idx]
+        img_path = os.path.join(
+            self.imge_base_dir, img_folder_name, img_name + '.jpg')
+        pos_img_folder_name = self.tabular_data.dx[pos_idx]
+        pos_img_path = os.path.join(
+            self.imge_base_dir, pos_img_folder_name, positive_img_name + '.jpg')
+        neg_img_folder_name = self.tabular_data.dx[neg_idx]
+        neg_img_path = os.path.join(
+            self.imge_base_dir, neg_img_folder_name, negative_img_name + '.jpg')
+
+        # load all three images
+        image = Image.open(img_path)
+        image = image.convert("RGB")
+        positive_image = Image.open(pos_img_path)
+        positive_image = positive_image.convert("RGB")
+        negative_image = Image.open(neg_img_path)
+        negative_image = negative_image.convert("RGB")
+
+        if self.transform:
+            transformed_images = self.transform(image)
+            transformed_positive_images = self.transform(positive_image)
+            transformed_negative_images = self.transform(negative_image)
+
+        # get the tabular data for given index
+        tab = self.X.iloc[idx].values
+        positive_tab = self.X.iloc[pos_idx].values
+        negative_tab = self.X.iloc[neg_idx].values
+
+        return transformed_images, transformed_positive_images, transformed_negative_images, tab, positive_tab.squeeze(), negative_tab.squeeze(), label_anchor
+
 
 class Supervised_Multimodal_Dataset(Dataset):
 
@@ -201,6 +299,18 @@ class HAMDataModule(pl.LightningDataModule):
 
         self.val = Supervised_Multimodal_Dataset(self.val_df, image_base_dir=image_dir,
                                                  target=TARGET, features=FEATURES, transform=self.get_transforms()['val'])
+
+    def set_triplet_dataloader(self):
+
+        # create the dataset object using the dataframes created above
+        self.train = Triplet_Loss_Dataset(self.train_df, image_base_dir=image_dir,
+                                          target=TARGET, features=FEATURES, transform=self.get_transforms()['val'])
+
+        self.test = Triplet_Loss_Dataset(self.test_df, image_base_dir=image_dir,
+                                         target=TARGET, features=FEATURES, transform=self.get_transforms()['val'])
+
+        self.val = Triplet_Loss_Dataset(self.val_df, image_base_dir=image_dir,
+                                        target=TARGET, features=FEATURES, transform=self.get_transforms()['val'])
 
     def train_dataloader(self):
 
