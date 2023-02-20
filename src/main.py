@@ -372,7 +372,7 @@ def main_multiloss(config=None):
     print('YOU ARE RUNNING MULTI LOSS MODEL WITH CENTER + CROSS ENTROPY LOSSES')
     print(config)
 
-    wandb.init(project="multimodal_training",
+    wandb.init(group='multiLoss-adni',project="multimodal_training",
                entity="multimodal_network", config=config)
     wandb_logger = WandbLogger()
 
@@ -711,7 +711,7 @@ if __name__ == '__main__':
     # main_resnet(resnet_config)
 
     # run multimodal
-    main_supervised_multimodal(supervised_config)
+    # main_supervised_multimodal(supervised_config)
 
     # run daft
     # main_daft(daft_config)
@@ -726,7 +726,7 @@ if __name__ == '__main__':
     # main_triplet(triplet_config)
 
     # run multiloss model (triplet + cross entropy)
-    # main_multiloss(supervised_config)
+    main_multiloss(supervised_config)
 
     # run knn (this can be run after the models for triplet or contrastive loss)
     # knn(knn_config)

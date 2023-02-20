@@ -25,8 +25,8 @@ class MultiLossModel(LightningModule):
         self.wd = weight_decay
         # weights of the losses
         self.alpha_center = 0.2
-        self.alpha_triplet = 0.4
-        self.alpha_cross_ent = 0.4
+        # self.alpha_triplet = 0.4
+        self.alpha_cross_ent = 0.8
 
         # parameters for center loss
         self.num_classes = 3
@@ -166,9 +166,9 @@ class MultiLossModel(LightningModule):
         neg_embeddings, _ = self(negative, negative_tab)
 
         # triplet loss
-        triplet_loss_function = nn.TripletMarginLoss()
-        triplet_loss = self.alpha_triplet * triplet_loss_function(
-            embeddings, pos_embeddings, neg_embeddings)
+        # triplet_loss_function = nn.TripletMarginLoss()
+        # triplet_loss = self.alpha_triplet * triplet_loss_function(
+        #     embeddings, pos_embeddings, neg_embeddings)
         # cross entropy loss
         cross_entropy_loss = self.alpha_cross_ent * \
             F.cross_entropy(y_pred, y.squeeze())
@@ -213,9 +213,9 @@ class MultiLossModel(LightningModule):
         neg_embeddings, _ = self(negative, negative_tab)
 
         # triplet loss
-        triplet_loss_function = nn.TripletMarginLoss()
-        triplet_loss = self.alpha_triplet * triplet_loss_function(
-            embeddings, pos_embeddings, neg_embeddings)
+        # triplet_loss_function = nn.TripletMarginLoss()
+        # triplet_loss = self.alpha_triplet * triplet_loss_function(
+        #     embeddings, pos_embeddings, neg_embeddings)
         # cross entropy loss
         cross_entropy_loss = self.alpha_cross_ent * \
             F.cross_entropy(y_pred, y.squeeze())

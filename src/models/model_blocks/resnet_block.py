@@ -17,12 +17,12 @@ class ConvBnReLU(nn.Module):
         super().__init__()
         self.conv = nn.Conv3d(in_channels, out_channels, kernel_size,
                               stride=stride, padding=padding, bias=False)
-        self.bn = nn.BatchNorm3d(out_channels, momentum=bn_momentum)
+        # self.bn = nn.BatchNorm3d(out_channels, momentum=bn_momentum)
         self.relu = nn.ReLU(inplace=True)
 
     def forward(self, x):
         out = self.conv(x)
-        out = self.bn(out)
+        # out = self.bn(out)
         out = self.relu(out)
         return out
 
