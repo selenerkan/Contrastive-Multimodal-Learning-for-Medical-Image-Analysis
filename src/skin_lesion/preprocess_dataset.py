@@ -23,6 +23,11 @@ def preprocess_columns(data_dir):
     metadata.loc[(metadata['age'] == 0) | (
         metadata['age'].isna()), 'age'] = mean
 
+    # replace categorical columns to numerical
+    metadata['sex_numeric'] = pd.factorize(metadata['sex'])[0]
+    metadata['localization_numeric'] = pd.factorize(
+        metadata['localization'])[0]
+
     metadata.to_csv(data_dir + r'\HAM10000_metadata.csv')
 
 

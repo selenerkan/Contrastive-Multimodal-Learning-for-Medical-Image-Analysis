@@ -13,14 +13,13 @@ root_dir = r'c:\Users\Selen\Desktop\LMU\multimodal_network\data\skin_lesion'
 image_dir = root_dir + r"\HAM10K_grouped_images"
 csv_dir = root_dir + r"\HAM10000_metadata.csv"
 
-FEATURES = ['age', 'sex', 'localization', 'label']
+FEATURES = ['age', 'sex_numeric', 'localization_numeric', 'label']
 
 TARGET = 'label'
 
 SEED = 473
 
-batch_size = 10
-validation_batch_size = 10
+image_shape = (3, 224, 224)
 
 CHECKPOINT_DIR = r'C:\Users\Selen\Desktop\LMU\multimodal_network\checkpoints'
 

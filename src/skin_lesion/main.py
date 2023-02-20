@@ -4,7 +4,7 @@ from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.callbacks import ModelCheckpoint
 import os
 from ham_settings import csv_dir, supervised_config, CHECKPOINT_DIR, SEED
-from models.supervised_model import SupervisedModel
+from models.ham_supervised_model import SupervisedModel
 from ham_dataset import HAMDataModule
 from pytorch_lightning.callbacks import LearningRateMonitor
 import torch

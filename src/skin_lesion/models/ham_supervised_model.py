@@ -2,8 +2,6 @@ import torch
 from torch import nn
 from pytorch_lightning.core.module import LightningModule
 from torch.nn import functional as F
-# from monai.networks.nets.resnet import resnet10, resnet18, resnet34, resnet50
-from models.model_blocks.resnet_block import ResNet
 import torchmetrics
 from torch.nn import Softmax
 from torch.optim.lr_scheduler import StepLR, MultiStepLR
@@ -28,7 +26,7 @@ class SupervisedModel(LightningModule):
         self.resnet = torchvision.models.resnet18(
             pretrained=False)  # output features are 1000
         # change resnet fc output to 128 features
-        self.resnet.fc = nn.Linaer(512, 128)
+        self.resnet.fc = nn.Linear(512, 128)
 
         # TABULAR DATA
         # fc layer for tabular data
@@ -42,18 +40,18 @@ class SupervisedModel(LightningModule):
         concatanation_dimension = 128
         # outputs will be used in triplet loss
         self.fc3 = nn.Linear(concatanation_dimension, 32)
-        self.fc4 = nn.Linear(32, 3)  # classification head
+        self.fc4 = nn.Linear(32, 7)  # classification head
 
         # track accuracy
         self.train_macro_accuracy = torchmetrics.Accuracy(
-            task='multiclass', average='macro', num_classes=3, top_k=1)
+            task='multiclass', average='macro', num_classes=7, top_k=1)
         self.val_macro_accuracy = torchmetrics.Accuracy(
-            task='multiclass', average='macro', num_classes=3, top_k=1)
+            task='multiclass', average='macro', num_classes=7, top_k=1)
 
         self.train_micro_accuracy = torchmetrics.Accuracy(
-            task='multiclass', average='micro', num_classes=3, top_k=1)
+            task='multiclass', average='micro', num_classes=7, top_k=1)
         self.val_micro_accuracy = torchmetrics.Accuracy(
-            task='multiclass', average='micro', num_classes=3, top_k=1)
+            task='multiclass', average='micro', num_classes=7, top_k=1)
 
         self.softmax = Softmax(dim=1)
 

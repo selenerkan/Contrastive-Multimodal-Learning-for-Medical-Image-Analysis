@@ -61,7 +61,6 @@ class Supervised_Multimodal_Dataset(Dataset):
 
         label = self.y[idx]
         tab = self.X.iloc[idx].values
-        tab = tab.to(torch.float32)
 
         # get image name in the given index
         img_folder_name = self.tabular_data.dx[idx]
