@@ -25,6 +25,7 @@ class SupervisedModel(LightningModule):
 
         self.lr = learning_rate
         self.wd = weight_decay
+        self.num_classes = 7
 
         # IMAGE DATA
         # output dimension is adapted from simCLR
@@ -46,6 +47,27 @@ class SupervisedModel(LightningModule):
         # outputs will be used in triplet loss
         self.fc3 = nn.Linear(concatanation_dimension, 32)
         self.fc4 = nn.Linear(32, 7)  # classification head
+
+        # track AUC
+        self.train_auc = torchmetrics.AUROC(
+            task="multiclass", num_classes=self.num_classes)
+        self.val_auc = torchmetrics.AUROC(
+            task="multiclass", num_classes=self.num_classes)
+        # track precision and recall
+        self.train_precision = torchmetrics.Precision(
+            task="multiclass", average='macro', num_classes=self.num_classes, top_k=1)
+        self.val_precision = torchmetrics.Precision(
+            task="multiclass", average='macro', num_classes=self.num_classes, top_k=1)
+
+        self.train_recall = torchmetrics.Recall(
+            task="multiclass", average='macro', num_classes=self.num_classes, top_k=1)
+        self.val_recall = torchmetrics.Recall(
+            task="multiclass", average='macro', num_classes=self.num_classes, top_k=1)
+        # track F1 score
+        self.train_F1 = torchmetrics.F1Score(
+            task="multiclass", num_classes=self.num_classes, top_k=1)
+        self.val_F1 = torchmetrics.F1Score(
+            task="multiclass", num_classes=self.num_classes, top_k=1)
 
         # track accuracy
         self.train_macro_accuracy = torchmetrics.Accuracy(
@@ -106,6 +128,10 @@ class SupervisedModel(LightningModule):
         loss = loss_func(y_pred, y)
         self.log('train_epoch_loss', loss, on_epoch=True, on_step=False)
 
+        # record auc
+        train_auc = self.train_auc(y_pred, y)
+        self.log('train_auc', train_auc,
+                 on_epoch=True, on_step=False)
         # calculate acc
         # take softmax
         if len(y_pred.shape) == 1:
@@ -124,6 +150,21 @@ class SupervisedModel(LightningModule):
         self.log('train_micro_acc', train_micro_acc,
                  on_epoch=True, on_step=False)
 
+        # record f1 score
+        train_f1_score = self.train_F1(pred_label, y)
+        self.log('train_F1', train_f1_score,
+                 on_epoch=True, on_step=False)
+
+        # record precision score
+        train_precision = self.train_precision(pred_label, y)
+        self.log('train_precision', train_precision,
+                 on_epoch=True, on_step=False)
+
+        # record recall score
+        train_recall = self.train_recall(pred_label, y)
+        self.log('train_recall', train_recall,
+                 on_epoch=True, on_step=False)
+
         return loss
 
     def validation_step(self, batch, batch_idx):
@@ -135,6 +176,11 @@ class SupervisedModel(LightningModule):
         loss_func = nn.CrossEntropyLoss(weight=class_weights.to(self.is_gpu))
         loss = loss_func(y_pred, y)
         self.log('val_epoch_loss', loss, on_epoch=True, on_step=False)
+
+        # record auc
+        val_auc = self.val_auc(y_pred, y)
+        self.log('val_auc', val_auc,
+                 on_epoch=True, on_step=False)
 
         # calculate acc
         # take softmax
@@ -152,6 +198,21 @@ class SupervisedModel(LightningModule):
         # calculate and log accuracy
         val_micro_acc = self.val_micro_accuracy(pred_label, y)
         self.log('val_micro_acc', val_micro_acc, on_epoch=True, on_step=False)
+
+        # record f1 score
+        val_f1_score = self.val_F1(pred_label, y)
+        self.log('train_F1', val_f1_score,
+                 on_epoch=True, on_step=False)
+
+        # record precision score
+        val_precision = self.val_precision(pred_label, y)
+        self.log('val_precision', val_precision,
+                 on_epoch=True, on_step=False)
+
+        # record recall score
+        val_recall = self.val_recall(pred_label, y)
+        self.log('val_recall', val_recall,
+                 on_epoch=True, on_step=False)
 
         return loss
 
