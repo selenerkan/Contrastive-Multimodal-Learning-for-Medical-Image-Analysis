@@ -8,6 +8,7 @@ import torchmetrics
 from torch.nn import Softmax
 from center_loss import compute_center_loss, get_center_delta
 import torchvision
+from ham_settings import class_weights
 
 
 class MultiLossModel(LightningModule):
@@ -24,8 +25,8 @@ class MultiLossModel(LightningModule):
         self.wd = weight_decay
         # weights of the losses
         self.alpha_center = 0.2
-        # self.alpha_triplet = 0.4
-        self.alpha_cross_ent = 0.8
+        self.alpha_triplet = 0.4
+        self.alpha_cross_ent = 0.4
 
         # parameters for center loss
         self.num_classes = 7
@@ -117,17 +118,18 @@ class MultiLossModel(LightningModule):
         neg_embeddings, _ = self(negative, negative_tab)
 
         # triplet loss
-        # triplet_loss_function = nn.TripletMarginLoss()
-        # triplet_loss = self.alpha_triplet * triplet_loss_function(
-        #     embeddings, pos_embeddings, neg_embeddings)
+        triplet_loss_function = nn.TripletMarginLoss()
+        triplet_loss = self.alpha_triplet * triplet_loss_function(
+            embeddings, pos_embeddings, neg_embeddings)
         # cross entropy loss
-        cross_entropy_loss = self.alpha_cross_ent * \
-            F.cross_entropy(y_pred, y)
+        cross_ent_loss_function = nn.CrossEntropyLoss(weight=class_weights)
+        cross_ent_loss = self.alpha_cross_ent * \
+            cross_ent_loss_function(y_pred, y)
         # center loss
         center_loss = self.alpha_center * \
             compute_center_loss(embeddings, self.centers, y)
         # sum the losses
-        loss = cross_entropy_loss + center_loss
+        loss = cross_ent_loss + center_loss + triplet_loss
 
         # Log loss on every epoch
         self.log('train_epoch_loss', loss, on_epoch=True, on_step=False)
@@ -167,17 +169,18 @@ class MultiLossModel(LightningModule):
         neg_embeddings, _ = self(negative, negative_tab)
 
         # triplet loss
-        # triplet_loss_function = nn.TripletMarginLoss()
-        # triplet_loss = self.alpha_triplet * triplet_loss_function(
-        #     embeddings, pos_embeddings, neg_embeddings)
+        triplet_loss_function = nn.TripletMarginLoss()
+        triplet_loss = self.alpha_triplet * triplet_loss_function(
+            embeddings, pos_embeddings, neg_embeddings)
         # cross entropy loss
-        cross_entropy_loss = self.alpha_cross_ent * \
-            F.cross_entropy(y_pred, y)
+        cross_ent_loss_function = nn.CrossEntropyLoss(weight=class_weights)
+        cross_ent_loss = self.alpha_cross_ent * \
+            cross_ent_loss_function(y_pred, y)
         # center loss
         center_loss = self.alpha_center * \
             compute_center_loss(embeddings, self.centers, y)
         # sum the losses
-        loss = cross_entropy_loss + center_loss
+        loss = cross_ent_loss + center_loss + triplet_loss
 
         # Log loss on every epoch
         self.log('val_epoch_loss', loss, on_epoch=True, on_step=False)
@@ -214,17 +217,18 @@ class MultiLossModel(LightningModule):
         neg_embeddings, _ = self(negative, negative_tab)
 
         # triplet loss
-        # triplet_loss_function = nn.TripletMarginLoss()
-        # triplet_loss = self.alpha_triplet * triplet_loss_function(
-        #     embeddings, pos_embeddings, neg_embeddings)
+        triplet_loss_function = nn.TripletMarginLoss()
+        triplet_loss = self.alpha_triplet * triplet_loss_function(
+            embeddings, pos_embeddings, neg_embeddings)
         # cross entropy loss
-        cross_entropy_loss = self.alpha_cross_ent * \
-            F.cross_entropy(y_pred, y)
+        cross_ent_loss_function = nn.CrossEntropyLoss(weight=class_weights)
+        cross_ent_loss = self.alpha_cross_ent * \
+            cross_ent_loss_function(y_pred, y)
         # center loss
         center_loss = self.alpha_center * \
             compute_center_loss(embeddings, self.centers, y)
         # sum the losses
-        loss = cross_entropy_loss + center_loss
+        loss = cross_ent_loss + center_loss + triplet_loss
 
         # Log loss on every epoch
         self.log('test_epoch_loss', loss, on_epoch=True, on_step=False)

@@ -85,7 +85,7 @@ def main_multiloss(config=None):
     print('YOU ARE RUNNING MULTI LOSS MODEL WITH CENTER + CROSS ENTROPY LOSSES FOR HAM DATASET')
     print(config)
 
-    wandb.init(group='HAM_center_cross_ent', project="multimodal_training",
+    wandb.init(group='HAM_center_cross_ent_triplet', project="multimodal_training",
                entity="multimodal_network", config=config)
     wandb_logger = WandbLogger()
 
@@ -133,5 +133,5 @@ if __name__ == '__main__':
     # run multimodal
     # main_supervised_multimodal(supervised_config)
 
-    # run multiloss model (center + cross entropy)
+    # run multiloss model (center + cross entropy + triplet)
     main_multiloss(supervised_config)

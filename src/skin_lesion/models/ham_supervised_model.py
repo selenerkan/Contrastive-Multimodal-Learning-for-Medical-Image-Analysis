@@ -6,6 +6,7 @@ import torchmetrics
 from torch.nn import Softmax
 from torch.optim.lr_scheduler import StepLR, MultiStepLR
 import torchvision
+from ham_settings import class_weights
 
 
 class SupervisedModel(LightningModule):
@@ -96,8 +97,9 @@ class SupervisedModel(LightningModule):
         img, tab, y = batch
 
         y_pred = self(img, tab)
-        loss = F.cross_entropy(y_pred, y)
-        # Log loss on every epoch
+
+        loss_func = nn.CrossEntropyLoss(weight=class_weights)
+        loss = loss_func(y_pred, y)
         self.log('train_epoch_loss', loss, on_epoch=True, on_step=False)
 
         # calculate acc
@@ -125,8 +127,9 @@ class SupervisedModel(LightningModule):
         img, tab, y = batch
 
         y_pred = self(img, tab)
-        loss = F.cross_entropy(y_pred, y)
-        # Log loss
+
+        loss_func = nn.CrossEntropyLoss(weight=class_weights)
+        loss = loss_func(y_pred, y)
         self.log('val_epoch_loss', loss, on_epoch=True, on_step=False)
 
         # calculate acc
@@ -152,7 +155,9 @@ class SupervisedModel(LightningModule):
 
         img, tab, y = batch
         y_pred = self(img, tab)
-        loss = F.cross_entropy(y_pred, y.squeeze())
+
+        loss_func = nn.CrossEntropyLoss(weight=class_weights)
+        loss = loss_func(y_pred, y)
 
         self.log("test_loss", loss)
 
