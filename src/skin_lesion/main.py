@@ -22,7 +22,7 @@ def main_baseline(config=None):
     print('YOU ARE RUNNING BASELINE FOR HAM DATASET')
     print(config)
 
-    wandb.init(group='HAM_supervised', project="multimodal_training",
+    wandb.init(group='HAM_baseline', project="multimodal_training",
                entity="multimodal_network", config=config)
     wandb_logger = WandbLogger()
 
@@ -61,7 +61,7 @@ def main_supervised_multimodal(config=None):
     print('YOU ARE RUNNING SUPERVISED MULTIMODAL FOR HAM DATASET')
     print(config)
 
-    wandb.init(group='HAM_baseline', project="multimodal_training",
+    wandb.init(group='HAM_supervised', project="multimodal_training",
                entity="multimodal_network", config=config)
     wandb_logger = WandbLogger()
 
@@ -125,7 +125,7 @@ def main_multiloss(config=None):
     print('YOU ARE RUNNING MULTI LOSS MODEL WITH CENTER + CROSS ENTROPY LOSSES FOR HAM DATASET')
     print(config)
 
-    wandb.init(group='HAM_center_cross_ent_triplet', project="multimodal_training",
+    wandb.init(group='HAM_center_cross_ent', project="multimodal_training",
                entity="multimodal_network", config=config)
     wandb_logger = WandbLogger()
 
