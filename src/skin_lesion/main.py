@@ -62,7 +62,7 @@ def main_resnet(config=None):
     print('YOU ARE RUNNING RESNET FOR HAM DATASET')
     print(config)
 
-    wandb.init(group='HAM_baseline', project="multimodal_training",
+    wandb.init(group='HAM_resnet', project="multimodal_training",
                entity="multimodal_network", config=config)
     wandb_logger = WandbLogger()
 
