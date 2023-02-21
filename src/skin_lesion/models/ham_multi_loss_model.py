@@ -6,7 +6,7 @@ from torch.optim.lr_scheduler import StepLR, MultiStepLR
 from pytorch_metric_learning import losses
 import torchmetrics
 from torch.nn import Softmax
-from center_loss import compute_center_loss, get_center_delta
+from center_loss import CenterLoss
 import torchvision
 from ham_settings import class_weights
 
@@ -20,9 +20,11 @@ class MultiLossModel(LightningModule):
 
         super().__init__()
         self.is_gpu = 'cpu'
+        self.use_gpu = False
         if torch.cuda.is_available():
             self.is_gpu = 'cuda'
-        
+            self.use_gpu = True
+
         self.save_hyperparameters()
 
         self.lr = learning_rate
@@ -35,9 +37,9 @@ class MultiLossModel(LightningModule):
         # parameters for center loss
         self.num_classes = 7
         self.feature_dim = 32
-        self.centers = (
-            (torch.rand(self.num_classes, self.feature_dim) - 0.5) * 2)
-        self.center_deltas = torch.zeros(self.num_classes, self.feature_dim)
+        # self.centers = (
+        #     (torch.rand(self.num_classes, self.feature_dim) - 0.5) * 2)
+        # self.center_deltas = torch.zeros(self.num_classes, self.feature_dim)
 
         # IMAGE DATA
         self.resnet = torchvision.models.resnet18(
@@ -59,16 +61,20 @@ class MultiLossModel(LightningModule):
         self.fc3 = nn.Linear(concatanation_dimension, self.feature_dim)
         self.fc4 = nn.Linear(32, 7)  # classification head
 
+        # initiate losses
+        self.center_loss = CenterLoss(
+            num_classes=self.num_classes, feat_dim=self.feature_dim, use_gpu=self.use_gpu)
+
         # track accuracy
         self.train_macro_accuracy = torchmetrics.Accuracy(
-            task='multiclass', average='macro', num_classes=7, top_k=1)
+            task='multiclass', average='macro', num_classes=self.num_classes, top_k=1)
         self.val_macro_accuracy = torchmetrics.Accuracy(
-            task='multiclass', average='macro', num_classes=7, top_k=1)
+            task='multiclass', average='macro', num_classes=self.num_classes, top_k=1)
 
         self.train_micro_accuracy = torchmetrics.Accuracy(
-            task='multiclass', average='micro', num_classes=7, top_k=1)
+            task='multiclass', average='micro', num_classes=self.num_classes, top_k=1)
         self.val_micro_accuracy = torchmetrics.Accuracy(
-            task='multiclass', average='micro', num_classes=7, top_k=1)
+            task='multiclass', average='micro', num_classes=self.num_classes, top_k=1)
 
         self.softmax = Softmax(dim=1)
 
@@ -98,8 +104,16 @@ class MultiLossModel(LightningModule):
         return out1, out2
 
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(
-            self.parameters(), lr=self.lr, weight_decay=self.wd)
+        my_list = ['center_loss.centers']
+        center_params = list(
+            filter(lambda kv: kv[0] in my_list, self.named_parameters()))
+        model_params = list(
+            filter(lambda kv: kv[0] not in my_list, self.named_parameters()))
+
+        optimizer = torch.optim.Adam([
+            {'params': [temp[1] for temp in model_params]},
+            {'params': center_params[0][1], 'lr': 1e-4}
+        ], lr=self.lr, weight_decay=self.wd)
 
         # UNCOMMENT FOR LR SCHEDULER
         # scheduler = MultiStepLR(optimizer,
@@ -126,14 +140,16 @@ class MultiLossModel(LightningModule):
         # triplet_loss = self.alpha_triplet * triplet_loss_function(
         #     embeddings, pos_embeddings, neg_embeddings)
         # cross entropy loss
-        cross_ent_loss_function = nn.CrossEntropyLoss(weight=class_weights.to(self.is_gpu))
+        cross_ent_loss_function = nn.CrossEntropyLoss(
+            weight=class_weights.to(self.is_gpu))
         cross_ent_loss = self.alpha_cross_ent * \
-            cross_ent_loss_function(y_pred, y)
+            cross_ent_loss_function(y_pred, y.squeeze())
         # center loss
-        center_loss = self.alpha_center * \
-            compute_center_loss(embeddings, self.centers, y)
+        # center_loss = self.alpha_center * \
+        #     compute_center_loss(embeddings, self.centers, y)
+        center_loss = self.center_loss(embeddings, y.squeeze())
         # sum the losses
-        loss = cross_ent_loss + center_loss 
+        loss = cross_ent_loss + center_loss
 
         # Log loss on every epoch
         self.log('train_epoch_loss', loss, on_epoch=True, on_step=False)
@@ -158,8 +174,8 @@ class MultiLossModel(LightningModule):
 
         return loss
 
-    def on_train_batch_end(self, *args, **kwargs):
-        self.centers = self.centers - self.center_deltas
+    # def on_train_batch_end(self, *args, **kwargs):
+    #     self.centers = self.centers - self.center_deltas
 
     def validation_step(self, batch, batch_idx):
 
@@ -177,14 +193,16 @@ class MultiLossModel(LightningModule):
         # triplet_loss = self.alpha_triplet * triplet_loss_function(
         #     embeddings, pos_embeddings, neg_embeddings)
         # cross entropy loss
-        cross_ent_loss_function = nn.CrossEntropyLoss(weight=class_weights.to(self.is_gpu))
+        cross_ent_loss_function = nn.CrossEntropyLoss(
+            weight=class_weights.to(self.is_gpu))
         cross_ent_loss = self.alpha_cross_ent * \
-            cross_ent_loss_function(y_pred, y)
+            cross_ent_loss_function(y_pred, y.squeeze())
         # center loss
-        center_loss = self.alpha_center * \
-            compute_center_loss(embeddings, self.centers, y)
+        # center_loss = self.alpha_center * \
+        #     compute_center_loss(embeddings, self.centers, y)
+        center_loss = self.center_loss(embeddings, y.squeeze())
         # sum the losses
-        loss = cross_ent_loss + center_loss 
+        loss = cross_ent_loss + center_loss
 
         # Log loss on every epoch
         self.log('val_epoch_loss', loss, on_epoch=True, on_step=False)
@@ -225,14 +243,16 @@ class MultiLossModel(LightningModule):
         # triplet_loss = self.alpha_triplet * triplet_loss_function(
         #     embeddings, pos_embeddings, neg_embeddings)
         # cross entropy loss
-        cross_ent_loss_function = nn.CrossEntropyLoss(weight=class_weights.to(self.is_gpu))
+        cross_ent_loss_function = nn.CrossEntropyLoss(
+            weight=class_weights.to(self.is_gpu))
         cross_ent_loss = self.alpha_cross_ent * \
-            cross_ent_loss_function(y_pred, y)
+            cross_ent_loss_function(y_pred, y.squeeze())
         # center loss
-        center_loss = self.alpha_center * \
-            compute_center_loss(embeddings, self.centers, y)
+        # center_loss = self.alpha_center * \
+        #     compute_center_loss(embeddings, self.centers, y)
+        center_loss = self.center_loss(embeddings, y.squeeze())
         # sum the losses
-        loss = cross_ent_loss + center_loss 
+        loss = cross_ent_loss + center_loss
 
         # Log loss on every epoch
         self.log('test_epoch_loss', loss, on_epoch=True, on_step=False)
