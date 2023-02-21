@@ -17,6 +17,10 @@ class SupervisedModel(LightningModule):
     def __init__(self, learning_rate=0.013, weight_decay=0.01):
 
         super().__init__()
+        self.is_gpu = 'cpu'
+        if torch.cuda.is_available():
+            self.is_gpu = 'cuda'
+
         self.save_hyperparameters()
 
         self.lr = learning_rate
@@ -98,7 +102,7 @@ class SupervisedModel(LightningModule):
 
         y_pred = self(img, tab)
 
-        loss_func = nn.CrossEntropyLoss(weight=class_weights)
+        loss_func = nn.CrossEntropyLoss(weight=class_weights.to(self.is_gpu))
         loss = loss_func(y_pred, y)
         self.log('train_epoch_loss', loss, on_epoch=True, on_step=False)
 
@@ -128,7 +132,7 @@ class SupervisedModel(LightningModule):
 
         y_pred = self(img, tab)
 
-        loss_func = nn.CrossEntropyLoss(weight=class_weights)
+        loss_func = nn.CrossEntropyLoss(weight=class_weights.to(self.is_gpu))
         loss = loss_func(y_pred, y)
         self.log('val_epoch_loss', loss, on_epoch=True, on_step=False)
 
@@ -156,7 +160,7 @@ class SupervisedModel(LightningModule):
         img, tab, y = batch
         y_pred = self(img, tab)
 
-        loss_func = nn.CrossEntropyLoss(weight=class_weights)
+        loss_func = nn.CrossEntropyLoss(weight=class_weights.to(self.is_gpu))
         loss = loss_func(y_pred, y)
 
         self.log("test_loss", loss)

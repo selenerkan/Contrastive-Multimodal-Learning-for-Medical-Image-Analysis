@@ -19,14 +19,18 @@ class MultiLossModel(LightningModule):
     def __init__(self, learning_rate=0.013, weight_decay=0.01):
 
         super().__init__()
+        self.is_gpu = 'cpu'
+        if torch.cuda.is_available():
+            self.is_gpu = 'cuda'
+        
         self.save_hyperparameters()
 
         self.lr = learning_rate
         self.wd = weight_decay
         # weights of the losses
         self.alpha_center = 0.2
-        self.alpha_triplet = 0.4
-        self.alpha_cross_ent = 0.4
+        # self.alpha_triplet = 0.4
+        self.alpha_cross_ent = 0.8
 
         # parameters for center loss
         self.num_classes = 7
@@ -118,18 +122,18 @@ class MultiLossModel(LightningModule):
         neg_embeddings, _ = self(negative, negative_tab)
 
         # triplet loss
-        triplet_loss_function = nn.TripletMarginLoss()
-        triplet_loss = self.alpha_triplet * triplet_loss_function(
-            embeddings, pos_embeddings, neg_embeddings)
+        # triplet_loss_function = nn.TripletMarginLoss()
+        # triplet_loss = self.alpha_triplet * triplet_loss_function(
+        #     embeddings, pos_embeddings, neg_embeddings)
         # cross entropy loss
-        cross_ent_loss_function = nn.CrossEntropyLoss(weight=class_weights)
+        cross_ent_loss_function = nn.CrossEntropyLoss(weight=class_weights.to(self.is_gpu))
         cross_ent_loss = self.alpha_cross_ent * \
             cross_ent_loss_function(y_pred, y)
         # center loss
         center_loss = self.alpha_center * \
             compute_center_loss(embeddings, self.centers, y)
         # sum the losses
-        loss = cross_ent_loss + center_loss + triplet_loss
+        loss = cross_ent_loss + center_loss 
 
         # Log loss on every epoch
         self.log('train_epoch_loss', loss, on_epoch=True, on_step=False)
@@ -169,18 +173,18 @@ class MultiLossModel(LightningModule):
         neg_embeddings, _ = self(negative, negative_tab)
 
         # triplet loss
-        triplet_loss_function = nn.TripletMarginLoss()
-        triplet_loss = self.alpha_triplet * triplet_loss_function(
-            embeddings, pos_embeddings, neg_embeddings)
+        # triplet_loss_function = nn.TripletMarginLoss()
+        # triplet_loss = self.alpha_triplet * triplet_loss_function(
+        #     embeddings, pos_embeddings, neg_embeddings)
         # cross entropy loss
-        cross_ent_loss_function = nn.CrossEntropyLoss(weight=class_weights)
+        cross_ent_loss_function = nn.CrossEntropyLoss(weight=class_weights.to(self.is_gpu))
         cross_ent_loss = self.alpha_cross_ent * \
             cross_ent_loss_function(y_pred, y)
         # center loss
         center_loss = self.alpha_center * \
             compute_center_loss(embeddings, self.centers, y)
         # sum the losses
-        loss = cross_ent_loss + center_loss + triplet_loss
+        loss = cross_ent_loss + center_loss 
 
         # Log loss on every epoch
         self.log('val_epoch_loss', loss, on_epoch=True, on_step=False)
@@ -217,18 +221,18 @@ class MultiLossModel(LightningModule):
         neg_embeddings, _ = self(negative, negative_tab)
 
         # triplet loss
-        triplet_loss_function = nn.TripletMarginLoss()
-        triplet_loss = self.alpha_triplet * triplet_loss_function(
-            embeddings, pos_embeddings, neg_embeddings)
+        # triplet_loss_function = nn.TripletMarginLoss()
+        # triplet_loss = self.alpha_triplet * triplet_loss_function(
+        #     embeddings, pos_embeddings, neg_embeddings)
         # cross entropy loss
-        cross_ent_loss_function = nn.CrossEntropyLoss(weight=class_weights)
+        cross_ent_loss_function = nn.CrossEntropyLoss(weight=class_weights.to(self.is_gpu))
         cross_ent_loss = self.alpha_cross_ent * \
             cross_ent_loss_function(y_pred, y)
         # center loss
         center_loss = self.alpha_center * \
             compute_center_loss(embeddings, self.centers, y)
         # sum the losses
-        loss = cross_ent_loss + center_loss + triplet_loss
+        loss = cross_ent_loss + center_loss 
 
         # Log loss on every epoch
         self.log('test_epoch_loss', loss, on_epoch=True, on_step=False)
