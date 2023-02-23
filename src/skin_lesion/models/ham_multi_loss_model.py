@@ -234,7 +234,8 @@ class MultiLossModel(LightningModule):
         self.log('val_micro_acc', val_micro_acc, on_epoch=True, on_step=False)
 
         # Record all the predictions
-        records = {'prediction': pred_label.cpu(), 'label': y.cpu()}
+        records = {'prediction': pred_label.cpu(), 'label': y.cpu(),
+                   'epoch': self.current_epoch}
         df = pd.DataFrame(data=records)
         df.to_csv('result_multiloss.csv', mode='a', index=False, header=False)
         return loss

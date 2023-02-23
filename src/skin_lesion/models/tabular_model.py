@@ -9,9 +9,9 @@ import torchvision
 import pandas as pd
 
 
-class ResnetModel(LightningModule):
+class TabularModel(LightningModule):
     '''
-    Resnet Model Class including the training, validation and testing steps
+    Tabular Model Class including the training, validation and testing steps
     '''
 
     def __init__(self, learning_rate=0.013, weight_decay=0.01):
@@ -32,11 +32,10 @@ class ResnetModel(LightningModule):
         self.num_classes = 7
 
         # IMAGE DATA
-        # output dimension is adapted from simCLR
-        self.resnet = torchvision.models.resnet18(
-            pretrained=True)  # output features are 1000
-        # change resnet fc output to 128 features
-        self.resnet.fc = nn.Linear(512, self.num_classes)
+        # fc layer for tabular data
+        self.fc1 = nn.Linear(3, 128)
+        self.fc2 = nn.Linear(128, 64)
+        self.fc3 = nn.Linear(64, self.num_classes)
 
         # track AUC
         self.train_auc = torchmetrics.AUROC(
@@ -78,10 +77,13 @@ class ResnetModel(LightningModule):
 
     def forward(self, x):
         """
-        x is the input image data
+        x is the input tabular data
         """
-        x = self.resnet(x)
 
+        x = x.to(torch.float32)
+        x = F.relu(self.fc1(x))
+        x = F.relu(self.fc2(x))
+        x = self.fc3(x)
         return x
 
     def num_flat_features(self, x):
@@ -103,17 +105,11 @@ class ResnetModel(LightningModule):
         # return [optimizer], [scheduler]
         return optimizer
 
-    def get_accuracy(self, predicted, labels):
-        batch_len, correct = 0, 0
-        batch_len = labels.size(0)
-        correct = (predicted == labels).sum().item()
-        return batch_len, correct
-
     def training_step(self, batch, batch_idx):
 
         img, tab, y = batch
 
-        y_pred = self(img)
+        y_pred = self(tab)
 
         loss_func = nn.CrossEntropyLoss(weight=self.class_weights)
         loss = loss_func(y_pred, y)
@@ -137,11 +133,6 @@ class ResnetModel(LightningModule):
         self.log('train_macro_acc', train_acc, on_epoch=True, on_step=False)
 
         # calculate and log accuracy
-        batch_len, acc = self.get_accuracy(pred_label, y)
-        self.total_samples += batch_len
-        self.train_acc += acc
-
-        # calculate and log accuracy
         train_micro_acc = self.train_micro_accuracy(pred_label, y)
         self.log('train_micro_acc', train_micro_acc,
                  on_epoch=True, on_step=False)
@@ -163,20 +154,11 @@ class ResnetModel(LightningModule):
 
         return loss
 
-    def on_train_batch_end(self, outputs, batch, batch_idx) -> None:
-        train_epoch_acc = self.train_acc/self.total_samples
-        self.log('train_acc_blog', train_epoch_acc,
-                 on_epoch=True, on_step=False)
-
-        self.total_samples = 0
-        self.train_acc = 0
-        return super().on_train_batch_end(outputs, batch, batch_idx)
-
     def validation_step(self, batch, batch_idx):
 
         img, tab, y = batch
 
-        y_pred = self(img)
+        y_pred = self(tab)
 
         loss_func = nn.CrossEntropyLoss(weight=self.class_weights)
         loss = loss_func(y_pred, y)
@@ -223,13 +205,13 @@ class ResnetModel(LightningModule):
         records = {'prediction': pred_label.cpu(), 'label': y.cpu(),
                    'epoch': self.current_epoch}
         df = pd.DataFrame(data=records)
-        df.to_csv('result_resnet.csv', mode='a', index=False, header=False)
+        df.to_csv('result_tabular.csv', mode='a', index=False, header=False)
         return loss
 
     def test_step(self, batch, batch_idx):
 
         img, tab, y = batch
-        y_pred = self(img)
+        y_pred = self(tab)
 
         loss_func = nn.CrossEntropyLoss(weight=self.class_weights)
         loss = loss_func(y_pred, y)

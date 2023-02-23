@@ -18,14 +18,13 @@ class SupervisedModel(LightningModule):
     def __init__(self, learning_rate=0.013, weight_decay=0.01):
 
         super().__init__()
-        self.register_buffer('class_weights',torch.tensor([1.5565749235474007,
-                              1.0,
-                              0.47304832713754646,
-                              4.426086956521739,
-                              0.4614687216681777,
-                              0.0783197414986921,
-                              3.584507042253521]))
-
+        self.register_buffer('class_weights', torch.tensor([1.5565749235474007,
+                                                           1.0,
+                                                           0.47304832713754646,
+                                                           4.426086956521739,
+                                                           0.4614687216681777,
+                                                           0.0783197414986921,
+                                                           3.584507042253521]))
 
         self.save_hyperparameters()
 
@@ -221,7 +220,8 @@ class SupervisedModel(LightningModule):
                  on_epoch=True, on_step=False)
 
         # Record all the predictions
-        records={'prediction': pred_label.cpu(), 'label': y.cpu()}
+        records = {'prediction': pred_label.cpu(), 'label': y.cpu(),
+                   'epoch': self.current_epoch}
         df = pd.DataFrame(data=records)
         df.to_csv('result_cross_ent.csv', mode='a', index=False, header=False)
         return loss

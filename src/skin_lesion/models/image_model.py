@@ -16,9 +16,14 @@ class BaselineModel(LightningModule):
     def __init__(self, learning_rate=0.013, weight_decay=0.01):
 
         super().__init__()
-        self.is_gpu = 'cpu'
-        if torch.cuda.is_available():
-            self.is_gpu = 'cuda'
+
+        self.register_buffer('class_weights', torch.tensor([1.5565749235474007,
+                                                           1.0,
+                                                           0.47304832713754646,
+                                                           4.426086956521739,
+                                                           0.4614687216681777,
+                                                           0.0783197414986921,
+                                                           3.584507042253521]))
 
         self.save_hyperparameters()
 
@@ -113,7 +118,8 @@ class BaselineModel(LightningModule):
 
         y_pred = self(img)
 
-        loss_func = nn.CrossEntropyLoss(weight=class_weights.to(self.is_gpu))
+        loss_func = nn.CrossEntropyLoss(
+            weight=self.class_weights)
         loss = loss_func(y_pred, y)
         self.log('train_epoch_loss', loss, on_epoch=True, on_step=False)
 
@@ -176,7 +182,8 @@ class BaselineModel(LightningModule):
 
         y_pred = self(img)
 
-        loss_func = nn.CrossEntropyLoss(weight=class_weights.to(self.is_gpu))
+        loss_func = nn.CrossEntropyLoss(
+            weight=self.class_weights)
         loss = loss_func(y_pred, y)
         self.log('val_epoch_loss', loss, on_epoch=True, on_step=False)
 
@@ -224,7 +231,8 @@ class BaselineModel(LightningModule):
         img, tab, y = batch
         y_pred = self(img)
 
-        loss_func = nn.CrossEntropyLoss(weight=class_weights.to(self.is_gpu))
+        loss_func = nn.CrossEntropyLoss(
+            weight=self.class_weights)
         loss = loss_func(y_pred, y)
 
         self.log("test_loss", loss)

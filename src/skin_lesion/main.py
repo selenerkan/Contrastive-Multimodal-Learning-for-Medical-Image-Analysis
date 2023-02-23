@@ -7,6 +7,7 @@ from ham_settings import csv_dir, supervised_config, CHECKPOINT_DIR, SEED
 from models.ham_supervised_model import SupervisedModel
 from models.image_model import BaselineModel
 from models.resnet_model import ResnetModel
+from models.tabular_model import TabularModel
 from models.ham_multi_loss_model import MultiLossModel
 from ham_dataset import HAMDataModule
 from pytorch_lightning.callbacks import LearningRateMonitor
@@ -69,6 +70,45 @@ def main_resnet(config=None):
     # get the model
     model = ResnetModel(learning_rate=wandb.config.learning_rate,
                         weight_decay=wandb.config.weight_decay)
+    wandb.watch(model, log="all")
+
+    # load the data
+    data = HAMDataModule(
+        csv_dir, age=wandb.config.age, batch_size=wandb.config.batch_size)
+    data.prepare_data()
+    data.set_supervised_multimodal_dataloader()
+    train_dataloader = data.train_dataloader()
+    val_dataloader = data.val_dataloader()
+
+    accelerator = 'cpu'
+    devices = None
+    if torch.cuda.is_available():
+        accelerator = 'gpu'
+        devices = 1
+
+    # Add learning rate scheduler monitoring
+    lr_monitor = LearningRateMonitor(logging_interval='epoch')
+    trainer = Trainer(accelerator=accelerator, devices=devices,
+                      max_epochs=wandb.config.max_epochs, logger=wandb_logger, callbacks=[lr_monitor], log_every_n_steps=10)
+    trainer.fit(model, train_dataloaders=train_dataloader,
+                val_dataloaders=val_dataloader)
+
+
+def main_tabular(config=None):
+    '''
+    main function to run the baseline model
+    '''
+
+    print('YOU ARE RUNNING TABULAR MODEL FOR HAM DATASET')
+    print(config)
+
+    wandb.init(group='HAM_tabular', project="multimodal_training",
+               entity="multimodal_network", config=config)
+    wandb_logger = WandbLogger()
+
+    # get the model
+    model = TabularModel(learning_rate=wandb.config.learning_rate,
+                         weight_decay=wandb.config.weight_decay)
     wandb.watch(model, log="all")
 
     # load the data
@@ -213,8 +253,11 @@ if __name__ == '__main__':
     # run baseline
     # main_baseline(supervised_config)
 
-    # run baseline
-    main_resnet(supervised_config)
+    # run resnet baseline
+    # main_resnet(supervised_config)
+
+    # run tabular baseline
+    main_tabular(supervised_config)
 
     # run multimodal
     # main_supervised_multimodal(supervised_config)
