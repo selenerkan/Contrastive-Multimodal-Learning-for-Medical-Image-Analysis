@@ -34,7 +34,7 @@ class ResnetModel(LightningModule):
         # IMAGE DATA
         # output dimension is adapted from simCLR
         self.resnet = torchvision.models.resnet18(
-            pretrained=True)  # output features are 1000
+            weights=torchvision.models.ResNet18_Weights.DEFAULT)  # output features are 1000
         # change resnet fc output to 128 features
         self.resnet.fc = nn.Linear(512, self.num_classes)
 

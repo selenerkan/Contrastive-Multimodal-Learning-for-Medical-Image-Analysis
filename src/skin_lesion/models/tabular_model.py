@@ -34,8 +34,12 @@ class TabularModel(LightningModule):
         # IMAGE DATA
         # fc layer for tabular data
         self.fc1 = nn.Linear(3, 128)
-        self.fc2 = nn.Linear(128, 64)
-        self.fc3 = nn.Linear(64, self.num_classes)
+        self.fc2 = nn.Linear(128, 128)
+        self.fc3 = nn.Linear(128, 128)
+        self.fc4 = nn.Linear(128, 128)
+        self.fc5 = nn.Linear(128, 64)
+        self.fc6 = nn.Linear(64, 32)
+        self.fc7 = nn.Linear(32, self.num_classes)
 
         # track AUC
         self.train_auc = torchmetrics.AUROC(
@@ -83,7 +87,11 @@ class TabularModel(LightningModule):
         x = x.to(torch.float32)
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
-        x = self.fc3(x)
+        x = F.relu(self.fc3(x))
+        x = F.relu(self.fc4(x))
+        x = F.relu(self.fc5(x))
+        x = F.relu(self.fc6(x))
+        x = self.fc7(x)
         return x
 
     def num_flat_features(self, x):

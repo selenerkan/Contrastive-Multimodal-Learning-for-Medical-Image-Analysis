@@ -51,7 +51,7 @@ class MultiLossModel(LightningModule):
 
         # IMAGE DATA
         self.resnet = torchvision.models.resnet18(
-            pretrained=True)  # output features are 1000
+            weights=torchvision.models.ResNet18_Weights.DEFAULT)  # output features are 1000
         # change resnet fc output to 128 features
         self.resnet.fc = nn.Linear(512, 128)
 
@@ -155,7 +155,7 @@ class MultiLossModel(LightningModule):
         # center loss
         # center_loss = self.alpha_center * \
         #     compute_center_loss(embeddings, self.centers, y)
-        center_loss = self.center_loss(embeddings, y.squeeze())
+        center_loss =  self.alpha_center * self.center_loss(embeddings, y.squeeze())
         # sum the losses
         loss = cross_ent_loss + center_loss
 
@@ -208,7 +208,7 @@ class MultiLossModel(LightningModule):
         # center loss
         # center_loss = self.alpha_center * \
         #     compute_center_loss(embeddings, self.centers, y)
-        center_loss = self.center_loss(embeddings, y.squeeze())
+        center_loss =  self.alpha_center * self.center_loss(embeddings, y.squeeze())
         # sum the losses
         loss = cross_ent_loss + center_loss
 
@@ -263,7 +263,7 @@ class MultiLossModel(LightningModule):
         # center loss
         # center_loss = self.alpha_center * \
         #     compute_center_loss(embeddings, self.centers, y)
-        center_loss = self.center_loss(embeddings, y.squeeze())
+        center_loss =  self.alpha_center * self.center_loss(embeddings, y.squeeze())
         # sum the losses
         loss = cross_ent_loss + center_loss
 
