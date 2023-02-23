@@ -6,7 +6,8 @@ import torchmetrics
 from torch.nn import Softmax
 from torch.optim.lr_scheduler import StepLR, MultiStepLR
 import torchvision
-from ham_settings import class_weights
+# from ham_settings import class_weights
+import pandas as pd
 
 
 class SupervisedModel(LightningModule):
@@ -17,9 +18,14 @@ class SupervisedModel(LightningModule):
     def __init__(self, learning_rate=0.013, weight_decay=0.01):
 
         super().__init__()
-        self.is_gpu = 'cpu'
-        if torch.cuda.is_available():
-            self.is_gpu = 'cuda'
+        self.register_buffer('class_weights',torch.tensor([1.5565749235474007,
+                              1.0,
+                              0.47304832713754646,
+                              4.426086956521739,
+                              0.4614687216681777,
+                              0.0783197414986921,
+                              3.584507042253521]))
+
 
         self.save_hyperparameters()
 
@@ -102,7 +108,7 @@ class SupervisedModel(LightningModule):
 
         y_pred = self(img, tab)
 
-        loss_func = nn.CrossEntropyLoss(weight=class_weights.to(self.is_gpu))
+        loss_func = nn.CrossEntropyLoss(weight=self.class_weights)
         loss = loss_func(y_pred, y)
         self.log('train_epoch_loss', loss, on_epoch=True, on_step=False)
 
@@ -132,7 +138,7 @@ class SupervisedModel(LightningModule):
 
         y_pred = self(img, tab)
 
-        loss_func = nn.CrossEntropyLoss(weight=class_weights.to(self.is_gpu))
+        loss_func = nn.CrossEntropyLoss(weight=self.class_weights)
         loss = loss_func(y_pred, y)
         self.log('val_epoch_loss', loss, on_epoch=True, on_step=False)
 
@@ -153,6 +159,10 @@ class SupervisedModel(LightningModule):
         val_micro_acc = self.val_micro_accuracy(pred_label, y)
         self.log('val_micro_acc', val_micro_acc, on_epoch=True, on_step=False)
 
+        # Record all the predictions
+        records={'prediction': pred_label.cpu(), 'label': y.cpu()}
+        df = pd.DataFrame(data=records)
+        df.to_csv('result_cross_ent.csv', mode='a', index=False, header=False)
         return loss
 
     def test_step(self, batch, batch_idx):
@@ -160,7 +170,7 @@ class SupervisedModel(LightningModule):
         img, tab, y = batch
         y_pred = self(img, tab)
 
-        loss_func = nn.CrossEntropyLoss(weight=class_weights.to(self.is_gpu))
+        loss_func = nn.CrossEntropyLoss(weight=self.class_weights)
         loss = loss_func(y_pred, y)
 
         self.log("test_loss", loss)
