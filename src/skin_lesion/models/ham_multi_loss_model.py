@@ -8,9 +8,9 @@ import torchmetrics
 from torch.nn import Softmax
 from center_loss import CenterLoss
 import torchvision
-from ham_settings import class_weights
 
 import pandas as pd
+
 
 class MultiLossModel(LightningModule):
     '''
@@ -21,17 +21,17 @@ class MultiLossModel(LightningModule):
 
         super().__init__()
 
-        self.use_gpu=False
+        self.use_gpu = False
         if torch.cuda.is_available():
-            self.use_gpu=True
-        
-        self.register_buffer('class_weights',torch.tensor([1.5565749235474007,
-                              1.0,
-                              0.47304832713754646,
-                              4.426086956521739,
-                              0.4614687216681777,
-                              0.0783197414986921,
-                              3.584507042253521]))
+            self.use_gpu = True
+
+        self.register_buffer('class_weights', torch.tensor([1.5565749235474007,
+                                                           1.0,
+                                                           0.47304832713754646,
+                                                           4.426086956521739,
+                                                           0.4614687216681777,
+                                                           0.0783197414986921,
+                                                           3.584507042253521]))
 
         self.save_hyperparameters()
 
@@ -234,7 +234,7 @@ class MultiLossModel(LightningModule):
         self.log('val_micro_acc', val_micro_acc, on_epoch=True, on_step=False)
 
         # Record all the predictions
-        records={'prediction': pred_label.cpu(), 'label': y.cpu()}
+        records = {'prediction': pred_label.cpu(), 'label': y.cpu()}
         df = pd.DataFrame(data=records)
         df.to_csv('result_multiloss.csv', mode='a', index=False, header=False)
         return loss

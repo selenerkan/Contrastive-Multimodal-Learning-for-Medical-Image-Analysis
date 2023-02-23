@@ -6,7 +6,6 @@ import torchmetrics
 from torch.nn import Softmax
 from torch.optim.lr_scheduler import StepLR, MultiStepLR
 import torchvision
-from ham_settings import class_weights
 
 
 class BaselineModel(LightningModule):
