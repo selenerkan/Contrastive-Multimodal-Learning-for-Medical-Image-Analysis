@@ -5,7 +5,8 @@ image_dir = root_dir + r"/HAM10K_grouped_images"
 csv_dir = root_dir + r"/HAM10000_metadata.csv"
 CHECKPOINT_DIR = r'/home/guests/selen_erkan/experiments/checkpoints'
 
-FEATURES = ['age', 'sex_numeric', 'localization_numeric', 'label']
+FEATURES = ['age', 'sex_numeric', 'label', 'abdomen', 'acral',	'back',	'chest', 'ear',	'face',	'foot',
+            'genital',	'hand',	'lower extremity',	'neck',	'scalp',	'trunk',	'upper extremity']
 
 TARGET = 'label'
 

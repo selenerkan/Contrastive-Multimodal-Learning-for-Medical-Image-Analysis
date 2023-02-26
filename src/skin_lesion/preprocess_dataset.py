@@ -1,7 +1,7 @@
 import os
 import shutil
 import pandas as pd
-from sklearn.preprocessing import LabelEncoder
+from sklearn.preprocessing import LabelEncoder, OneHotEncoder
 import numpy as np
 
 
@@ -17,6 +17,12 @@ def preprocess_columns(data_dir):
     LabelEncoder()
     print("Classes:", list(le.classes_))
     metadata['label'] = le.transform(metadata["dx"])
+
+    # remoce the samples with unknown localization and sex
+    metadata = metadata.drop(
+        metadata[metadata['localization'] == 'unknown'].index, axis=0).reset_index()
+    metadata = metadata.drop(
+        metadata[metadata['sex'] == 'unknown'].index, axis=0).reset_index()
 
     # replace the empty age values with the mean
     mean = metadata[metadata['age'] > 0]['age'].mean()
@@ -65,6 +71,23 @@ def estimate_weights_mfb(data_dir, label):
     return class_weights
 
 
+def one_hot_encode(data_dir):
+
+    metadata = pd.read_csv(data_dir + r'\HAM10000_metadata.csv')
+
+    # create encoder object
+    enc = OneHotEncoder(handle_unknown='ignore')
+    # encode localization column
+    enc.fit(metadata[['localization']])
+    localization_one_hot = enc.transform(metadata[['localization']]).toarray()
+    # save encodings in a pandas df
+    df = pd.DataFrame(localization_one_hot, columns=enc.categories_[0])
+    # combine metadata csv file with one-hot-encodings
+    metadata = pd.concat([metadata, df], axis=1)
+
+    metadata.to_csv(data_dir + r'\HAM10000_metadata.csv')
+
+
 if __name__ == '__main__':
 
     # A path to the folder which has all the images:
@@ -81,3 +104,5 @@ if __name__ == '__main__':
     classweight = estimate_weights_mfb(data_dir, label)
     for i in range(len(label)):
         print(label[i], ":", classweight[i])
+
+    one_hot_encode(data_dir)
