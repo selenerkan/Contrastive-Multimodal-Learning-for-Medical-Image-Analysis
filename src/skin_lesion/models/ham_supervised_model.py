@@ -41,7 +41,7 @@ class SupervisedModel(LightningModule):
 
         # TABULAR DATA
         # fc layer for tabular data
-        self.fc1 = nn.Linear(3, 128)  # output features are 128
+        self.fc1 = nn.Linear(16, 128)  # output features are 128
 
         # shared FC layer
         self.fc2 = nn.Linear(128, 64)

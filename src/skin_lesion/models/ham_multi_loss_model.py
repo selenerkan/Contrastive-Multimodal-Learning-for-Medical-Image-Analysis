@@ -57,7 +57,7 @@ class MultiLossModel(LightningModule):
 
         # TABULAR DATA
         # fc layer for tabular data
-        self.fc1 = nn.Linear(3, 128)  # output features are 128
+        self.fc1 = nn.Linear(16, 128)  # output features are 128
 
         # shared FC layer
         self.fc2 = nn.Linear(128, 64)
@@ -155,7 +155,8 @@ class MultiLossModel(LightningModule):
         # center loss
         # center_loss = self.alpha_center * \
         #     compute_center_loss(embeddings, self.centers, y)
-        center_loss =  self.alpha_center * self.center_loss(embeddings, y.squeeze())
+        center_loss = self.alpha_center * \
+            self.center_loss(embeddings, y.squeeze())
         # sum the losses
         loss = cross_ent_loss + center_loss
 
@@ -208,7 +209,8 @@ class MultiLossModel(LightningModule):
         # center loss
         # center_loss = self.alpha_center * \
         #     compute_center_loss(embeddings, self.centers, y)
-        center_loss =  self.alpha_center * self.center_loss(embeddings, y.squeeze())
+        center_loss = self.alpha_center * \
+            self.center_loss(embeddings, y.squeeze())
         # sum the losses
         loss = cross_ent_loss + center_loss
 
@@ -263,7 +265,8 @@ class MultiLossModel(LightningModule):
         # center loss
         # center_loss = self.alpha_center * \
         #     compute_center_loss(embeddings, self.centers, y)
-        center_loss =  self.alpha_center * self.center_loss(embeddings, y.squeeze())
+        center_loss = self.alpha_center * \
+            self.center_loss(embeddings, y.squeeze())
         # sum the losses
         loss = cross_ent_loss + center_loss
 
