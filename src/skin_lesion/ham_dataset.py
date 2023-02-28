@@ -63,7 +63,7 @@ class Triplet_Loss_Dataset(Dataset):
 
         label_anchor = self.y[idx]
         # remove the current image form the tabular data
-        tabular = self.tabular_data.drop(idx).reset_index()
+        tabular = self.tabular_data.drop(idx).reset_index(drop=True)
         # get the positive and negative pair names
         # TODO: dont get the images form the same person as positive pairs?
         positive_pairs = tabular[tabular.label
@@ -221,7 +221,7 @@ class HAMDataModule(pl.LightningDataModule):
         # filter the dataset with the given age
         if self.age is not None:
             self.tabular_data = self.tabular_data[self.tabular_data.age == self.age]
-            self.tabular_data = self.tabular_data.reset_index()
+            self.tabular_data = self.tabular_data.reset_index(drop=True)
 
         # ----------------------------------------
         # split the data by patient ID
@@ -260,18 +260,18 @@ class HAMDataModule(pl.LightningDataModule):
         # prepare the train, test, validation datasets using the subjects assigned to them
         # prepare train dataframe
         self.train_df = self.tabular_data[self.tabular_data['lesion_id'].isin(
-            self.train_patients.lesion_id)].reset_index()
+            self.train_patients.lesion_id)].reset_index(drop=True)
         # prepare test dataframe
         self.test_df = self.tabular_data[self.tabular_data['lesion_id'].isin(
-            self.test_patients.lesion_id)].reset_index()
+            self.test_patients.lesion_id)].reset_index(drop=True)
         # prepare val dataframe
         self.val_df = self.tabular_data[self.tabular_data['lesion_id'].isin(
-            self.val_patients.lesion_id)].reset_index()
+            self.val_patients.lesion_id)].reset_index(drop=True)
 
         # # ONLY FOR OVERFITTING ON ONE IMAGE
         # # self.train_df = self.train_df.iloc[:20]
         # self.train_df = self.train_df.groupby(
-        #     'label').apply(lambda x: x.sample(2)).droplevel(0).reset_index()
+        #     'label').apply(lambda x: x.sample(2)).droplevel(0).reset_index(drop=True)
         # self.train_df = self.train_df.drop(
         #     ['level_0', 'index', 'Unnamed: 0'], axis=1)
         # self.val_df = self.train_df

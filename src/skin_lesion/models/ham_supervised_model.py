@@ -42,16 +42,20 @@ class SupervisedModel(LightningModule):
         # TABULAR DATA
         # fc layer for tabular data
         self.fc1 = nn.Linear(16, 128)  # output features are 128
+        self.fc2 = nn.Linear(128, 128)
+        self.fc3 = nn.Linear(128, 128)
+        self.fc4 = nn.Linear(128, 128)
+        self.fc5 = nn.Linear(128, 128)
 
         # shared FC layer
-        self.fc2 = nn.Linear(128, 64)
+        self.fc6 = nn.Linear(128, 64)
 
         # TABULAR + IMAGE DATA
         # mlp projection head which takes concatenated input
         concatanation_dimension = 128
         # outputs will be used in triplet loss
-        self.fc3 = nn.Linear(concatanation_dimension, 32)
-        self.fc4 = nn.Linear(32, 7)  # classification head
+        self.fc7 = nn.Linear(concatanation_dimension, 32)
+        self.fc8 = nn.Linear(32, 7)  # classification head
 
         # track AUC
         self.train_auc = torchmetrics.AUROC(
@@ -95,19 +99,23 @@ class SupervisedModel(LightningModule):
 
         # run the model for the image
         img = self.resnet(img)
-        img = self.fc2(F.relu(img))
+        img = self.fc6(F.relu(img))
 
         # forward pass for tabular data
         tab = tab.to(torch.float32)
         tab = F.relu(self.fc1(tab))
-        tab = self.fc2(tab)
+        tab = F.relu(self.fc2(tab))
+        tab = F.relu(self.fc3(tab))
+        tab = F.relu(self.fc4(tab))
+        tab = F.relu(self.fc5(tab))
+        tab = self.fc6(tab)
 
         # concat image and tabular data
         x = torch.cat((img, tab), dim=1)
         # get the final concatenated embedding
-        x = F.relu(self.fc3(x))
+        x = F.relu(self.fc7(x))
         # calculate the output of classification head
-        out = self.fc4(x)
+        out = self.fc8(x)
 
         return out
 

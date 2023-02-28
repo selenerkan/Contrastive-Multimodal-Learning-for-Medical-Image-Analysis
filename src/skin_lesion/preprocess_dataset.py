@@ -20,9 +20,9 @@ def preprocess_columns(data_dir):
 
     # remoce the samples with unknown localization and sex
     metadata = metadata.drop(
-        metadata[metadata['localization'] == 'unknown'].index, axis=0).reset_index()
+        metadata[metadata['localization'] == 'unknown'].index, axis=0).reset_index(drop=True)
     metadata = metadata.drop(
-        metadata[metadata['sex'] == 'unknown'].index, axis=0).reset_index()
+        metadata[metadata['sex'] == 'unknown'].index, axis=0).reset_index(drop=True)
 
     # replace the empty age values with the mean
     mean = metadata[metadata['age'] > 0]['age'].mean()
