@@ -38,19 +38,13 @@ class MultiLossModel(LightningModule):
         self.lr = learning_rate
         self.wd = weight_decay
         # weights of the losses
-        self.alpha_center = 1
+        self.alpha_center = 0.2 * (1/200)
         # self.alpha_triplet = 0.4
-        self.alpha_cross_ent = 1
-
-        self.cross_ent_max = 1e-4
-        self.center_max = 1e-4
+        self.alpha_cross_ent = 0.8
 
         # parameters for center loss
         self.num_classes = 7
         self.feature_dim = 32
-        # self.centers = (
-        #     (torch.rand(self.num_classes, self.feature_dim) - 0.5) * 2)
-        # self.center_deltas = torch.zeros(self.num_classes, self.feature_dim)
 
         # IMAGE DATA
         self.resnet = torchvision.models.resnet18(
@@ -60,17 +54,21 @@ class MultiLossModel(LightningModule):
 
         # TABULAR DATA
         # fc layer for tabular data
-        self.fc1 = nn.Linear(16, 128)  # output features are 128
+        self.fc1 = nn.Linear(16, 128)  # tabular data is one-hot-encoded
+        self.fc2 = nn.Linear(128, 128)
+        self.fc3 = nn.Linear(128, 128)
+        self.fc4 = nn.Linear(128, 128)
+        self.fc5 = nn.Linear(128, 128)
 
         # shared FC layer
-        self.fc2 = nn.Linear(128, 64)
+        self.fc6 = nn.Linear(128, 64)
 
         # TABULAR + IMAGE DATA
         # mlp projection head which takes concatenated input
         concatanation_dimension = 128
         # outputs will be used in triplet/center loss
-        self.fc3 = nn.Linear(concatanation_dimension, self.feature_dim)
-        self.fc4 = nn.Linear(32, 7)  # classification head
+        self.fc7 = nn.Linear(concatanation_dimension, self.feature_dim)
+        self.fc8 = nn.Linear(32, 7)  # classification head
 
         # initiate losses
         self.center_loss = CenterLoss(
@@ -98,19 +96,23 @@ class MultiLossModel(LightningModule):
         """
         # run the model for the image
         img = self.resnet(img)
-        img = self.fc2(F.relu(img))
+        img = self.fc6(F.relu(img))
 
         # forward pass for tabular data
         tab = tab.to(torch.float32)
         tab = F.relu(self.fc1(tab))
-        tab = self.fc2(tab)
+        tab = F.relu(self.fc2(tab))
+        tab = F.relu(self.fc3(tab))
+        tab = F.relu(self.fc4(tab))
+        tab = F.relu(self.fc5(tab))
+        tab = self.fc6(tab)
 
         # concat image and tabular data
         x = torch.cat((img, tab), dim=1)
         # get the final concatenated embedding
-        out1 = self.fc3(x)
+        out1 = self.fc7(x)
         # calculate the output of classification head
-        out2 = self.fc4(F.relu(out1))
+        out2 = self.fc8(F.relu(out1))
 
         return out1, out2
 
@@ -155,23 +157,16 @@ class MultiLossModel(LightningModule):
             weight=self.class_weights)
         cross_ent_loss = cross_ent_loss_function(y_pred, y.squeeze())
         # center loss
-        # center_loss = self.alpha_center * \
-        #     compute_center_loss(embeddings, self.centers, y)
         center_loss = self.center_loss(embeddings, y.squeeze())
         # sum the losses
-        loss = self.alpha_cross_ent * cross_ent_loss + self.alpha_center * center_loss
+        loss = self.alpha_cross_ent*cross_ent_loss + \
+            self.alpha_center * center_loss
         # Log loss on every epoch
         self.log('train_epoch_loss', loss, on_epoch=True, on_step=False)
         self.log('train_center_loss', center_loss,
                  on_epoch=True, on_step=False)
         self.log('train_cross_ent_loss', cross_ent_loss,
                  on_epoch=True, on_step=False)
-
-        # update the max loss value
-        if cross_ent_loss > self.cross_ent_max:
-            self.cross_ent_max = cross_ent_loss
-        if center_loss > self.center_max:
-            self.center_max = center_loss
 
         # calculate acc
         # take softmax
@@ -193,20 +188,7 @@ class MultiLossModel(LightningModule):
 
         return loss
 
-    # def on_train_batch_end(self, *args, **kwargs):
-    #     self.centers = self.centers - self.center_deltas
-
     def validation_step(self, batch, batch_idx):
-
-        # update the weights of the losses
-        self.alpha_center = 1/self.center_max
-        self.alpha_cross_ent = 1/self.cross_ent_max
-
-        # log alpha values
-        self.log('cross_entropy_alpha', self.alpha_cross_ent,
-                 on_epoch=True, on_step=False)
-        self.log('center_alpha', self.alpha_center,
-                 on_epoch=True, on_step=False)
 
         # get tabular and image data from the batch
         img, positive, negative, tab, positive_tab, negative_tab, y = batch[
@@ -226,11 +208,10 @@ class MultiLossModel(LightningModule):
             weight=self.class_weights)
         cross_ent_loss = cross_ent_loss_function(y_pred, y.squeeze())
         # center loss
-        # center_loss = self.alpha_center * \
-        #     compute_center_loss(embeddings, self.centers, y)
         center_loss = self.center_loss(embeddings, y.squeeze())
         # sum the losses
-        loss = self.alpha_cross_ent * cross_ent_loss + self.alpha_center * center_loss
+        loss = self.alpha_cross_ent*cross_ent_loss + \
+            self.alpha_center * center_loss
 
         # Log loss on every epoch
         self.log('val_epoch_loss', loss, on_epoch=True, on_step=False)
@@ -283,11 +264,10 @@ class MultiLossModel(LightningModule):
             weight=self.class_weights)
         cross_ent_loss = cross_ent_loss_function(y_pred, y.squeeze())
         # center loss
-        # center_loss = self.alpha_center * \
-        #     compute_center_loss(embeddings, self.centers, y)
         center_loss = self.center_loss(embeddings, y.squeeze())
         # sum the losses
-        loss = self.alpha_cross_ent * cross_ent_loss + self.alpha_center * center_loss
+        loss = self.alpha_cross_ent*cross_ent_loss + \
+            self.alpha_center * center_loss
 
         # Log loss on every epoch
         self.log('test_epoch_loss', loss, on_epoch=True, on_step=False)
