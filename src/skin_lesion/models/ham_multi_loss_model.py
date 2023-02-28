@@ -42,8 +42,8 @@ class MultiLossModel(LightningModule):
         # self.alpha_triplet = 0.4
         self.alpha_cross_ent = 1
 
-        self.cross_ent_max = 0
-        self.center_max = 0
+        self.cross_ent_max = 1e-4
+        self.center_max = 1e-4
 
         # parameters for center loss
         self.num_classes = 7
