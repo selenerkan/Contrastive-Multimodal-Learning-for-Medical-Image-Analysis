@@ -38,9 +38,12 @@ class MultiLossModel(LightningModule):
         self.lr = learning_rate
         self.wd = weight_decay
         # weights of the losses
-        self.alpha_center = 0.2
+        self.alpha_center = 1
         # self.alpha_triplet = 0.4
-        self.alpha_cross_ent = 0.8
+        self.alpha_cross_ent = 1
+
+        self.cross_ent_max = 0
+        self.center_max = 0
 
         # parameters for center loss
         self.num_classes = 7
@@ -150,18 +153,25 @@ class MultiLossModel(LightningModule):
         # cross entropy loss
         cross_ent_loss_function = nn.CrossEntropyLoss(
             weight=self.class_weights)
-        cross_ent_loss = self.alpha_cross_ent * \
-            cross_ent_loss_function(y_pred, y.squeeze())
+        cross_ent_loss = cross_ent_loss_function(y_pred, y.squeeze())
         # center loss
         # center_loss = self.alpha_center * \
         #     compute_center_loss(embeddings, self.centers, y)
-        center_loss = self.alpha_center * \
-            self.center_loss(embeddings, y.squeeze())
+        center_loss = self.center_loss(embeddings, y.squeeze())
         # sum the losses
-        loss = cross_ent_loss + center_loss
-
+        loss = self.alpha_cross_ent * cross_ent_loss + self.alpha_center * center_loss
         # Log loss on every epoch
         self.log('train_epoch_loss', loss, on_epoch=True, on_step=False)
+        self.log('train_center_loss', center_loss,
+                 on_epoch=True, on_step=False)
+        self.log('train_cross_ent_loss', cross_ent_loss,
+                 on_epoch=True, on_step=False)
+
+        # update the max loss value
+        if cross_ent_loss > self.cross_ent_max:
+            self.cross_ent_max = cross_ent_loss
+        if center_loss > self.center_max:
+            self.center_max = center_loss
 
         # calculate acc
         # take softmax
@@ -188,6 +198,16 @@ class MultiLossModel(LightningModule):
 
     def validation_step(self, batch, batch_idx):
 
+        # update the weights of the losses
+        self.alpha_center = 1/self.center_max
+        self.alpha_cross_ent = 1/self.cross_ent_max
+
+        # log alpha values
+        self.log('cross_entropy_alpha', self.alpha_cross_ent,
+                 on_epoch=True, on_step=False)
+        self.log('center_alpha', self.alpha_center,
+                 on_epoch=True, on_step=False)
+
         # get tabular and image data from the batch
         img, positive, negative, tab, positive_tab, negative_tab, y = batch[
             0], batch[1], batch[2], batch[3], batch[4], batch[5], batch[6]
@@ -204,18 +224,19 @@ class MultiLossModel(LightningModule):
         # cross entropy loss
         cross_ent_loss_function = nn.CrossEntropyLoss(
             weight=self.class_weights)
-        cross_ent_loss = self.alpha_cross_ent * \
-            cross_ent_loss_function(y_pred, y.squeeze())
+        cross_ent_loss = cross_ent_loss_function(y_pred, y.squeeze())
         # center loss
         # center_loss = self.alpha_center * \
         #     compute_center_loss(embeddings, self.centers, y)
-        center_loss = self.alpha_center * \
-            self.center_loss(embeddings, y.squeeze())
+        center_loss = self.center_loss(embeddings, y.squeeze())
         # sum the losses
-        loss = cross_ent_loss + center_loss
+        loss = self.alpha_cross_ent * cross_ent_loss + self.alpha_center * center_loss
 
         # Log loss on every epoch
         self.log('val_epoch_loss', loss, on_epoch=True, on_step=False)
+        self.log('val_center_loss', center_loss, on_epoch=True, on_step=False)
+        self.log('val_cross_ent_loss', cross_ent_loss,
+                 on_epoch=True, on_step=False)
 
         # calculate acc
         # take softmax
@@ -260,15 +281,13 @@ class MultiLossModel(LightningModule):
         # cross entropy loss
         cross_ent_loss_function = nn.CrossEntropyLoss(
             weight=self.class_weights)
-        cross_ent_loss = self.alpha_cross_ent * \
-            cross_ent_loss_function(y_pred, y.squeeze())
+        cross_ent_loss = cross_ent_loss_function(y_pred, y.squeeze())
         # center loss
         # center_loss = self.alpha_center * \
         #     compute_center_loss(embeddings, self.centers, y)
-        center_loss = self.alpha_center * \
-            self.center_loss(embeddings, y.squeeze())
+        center_loss = self.center_loss(embeddings, y.squeeze())
         # sum the losses
-        loss = cross_ent_loss + center_loss
+        loss = self.alpha_cross_ent * cross_ent_loss + self.alpha_center * center_loss
 
         # Log loss on every epoch
         self.log('test_epoch_loss', loss, on_epoch=True, on_step=False)
