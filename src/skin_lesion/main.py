@@ -3,7 +3,7 @@ from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.callbacks import ModelCheckpoint
 import os
-from ham_settings import csv_dir, supervised_config, CHECKPOINT_DIR, SEED
+from ham_settings import csv_dir, supervised_config, CHECKPOINT_DIR, SEED, tabular_config
 from models.ham_supervised_model import SupervisedModel
 from models.image_model import BaselineModel
 from models.resnet_model import ResnetModel
@@ -257,10 +257,10 @@ if __name__ == '__main__':
     # main_resnet(supervised_config)
 
     # run tabular baseline
-    main_tabular(supervised_config)
+    # main_tabular(tabular_config)
 
     # run multimodal
     # main_supervised_multimodal(supervised_config)
 
     # run multiloss model (center + cross entropy + triplet)
-    # main_multiloss(supervised_config)
+    main_multiloss(supervised_config)
