@@ -243,6 +243,90 @@ def main_multiloss(config=None):
                 val_dataloaders=val_dataloader)
 
 
+def run_grid_search(network):
+
+    print('YOU ARE RUNNING GRID SEARCH FOR: ', network)
+
+    sweep_config = {
+        'method': 'grid',
+        'metric': {'goal': 'minimize', 'name': 'val_epoch_loss'},
+        'parameters': {
+            'network': {'value': network},
+            'batch_size': {'value': 32},
+            'max_epochs': {'value': 40},
+            'age': {'value': None},
+            'learning_rate': {'value': 1e-4},
+            'weight_decay': {'value': 0},
+            'alpha_center': {'values': [0.001, 0.2, 0.3]},
+        }
+    }
+
+    count = len(sweep_config['parameters']['alpha_center']['values'])
+
+    # sweep
+    sweep_id = wandb.sweep(
+        sweep_config, project="multimodal_training", entity="multimodal_network")
+    wandb.agent(sweep_id, function=grid_search, count=count)
+    wandb.finish()
+
+
+def grid_search(config=None):
+    '''
+    main function to run grid search on the models
+    '''
+    with wandb.init(config=config):
+
+        config = wandb.config
+        wandb_logger = WandbLogger()
+
+        # load the data
+        data = HAMDataModule(
+            csv_dir, age=config.age, batch_size=config.batch_size)
+        data.prepare_data()
+
+        if config.network == 'resnet':
+            # get the model
+            model = ResnetModel(learning_rate=config.learning_rate,
+                                weight_decay=config.weight_decay)
+            data.set_supervised_multimodal_dataloader()
+
+        elif config.network == 'tabular':
+            # get the model
+            model = TabularModel(learning_rate=config.learning_rate,
+                                 weight_decay=config.weight_decay)
+            data.set_supervised_multimodal_dataloader()
+
+        elif config.network == 'supervised':
+            # get the model
+            model = SupervisedModel(learning_rate=config.learning_rate,
+                                    weight_decay=config.weight_decay)
+            data.set_supervised_multimodal_dataloader()
+
+        elif config.network == 'multi_loss':
+            # get the model
+            model = MultiLossModel(
+                learning_rate=wandb.config.learning_rate, weight_decay=wandb.config.weight_decay, alpha_center=wandb.config.alpha_center)
+            # load the data
+            data.set_triplet_dataloader()
+
+        # get dataloaders
+        train_dataloader = data.train_dataloader()
+        val_dataloader = data.val_dataloader()
+
+        wandb.watch(model, log="all")
+        accelerator = 'cpu'
+        devices = None
+        if torch.cuda.is_available():
+            accelerator = 'gpu'
+            devices = 1
+
+        # Add learning rate scheduler monitoring
+        trainer = Trainer(accelerator=accelerator, devices=devices,
+                          max_epochs=config.max_epochs, logger=wandb_logger, log_every_n_steps=10)
+        # trainer.fit(model, data)
+        trainer.fit(model, train_dataloader, val_dataloader)
+
+
 if __name__ == '__main__':
 
     # set the seed of the environment
@@ -263,4 +347,7 @@ if __name__ == '__main__':
     # main_supervised_multimodal(supervised_config)
 
     # run multiloss model (center + cross entropy + triplet)
-    main_multiloss(supervised_config)
+    # main_multiloss(supervised_config)
+
+    # run grid search
+    run_grid_search('multi_loss')

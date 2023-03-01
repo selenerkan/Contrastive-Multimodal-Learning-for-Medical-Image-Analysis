@@ -17,7 +17,7 @@ class MultiLossModel(LightningModule):
     Uses ResNet for the image data, concatenates image and tabular data at the end
     '''
 
-    def __init__(self, learning_rate=0.013, weight_decay=0.01):
+    def __init__(self, learning_rate=0.013, weight_decay=0.01, alpha_center=0.05):
 
         super().__init__()
 
@@ -38,9 +38,9 @@ class MultiLossModel(LightningModule):
         self.lr = learning_rate
         self.wd = weight_decay
         # weights of the losses
-        self.alpha_center = 0.2 * (1/200)
+        self.alpha_center = alpha_center
         # self.alpha_triplet = 0.4
-        self.alpha_cross_ent = 0.8
+        self.alpha_cross_ent = 1 - alpha_center
 
         # parameters for center loss
         self.num_classes = 7
@@ -166,6 +166,12 @@ class MultiLossModel(LightningModule):
         self.log('train_center_loss', center_loss,
                  on_epoch=True, on_step=False)
         self.log('train_cross_ent_loss', cross_ent_loss,
+                 on_epoch=True, on_step=False)
+
+        # log weights
+        self.log('cross_ent_weight', self.alpha_cross_ent,
+                 on_epoch=True, on_step=False)
+        self.log('center_weight', self.alpha_center,
                  on_epoch=True, on_step=False)
 
         # calculate acc
