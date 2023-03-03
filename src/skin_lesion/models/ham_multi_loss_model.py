@@ -10,6 +10,10 @@ from center_loss import CenterLoss
 import torchvision
 
 import pandas as pd
+import os
+
+from ham_settings import SEED
+from pytorch_lightning import seed_everything
 
 
 class MultiLossModel(LightningModule):
@@ -17,10 +21,10 @@ class MultiLossModel(LightningModule):
     Uses ResNet for the image data, concatenates image and tabular data at the end
     '''
 
-    def __init__(self, learning_rate=0.013, weight_decay=0.01, alpha_center=0.05):
+    def __init__(self, learning_rate=0.013, weight_decay=0.01, alpha_center=0.05, alpha_cross_ent=0.95):
 
         super().__init__()
-
+        seed_everything(SEED, workers=True)
         self.use_gpu = False
         if torch.cuda.is_available():
             self.use_gpu = True
@@ -39,8 +43,9 @@ class MultiLossModel(LightningModule):
         self.wd = weight_decay
         # weights of the losses
         self.alpha_center = alpha_center
-        # self.alpha_triplet = 0.4
-        self.alpha_cross_ent = 1 - alpha_center
+        # # self.alpha_triplet = 0.4
+        # self.alpha_cross_ent = alpha_cross_ent
+        self.alpha_cross_ent = 1-alpha_center
 
         # parameters for center loss
         self.num_classes = 7

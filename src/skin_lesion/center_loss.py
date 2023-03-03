@@ -1,5 +1,11 @@
 import torch
 from torch import nn
+import numpy as np
+import random
+from pytorch_lightning import seed_everything
+from ham_settings import SEED
+import os
+from pytorch_lightning.core.module import LightningModule
 
 
 class CenterLoss(nn.Module):
@@ -13,6 +19,7 @@ class CenterLoss(nn.Module):
 
     def __init__(self, num_classes=10, feat_dim=2, use_gpu=True):
         super(CenterLoss, self).__init__()
+        seed_everything(SEED, workers=True)
         self.num_classes = num_classes
         self.feat_dim = feat_dim
         self.use_gpu = use_gpu
@@ -20,9 +27,11 @@ class CenterLoss(nn.Module):
         if self.use_gpu:
             self.centers = nn.Parameter(torch.randn(
                 self.num_classes, self.feat_dim).cuda())
+            print('centers',self.centers)
         else:
             self.centers = nn.Parameter(
                 torch.randn(self.num_classes, self.feat_dim))
+            print('centers',self.centers)
 
     def forward(self, x, labels):
         """

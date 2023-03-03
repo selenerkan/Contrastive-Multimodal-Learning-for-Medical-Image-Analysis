@@ -14,6 +14,8 @@ from pytorch_lightning.callbacks import LearningRateMonitor
 import torch
 import torch.multiprocessing
 from datetime import datetime
+import random
+import numpy as np
 
 
 def main_baseline(config=None):
@@ -211,7 +213,7 @@ def main_multiloss(config=None):
 
     # get the modela
     model = MultiLossModel(
-        learning_rate=wandb.config.learning_rate, weight_decay=wandb.config.weight_decay)
+        learning_rate=wandb.config.learning_rate, weight_decay=wandb.config.weight_decay, alpha_center=wandb.config.alpha_center, alpha_cross_ent=wandb.config.alpha_cross_ent)
     wandb.watch(model, log="all")
 
     # load the data
@@ -252,21 +254,38 @@ def run_grid_search(network):
         'metric': {'goal': 'minimize', 'name': 'val_epoch_loss'},
         'parameters': {
             'network': {'value': network},
-            'batch_size': {'value': 32},
-            'max_epochs': {'value': 40},
+            'batch_size': {'value': 681},
+            'max_epochs': {'value': 50},
             'age': {'value': None},
-            'learning_rate': {'value': 1e-4},
+            'learning_rate': {'values': [1e-4, 1e-5]},
             'weight_decay': {'value': 0},
-            'alpha_center': {'values': [0.001, 0.2, 0.3]},
+            'alpha_center': {'values': [0.001, 0.01, 0.05, 0.1, 0.2]},
         }
     }
 
-    count = len(sweep_config['parameters']['alpha_center']['values'])
+    # sweep_config = {
+    #     'method': 'grid',
+    #     'metric': {'goal': 'minimize', 'name': 'val_epoch_loss'},
+    #     'parameters': {
+    #         'network': {'value': network},
+    #         'batch_size': {'value': 681},
+    #         'max_epochs': {'value': 50},
+    #         'age': {'value': None},
+    #         'learning_rate': {'values': [1e-3,1e-4,1e-5]},
+    #         'weight_decay': {'values': [0, 1e-4,1e-3,1e-2]},
+    #     }
+    # }
+
+    count = len(sweep_config['parameters']['learning_rate']['values']) * \
+        len(sweep_config['parameters']['alpha_center']['values'])
+    # count = len(sweep_config['parameters']['learning_rate']['values']) *len(sweep_config['parameters']['weight_decay']['values'])
 
     # sweep
-    sweep_id = wandb.sweep(
-        sweep_config, project="multimodal_training", entity="multimodal_network")
-    wandb.agent(sweep_id, function=grid_search, count=count)
+    # sweep_id = wandb.sweep(
+    #     sweep_config, project="multimodal_training", entity="multimodal_network")
+    sweep_id = "zvtumpa3"
+    wandb.agent(sweep_id, project="multimodal_training",
+                entity="multimodal_network", function=grid_search)
     wandb.finish()
 
 
@@ -305,7 +324,7 @@ def grid_search(config=None):
         elif config.network == 'multi_loss':
             # get the model
             model = MultiLossModel(
-                learning_rate=wandb.config.learning_rate, weight_decay=wandb.config.weight_decay, alpha_center=wandb.config.alpha_center)
+                learning_rate=config.learning_rate, weight_decay=config.weight_decay, alpha_center=config.alpha_center)
             # load the data
             data.set_triplet_dataloader()
 
@@ -320,9 +339,16 @@ def grid_search(config=None):
             accelerator = 'gpu'
             devices = 1
 
+        # save the checkpoint in a model specific folder
+        # use datetime value in the file name
+        date_time = datetime.now()
+        dt_string = date_time.strftime("%d.%m.%Y-%H.%M")
+        checkpoint_callback = ModelCheckpoint(
+            dirpath=os.path.join(CHECKPOINT_DIR, config.network), filename='grid_lr='+str(config.learning_rate)+'_wd='+str(config.weight_decay)+'_'+dt_string+'-{epoch:03d}')
+
         # Add learning rate scheduler monitoring
         trainer = Trainer(accelerator=accelerator, devices=devices,
-                          max_epochs=config.max_epochs, logger=wandb_logger, log_every_n_steps=10)
+                          max_epochs=config.max_epochs, logger=wandb_logger, callbacks=[checkpoint_callback], log_every_n_steps=10)
         # trainer.fit(model, data)
         trainer.fit(model, train_dataloader, val_dataloader)
 

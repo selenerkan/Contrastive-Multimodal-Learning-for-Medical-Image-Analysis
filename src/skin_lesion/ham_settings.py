@@ -16,7 +16,7 @@ SEED = 473
 image_shape = (3, 224, 224)
 
 supervised_config = {
-    'batch_size': 681, # 512
+    'batch_size': 681,  # 512
     'max_epochs': 100,
     'age': None,
     'learning_rate': 1e-5,
@@ -24,14 +24,16 @@ supervised_config = {
     'checkpoint': None,
     'contrastive_checkpoint': None,
     'checkpoint_flag': False,
-    'contrastive_checkpoint_flag': False
+    'contrastive_checkpoint_flag': False,
+    'alpha_center': 0.01,
+    'alpha_cross_ent': 0.99,
 }
 
 tabular_config = {
-    'batch_size': 681, # 512
+    'batch_size': 681,  # 512
     'max_epochs': 100,
     'age': None,
-    'learning_rate': 1e-3,
+    'learning_rate': 1e-4,
     'weight_decay': 0,
     'checkpoint': None,
     'contrastive_checkpoint': None,
