@@ -8,9 +8,10 @@ import torchmetrics
 from torch.nn import Softmax
 from center_loss import CenterLoss
 import torchvision
-
+import numpy as np
 import pandas as pd
 import os
+import scipy
 
 from ham_settings import SEED
 from pytorch_lightning import seed_everything
@@ -50,6 +51,7 @@ class MultiLossModel(LightningModule):
         # parameters for center loss
         self.num_classes = 7
         self.feature_dim = 32
+        self.embedding_dimension = 64
 
         # IMAGE DATA
         self.resnet = torchvision.models.resnet18(
@@ -66,11 +68,11 @@ class MultiLossModel(LightningModule):
         self.fc5 = nn.Linear(128, 128)
 
         # shared FC layer
-        self.fc6 = nn.Linear(128, 64)
+        self.fc6 = nn.Linear(128, self.embedding_dimension)
 
         # TABULAR + IMAGE DATA
         # mlp projection head which takes concatenated input
-        concatanation_dimension = 128
+        concatanation_dimension = (self.embedding_dimension * 2) - 1
         # outputs will be used in triplet/center loss
         self.fc7 = nn.Linear(concatanation_dimension, self.feature_dim)
         self.fc8 = nn.Linear(32, 7)  # classification head
@@ -113,7 +115,13 @@ class MultiLossModel(LightningModule):
         tab = self.fc6(tab)
 
         # concat image and tabular data
-        x = torch.cat((img, tab), dim=1)
+        # x = torch.cat((img, tab), dim=1)
+        img = img.unsqueeze(0)
+        tab = tab.unsqueeze(1)
+        x = F.conv1d(img, tab, padding=self.embedding_dimension -
+                     1, groups=img.size(1))
+        x = x.squeeze()
+
         # get the final concatenated embedding
         out1 = self.fc7(x)
         # calculate the output of classification head
