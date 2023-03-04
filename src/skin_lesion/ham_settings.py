@@ -3,6 +3,8 @@ import torch
 root_dir = r'/home/guests/selen_erkan/datasets/skin_lesion'
 image_dir = root_dir + r"/HAM10K_grouped_images"
 csv_dir = root_dir + r"/HAM10000_metadata.csv"
+train_dir = r'/train_data.csv'
+test_dir = r'/test_data.csv'
 CHECKPOINT_DIR = r'/home/guests/selen_erkan/experiments/checkpoints'
 
 FEATURES = ['age', 'sex_numeric', 'label', 'abdomen', 'acral',	'back',	'chest', 'ear',	'face',	'foot',

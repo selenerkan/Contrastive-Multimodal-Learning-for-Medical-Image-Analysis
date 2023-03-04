@@ -6,8 +6,7 @@ import numpy as np
 
 import pytorch_lightning as pl
 from sklearn.model_selection import StratifiedShuffleSplit
-from ham_settings import image_dir, TARGET, FEATURES, SEED
-# from ..settings import SEED
+from ham_settings import image_dir, TARGET, FEATURES, SEED, root_dir, train_dir, test_dir
 from torch.utils.data import DataLoader
 from sklearn.model_selection import train_test_split
 import sys
@@ -215,59 +214,98 @@ class HAMDataModule(pl.LightningDataModule):
 
     def prepare_data(self):
 
+        # PREVIOUS
+        # --------------------------------------------------
         # read .csv to load the data
-        self.tabular_data = pd.read_csv(self.csv_dir)
+        # self.tabular_data = pd.read_csv(self.csv_dir)
 
-        # filter the dataset with the given age
-        if self.age is not None:
-            self.tabular_data = self.tabular_data[self.tabular_data.age == self.age]
-            self.tabular_data = self.tabular_data.reset_index(drop=True)
+        # # filter the dataset with the given age
+        # if self.age is not None:
+        #     self.tabular_data = self.tabular_data[self.tabular_data.age == self.age]
+        #     self.tabular_data = self.tabular_data.reset_index(drop=True)
 
         # ----------------------------------------
         # split the data by patient ID
 
-        # get unique patient and label pairs
-        patient_label_list = self.tabular_data.groupby(
-            'lesion_id')['label'].first()
-        patient_label_df = pd.DataFrame(patient_label_list)
-        patient_label_df = patient_label_df.reset_index()
+        # # get unique patient and label pairs
+        # patient_label_list = self.tabular_data.groupby(
+        #     'lesion_id')['label'].first()
+        # patient_label_df = pd.DataFrame(patient_label_list)
+        # patient_label_df = patient_label_df.reset_index()
 
-        # get stritified split for train and test
-        ss = StratifiedSampler(torch.FloatTensor(
-            patient_label_df.label), test_size=0.2)
-        pre_train_indices, test_indices = ss.gen_sample_array()
+        # # get stritified split for train and test
+        # ss = StratifiedSampler(torch.FloatTensor(
+        #     patient_label_df.label), test_size=0.2)
+        # pre_train_indices, test_indices = ss.gen_sample_array()
 
-        # get the stritified split for train and val
-        # train_label = np.delete(patient_label_df.label, test_indices, None)
-        train_label = patient_label_df.label.drop(index=test_indices)
-        ss = StratifiedSampler(torch.FloatTensor(train_label), test_size=0.2)
-        train_indices, val_indices = ss.gen_sample_array()
+        # # get the stritified split for train and val
+        # # train_label = np.delete(patient_label_df.label, test_indices, None)
+        # train_label = patient_label_df.label.drop(index=test_indices)
+        # ss = StratifiedSampler(torch.FloatTensor(train_label), test_size=0.2)
+        # train_indices, val_indices = ss.gen_sample_array()
 
-        # store indices of train, test, valin a dictionary
-        indices = {'train': pre_train_indices[train_indices],  # Indices of second sampler are used on pre_train_indices
-                   # Indices of second sampler are used on pre_train_indices
-                   'val': pre_train_indices[val_indices],
-                   'test': test_indices
-                   }
+        # # store indices of train, test, valin a dictionary
+        # indices = {'train': pre_train_indices[train_indices],  # Indices of second sampler are used on pre_train_indices
+        #            # Indices of second sampler are used on pre_train_indices
+        #            'val': pre_train_indices[val_indices],
+        #            'test': test_indices
+        #            }
 
-        # get the patient ids using the generated indices
-        self.train_patients = patient_label_df.iloc[indices['train']]
-        self.val_patients = patient_label_df.iloc[indices['val']]
-        self.test_patients = patient_label_df.iloc[indices['test']]
+        # # get the patient ids using the generated indices
+        # self.train_patients = patient_label_df.iloc[indices['train']]
+        # self.val_patients = patient_label_df.iloc[indices['val']]
+        # self.test_patients = patient_label_df.iloc[indices['test']]
 
         # ----------------------------------------
 
+        # # prepare the train, test, validation datasets using the subjects assigned to them
+        # # prepare train dataframe
+        # self.train_df = self.tabular_data[self.tabular_data['lesion_id'].isin(
+        #     self.train_patients.lesion_id)].reset_index(drop=True)
+        # # prepare test dataframe
+        # self.test_df = self.tabular_data[self.tabular_data['lesion_id'].isin(
+        #     self.test_patients.lesion_id)].reset_index(drop=True)
+        # # prepare val dataframe
+        # self.val_df = self.tabular_data[self.tabular_data['lesion_id'].isin(
+        #     self.val_patients.lesion_id)].reset_index(drop=True)
+
+        # ----------------------------------------
+        # NEW
+        # read train and test data
+        self.train_data = pd.read_csv(root_dir + train_dir)
+        self.test_df = pd.read_csv(root_dir + test_dir)
+
+        # split train data into train and val
+        # ----------------------------------------
+        # split the data by patient ID
+        train_patient_label_list = self.train_data.groupby(
+            'lesion_id')['label'].first()
+        train_patient_label_df = pd.DataFrame(train_patient_label_list)
+        train_patient_label_df = train_patient_label_df.reset_index()
+
+        # get stritified split for train and val
+        ss = StratifiedSampler(torch.FloatTensor(
+            train_patient_label_df.label), test_size=0.2)
+        train_indices, val_indices = ss.gen_sample_array()
+
+        # store indices of train, test, valin a dictionary
+        indices = {'train': train_indices,
+                   'val': val_indices
+                   }
+
+        # get the patient ids using the generated indices
+        self.train_patients = train_patient_label_df.iloc[indices['train']]
+        self.val_patients = train_patient_label_df.iloc[indices['val']]
+
         # prepare the train, test, validation datasets using the subjects assigned to them
         # prepare train dataframe
-        self.train_df = self.tabular_data[self.tabular_data['lesion_id'].isin(
+        self.train_df = self.train_data[self.train_data['lesion_id'].isin(
             self.train_patients.lesion_id)].reset_index(drop=True)
-        # prepare test dataframe
-        self.test_df = self.tabular_data[self.tabular_data['lesion_id'].isin(
-            self.test_patients.lesion_id)].reset_index(drop=True)
         # prepare val dataframe
-        self.val_df = self.tabular_data[self.tabular_data['lesion_id'].isin(
+        self.val_df = self.train_data[self.train_data['lesion_id'].isin(
             self.val_patients.lesion_id)].reset_index(drop=True)
 
+        # -----------------------------------------------------------------------------------
         # # ONLY FOR OVERFITTING ON ONE IMAGE
         # # self.train_df = self.train_df.iloc[:20]
         # self.train_df = self.train_df.groupby(

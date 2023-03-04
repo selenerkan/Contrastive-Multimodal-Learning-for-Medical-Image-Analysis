@@ -7,8 +7,6 @@ from torch.nn import Softmax
 from torch.optim.lr_scheduler import StepLR, MultiStepLR
 import torchvision
 import pandas as pd
-from ham_settings import SEED
-from pytorch_lightning import seed_everything
 
 
 class ResnetModel(LightningModule):
