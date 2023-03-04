@@ -19,7 +19,6 @@ class ResnetModel(LightningModule):
     def __init__(self, learning_rate=0.013, weight_decay=0.01):
 
         super().__init__()
-        seed_everything(SEED, workers=True)
         self.register_buffer('class_weights', torch.tensor([1.5565749235474007,
                                                            1.0,
                                                            0.47304832713754646,
@@ -121,11 +120,6 @@ class ResnetModel(LightningModule):
         loss_func = nn.CrossEntropyLoss(weight=self.class_weights)
         loss = loss_func(y_pred, y)
         self.log('train_epoch_loss', loss, on_epoch=True, on_step=False)
-
-        # record auc
-        train_auc = self.train_auc(y_pred, y)
-        self.log('train_auc', train_auc,
-                 on_epoch=True, on_step=False)
         # calculate acc
         # take softmax
         if len(y_pred.shape) == 1:
@@ -184,11 +178,6 @@ class ResnetModel(LightningModule):
         loss_func = nn.CrossEntropyLoss(weight=self.class_weights)
         loss = loss_func(y_pred, y)
         self.log('val_epoch_loss', loss, on_epoch=True, on_step=False)
-
-        # record auc
-        val_auc = self.val_auc(y_pred, y)
-        self.log('val_auc', val_auc,
-                 on_epoch=True, on_step=False)
 
         # calculate acc
         # take softmax

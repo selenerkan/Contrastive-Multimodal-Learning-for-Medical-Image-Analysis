@@ -8,13 +8,7 @@ import torchmetrics
 from torch.nn import Softmax
 from center_loss import CenterLoss
 import torchvision
-import numpy as np
 import pandas as pd
-import os
-import scipy
-
-from ham_settings import SEED
-from pytorch_lightning import seed_everything
 
 
 class MultiLossModel(LightningModule):
@@ -22,10 +16,9 @@ class MultiLossModel(LightningModule):
     Uses ResNet for the image data, concatenates image and tabular data at the end
     '''
 
-    def __init__(self, learning_rate=0.013, weight_decay=0.01, alpha_center=0.05, alpha_cross_ent=0.95):
+    def __init__(self, learning_rate=0.013, weight_decay=0.01, alpha_center=0.01, triplet_ratio=0.5):
 
         super().__init__()
-        seed_everything(SEED, workers=True)
         self.use_gpu = False
         if torch.cuda.is_available():
             self.use_gpu = True
@@ -44,9 +37,9 @@ class MultiLossModel(LightningModule):
         self.wd = weight_decay
         # weights of the losses
         self.alpha_center = alpha_center
-        # # self.alpha_triplet = 0.4
-        # self.alpha_cross_ent = alpha_cross_ent
-        self.alpha_cross_ent = 1-alpha_center
+        self.alpha_triplet = (1-alpha_center)*triplet_ratio
+        self.alpha_cross_ent = (1-alpha_center-self.alpha_triplet)
+        # self.alpha_cross_ent = (1-alpha_center)
 
         # parameters for center loss
         self.num_classes = 7
@@ -73,6 +66,7 @@ class MultiLossModel(LightningModule):
         # TABULAR + IMAGE DATA
         # mlp projection head which takes concatenated input
         concatanation_dimension = (self.embedding_dimension * 2) - 1
+        # concatanation_dimension = 128
         # outputs will be used in triplet/center loss
         self.fc7 = nn.Linear(concatanation_dimension, self.feature_dim)
         self.fc8 = nn.Linear(32, 7)  # classification head
@@ -141,11 +135,11 @@ class MultiLossModel(LightningModule):
             {'params': center_params[0][1], 'lr': 1e-4}
         ], lr=self.lr, weight_decay=self.wd)
 
-        # UNCOMMENT FOR LR SCHEDULER
+        # # UNCOMMENT FOR LR SCHEDULER
         # scheduler = MultiStepLR(optimizer,
         #                         # List of epoch indices
-        #                         milestones=[18, 27],
-        #                         gamma=0.1)  # Multiplicative factor of learning rate decay
+        #                         milestones=[12],
+        #                         gamma=0.05)  # Multiplicative factor of learning rate decay
 
         # return [optimizer], [scheduler]
         return optimizer
@@ -162,9 +156,9 @@ class MultiLossModel(LightningModule):
         neg_embeddings, _ = self(negative, negative_tab)
 
         # triplet loss
-        # triplet_loss_function = nn.TripletMarginLoss()
-        # triplet_loss = self.alpha_triplet * triplet_loss_function(
-        #     embeddings, pos_embeddings, neg_embeddings)
+        triplet_loss_function = nn.TripletMarginLoss()
+        triplet_loss = triplet_loss_function(
+            embeddings, pos_embeddings, neg_embeddings)
         # cross entropy loss
         cross_ent_loss_function = nn.CrossEntropyLoss(
             weight=self.class_weights)
@@ -173,18 +167,22 @@ class MultiLossModel(LightningModule):
         center_loss = self.center_loss(embeddings, y.squeeze())
         # sum the losses
         loss = self.alpha_cross_ent*cross_ent_loss + \
-            self.alpha_center * center_loss
+            self.alpha_center * center_loss + self.alpha_triplet*triplet_loss
         # Log loss on every epoch
         self.log('train_epoch_loss', loss, on_epoch=True, on_step=False)
         self.log('train_center_loss', center_loss,
                  on_epoch=True, on_step=False)
         self.log('train_cross_ent_loss', cross_ent_loss,
                  on_epoch=True, on_step=False)
+        self.log('train_triplet_loss', triplet_loss,
+                 on_epoch=True, on_step=False)
 
         # log weights
         self.log('cross_ent_weight', self.alpha_cross_ent,
                  on_epoch=True, on_step=False)
         self.log('center_weight', self.alpha_center,
+                 on_epoch=True, on_step=False)
+        self.log('triplet_weight', self.alpha_triplet,
                  on_epoch=True, on_step=False)
 
         # calculate acc
@@ -219,9 +217,9 @@ class MultiLossModel(LightningModule):
         neg_embeddings, _ = self(negative, negative_tab)
 
         # triplet loss
-        # triplet_loss_function = nn.TripletMarginLoss()
-        # triplet_loss = self.alpha_triplet * triplet_loss_function(
-        #     embeddings, pos_embeddings, neg_embeddings)
+        triplet_loss_function = nn.TripletMarginLoss()
+        triplet_loss = triplet_loss_function(
+            embeddings, pos_embeddings, neg_embeddings)
         # cross entropy loss
         cross_ent_loss_function = nn.CrossEntropyLoss(
             weight=self.class_weights)
@@ -230,12 +228,14 @@ class MultiLossModel(LightningModule):
         center_loss = self.center_loss(embeddings, y.squeeze())
         # sum the losses
         loss = self.alpha_cross_ent*cross_ent_loss + \
-            self.alpha_center * center_loss
+            self.alpha_center * center_loss + self.alpha_triplet*triplet_loss
 
         # Log loss on every epoch
         self.log('val_epoch_loss', loss, on_epoch=True, on_step=False)
         self.log('val_center_loss', center_loss, on_epoch=True, on_step=False)
         self.log('val_cross_ent_loss', cross_ent_loss,
+                 on_epoch=True, on_step=False)
+        self.log('val_triplet_loss', triplet_loss,
                  on_epoch=True, on_step=False)
 
         # calculate acc
@@ -275,9 +275,9 @@ class MultiLossModel(LightningModule):
         neg_embeddings, _ = self(negative, negative_tab)
 
         # triplet loss
-        # triplet_loss_function = nn.TripletMarginLoss()
-        # triplet_loss = self.alpha_triplet * triplet_loss_function(
-        #     embeddings, pos_embeddings, neg_embeddings)
+        triplet_loss_function = nn.TripletMarginLoss()
+        triplet_loss = triplet_loss_function(
+            embeddings, pos_embeddings, neg_embeddings)
         # cross entropy loss
         cross_ent_loss_function = nn.CrossEntropyLoss(
             weight=self.class_weights)
@@ -286,7 +286,7 @@ class MultiLossModel(LightningModule):
         center_loss = self.center_loss(embeddings, y.squeeze())
         # sum the losses
         loss = self.alpha_cross_ent*cross_ent_loss + \
-            self.alpha_center * center_loss
+            self.alpha_center * center_loss + self.alpha_triplet*triplet_loss
 
         # Log loss on every epoch
         self.log('test_epoch_loss', loss, on_epoch=True, on_step=False)

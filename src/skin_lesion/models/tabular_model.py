@@ -10,6 +10,7 @@ import pandas as pd
 from ham_settings import SEED
 from pytorch_lightning import seed_everything
 
+
 class TabularModel(LightningModule):
     '''
     Tabular Model Class including the training, validation and testing steps
@@ -18,7 +19,6 @@ class TabularModel(LightningModule):
     def __init__(self, learning_rate=0.013, weight_decay=0.01):
 
         super().__init__()
-        seed_everything(SEED, workers=True)
         self.register_buffer('class_weights', torch.tensor([1.5565749235474007,
                                                            1.0,
                                                            0.47304832713754646,

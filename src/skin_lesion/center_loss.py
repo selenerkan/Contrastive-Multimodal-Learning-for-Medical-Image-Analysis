@@ -19,7 +19,14 @@ class CenterLoss(nn.Module):
 
     def __init__(self, num_classes=10, feat_dim=2, use_gpu=True):
         super(CenterLoss, self).__init__()
+
         seed_everything(SEED, workers=True)
+        torch.manual_seed(SEED)
+        np.random.seed(SEED)
+        torch.cuda.manual_seed(SEED)
+        random.seed(SEED)
+        np.random.seed(SEED)
+        torch.use_deterministic_algorithms(True)
         self.num_classes = num_classes
         self.feat_dim = feat_dim
         self.use_gpu = use_gpu
@@ -27,11 +34,11 @@ class CenterLoss(nn.Module):
         if self.use_gpu:
             self.centers = nn.Parameter(torch.randn(
                 self.num_classes, self.feat_dim).cuda())
-            print('centers',self.centers)
+            print('centers', self.centers)
         else:
             self.centers = nn.Parameter(
                 torch.randn(self.num_classes, self.feat_dim))
-            print('centers',self.centers)
+            print('centers', self.centers)
 
     def forward(self, x, labels):
         """
