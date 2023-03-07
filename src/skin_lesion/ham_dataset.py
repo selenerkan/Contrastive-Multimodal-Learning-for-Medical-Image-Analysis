@@ -212,62 +212,92 @@ class HAMDataModule(pl.LightningDataModule):
 
         return {'train': transform_train, 'val': transform_val}
 
+    # This code was also doing the test split
+    # It is used once only to get the test data and store it in a .csv file
+    # USE THE CODE AFTER THIS COMMENT BLOCK FOR PREPARE DATA FUNCTION
+    # def prepare_data(self):
+
+    #     # PREVIOUS
+    #     # --------------------------------------------------
+    #     # read .csv to load the data
+    #     self.tabular_data = pd.read_csv(self.csv_dir)
+
+    #     # filter the dataset with the given age
+    #     if self.age is not None:
+    #         self.tabular_data = self.tabular_data[self.tabular_data.age == self.age]
+    #         self.tabular_data = self.tabular_data.reset_index(drop=True)
+
+    #     # ----------------------------------------
+    #     # split the data by patient ID
+
+    #     # get unique patient and label pairs
+    #     patient_label_list = self.tabular_data.groupby(
+    #         'lesion_id')['label'].first()
+    #     patient_label_df = pd.DataFrame(patient_label_list)
+    #     patient_label_df = patient_label_df.reset_index()
+
+    #     # get stritified split for train and test
+    #     ss = StratifiedSampler(torch.FloatTensor(
+    #         patient_label_df.label), test_size=0.2)
+    #     pre_train_indices, test_indices = ss.gen_sample_array()
+
+    #     # get the stritified split for train and val
+    #     # train_label = np.delete(patient_label_df.label, test_indices, None)
+    #     train_label = patient_label_df.label.drop(index=test_indices)
+    #     ss = StratifiedSampler(torch.FloatTensor(train_label), test_size=0.2)
+    #     train_indices, val_indices = ss.gen_sample_array()
+
+    #     # store indices of train, test, valin a dictionary
+    #     indices = {'train': pre_train_indices[train_indices],  # Indices of second sampler are used on pre_train_indices
+    #                # Indices of second sampler are used on pre_train_indices
+    #                'val': pre_train_indices[val_indices],
+    #                'test': test_indices
+    #                }
+
+    #     # get the patient ids using the generated indices
+    #     self.train_patients = patient_label_df.iloc[indices['train']]
+    #     self.val_patients = patient_label_df.iloc[indices['val']]
+    #     self.test_patients = patient_label_df.iloc[indices['test']]
+
+    #     # ----------------------------------------
+
+    #     # prepare the train, test, validation datasets using the subjects assigned to them
+    #     # prepare train dataframe
+    #     self.train_df = self.tabular_data[self.tabular_data['lesion_id'].isin(
+    #         self.train_patients.lesion_id)].reset_index(drop=True)
+    #     # prepare test dataframe
+    #     self.test_df = self.tabular_data[self.tabular_data['lesion_id'].isin(
+    #         self.test_patients.lesion_id)].reset_index(drop=True)
+    #     # prepare val dataframe
+    #     self.val_df = self.tabular_data[self.tabular_data['lesion_id'].isin(
+    #         self.val_patients.lesion_id)].reset_index(drop=True)
+
+    #     # -----------------------------------------------------------------------------------
+    #     # # ONLY FOR OVERFITTING ON ONE IMAGE
+    #     # # self.train_df = self.train_df.iloc[:20]
+    #     # self.train_df = self.train_df.groupby(
+    #     #     'label').apply(lambda x: x.sample(20)).droplevel(0).reset_index(drop=True)
+    #     # self.val_df = self.val_df.groupby(
+    #     #     'label').apply(lambda x: x.sample(5)).droplevel(0).reset_index(drop=True)
+    #     # self.test_df = self.test_df.groupby(
+    #     #     'label').apply(lambda x: x.sample(5)).droplevel(0).reset_index(drop=True)
+    #     # # self.train_df = self.train_df.drop(
+    #     # #     ['level_0', 'index', 'Unnamed: 0'], axis=1)
+    #     # # self.val_df = self.train_df
+    #     # # self.test_df = self.train_df
+
+    #     # print('image ids in train: ', self.train_df.image_id)
+    #     # print('classes in train: ', self.train_df.label)
+
+    #     # print('image ids in val: ', self.val_df.image_id)
+    #     # print('classes in val: ', self.val_df.label)
+
+    #     print('number of patients in train: ', len(self.train_df))
+    #     print('patient IDs in train: ', self.train_df.lesion_id.unique())
+    #     print('number of patients in val: ', len(self.val_df))
+    #     print('patient IDs in val: ', self.val_df.lesion_id.unique())
+
     def prepare_data(self):
-
-        # PREVIOUS
-        # --------------------------------------------------
-        # read .csv to load the data
-        # self.tabular_data = pd.read_csv(self.csv_dir)
-
-        # # filter the dataset with the given age
-        # if self.age is not None:
-        #     self.tabular_data = self.tabular_data[self.tabular_data.age == self.age]
-        #     self.tabular_data = self.tabular_data.reset_index(drop=True)
-
-        # ----------------------------------------
-        # split the data by patient ID
-
-        # # get unique patient and label pairs
-        # patient_label_list = self.tabular_data.groupby(
-        #     'lesion_id')['label'].first()
-        # patient_label_df = pd.DataFrame(patient_label_list)
-        # patient_label_df = patient_label_df.reset_index()
-
-        # # get stritified split for train and test
-        # ss = StratifiedSampler(torch.FloatTensor(
-        #     patient_label_df.label), test_size=0.2)
-        # pre_train_indices, test_indices = ss.gen_sample_array()
-
-        # # get the stritified split for train and val
-        # # train_label = np.delete(patient_label_df.label, test_indices, None)
-        # train_label = patient_label_df.label.drop(index=test_indices)
-        # ss = StratifiedSampler(torch.FloatTensor(train_label), test_size=0.2)
-        # train_indices, val_indices = ss.gen_sample_array()
-
-        # # store indices of train, test, valin a dictionary
-        # indices = {'train': pre_train_indices[train_indices],  # Indices of second sampler are used on pre_train_indices
-        #            # Indices of second sampler are used on pre_train_indices
-        #            'val': pre_train_indices[val_indices],
-        #            'test': test_indices
-        #            }
-
-        # # get the patient ids using the generated indices
-        # self.train_patients = patient_label_df.iloc[indices['train']]
-        # self.val_patients = patient_label_df.iloc[indices['val']]
-        # self.test_patients = patient_label_df.iloc[indices['test']]
-
-        # ----------------------------------------
-
-        # # prepare the train, test, validation datasets using the subjects assigned to them
-        # # prepare train dataframe
-        # self.train_df = self.tabular_data[self.tabular_data['lesion_id'].isin(
-        #     self.train_patients.lesion_id)].reset_index(drop=True)
-        # # prepare test dataframe
-        # self.test_df = self.tabular_data[self.tabular_data['lesion_id'].isin(
-        #     self.test_patients.lesion_id)].reset_index(drop=True)
-        # # prepare val dataframe
-        # self.val_df = self.tabular_data[self.tabular_data['lesion_id'].isin(
-        #     self.val_patients.lesion_id)].reset_index(drop=True)
 
         # ----------------------------------------
         # NEW
@@ -305,32 +335,10 @@ class HAMDataModule(pl.LightningDataModule):
         self.val_df = self.train_data[self.train_data['lesion_id'].isin(
             self.val_patients.lesion_id)].reset_index(drop=True)
 
-        # -----------------------------------------------------------------------------------
-        # # ONLY FOR OVERFITTING ON ONE IMAGE
-        # # self.train_df = self.train_df.iloc[:20]
-        # self.train_df = self.train_df.groupby(
-        #     'label').apply(lambda x: x.sample(20)).droplevel(0).reset_index(drop=True)
-        # self.val_df = self.val_df.groupby(
-        #     'label').apply(lambda x: x.sample(5)).droplevel(0).reset_index(drop=True)
-        # self.test_df = self.test_df.groupby(
-        #     'label').apply(lambda x: x.sample(5)).droplevel(0).reset_index(drop=True)
-        # # self.train_df = self.train_df.drop(
-        # #     ['level_0', 'index', 'Unnamed: 0'], axis=1)
-        # # self.val_df = self.train_df
-        # # self.test_df = self.train_df
-
-        # print('image ids in train: ', self.train_df.image_id)
-        # print('classes in train: ', self.train_df.label)
-
-        # print('image ids in val: ', self.val_df.image_id)
-        # print('classes in val: ', self.val_df.label)
-
         print('number of patients in train: ', len(self.train_df))
         print('patient IDs in train: ', self.train_df.lesion_id.unique())
         print('number of patients in val: ', len(self.val_df))
         print('patient IDs in val: ', self.val_df.lesion_id.unique())
-
-        # ----------------------------------------
 
     def set_supervised_multimodal_dataloader(self):
 
@@ -362,7 +370,7 @@ class HAMDataModule(pl.LightningDataModule):
 
     def val_dataloader(self):
 
-        return DataLoader(self.val, batch_size=self.batch_size, shuffle=True, num_workers=self.num_workers)
+        return DataLoader(self.val, batch_size=self.batch_size, shuffle=False, num_workers=self.num_workers)
 
     def test_dataloader(self):
 

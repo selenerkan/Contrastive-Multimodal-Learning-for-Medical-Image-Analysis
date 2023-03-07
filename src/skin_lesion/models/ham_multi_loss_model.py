@@ -8,6 +8,7 @@ import torchmetrics
 from torch.nn import Softmax
 from center_loss import CenterLoss
 import torchvision
+from adversarial_loss import AdversarialLoss
 import pandas as pd
 
 
@@ -16,7 +17,7 @@ class MultiLossModel(LightningModule):
     Uses ResNet for the image data, concatenates image and tabular data at the end
     '''
 
-    def __init__(self, learning_rate=0.013, weight_decay=0.01, alpha_center=0.01, triplet_ratio=0.5):
+    def __init__(self, learning_rate=0.013, weight_decay=0.01, alpha_center=0.01,  dropout_rate=0):
 
         super().__init__()
         self.use_gpu = False
@@ -35,11 +36,10 @@ class MultiLossModel(LightningModule):
 
         self.lr = learning_rate
         self.wd = weight_decay
+        self.dr = dropout_rate
         # weights of the losses
         self.alpha_center = alpha_center
-        self.alpha_triplet = (1-alpha_center)*triplet_ratio
-        self.alpha_cross_ent = (1-alpha_center-self.alpha_triplet)
-        # self.alpha_cross_ent = (1-alpha_center)
+        self.alpha_cross_ent = (1-alpha_center)
 
         # parameters for center loss
         self.num_classes = 7
@@ -74,17 +74,48 @@ class MultiLossModel(LightningModule):
         # initiate losses
         self.center_loss = CenterLoss(
             num_classes=self.num_classes, feat_dim=self.feature_dim, use_gpu=self.use_gpu)
+        self.cross_ent_loss_function = nn.CrossEntropyLoss(
+            weight=self.class_weights)
+
+        # add dropout
+        self.dropout = nn.Dropout(p=self.dr)
+
+        # track precision and recall
+        self.train_precision = torchmetrics.Precision(
+            task="multiclass", average='macro', num_classes=self.num_classes, top_k=1)
+        self.val_precision = torchmetrics.Precision(
+            task="multiclass", average='macro', num_classes=self.num_classes, top_k=1)
+        self.test_precision = torchmetrics.Precision(
+            task="multiclass", average='macro', num_classes=self.num_classes, top_k=1)
+
+        self.train_recall = torchmetrics.Recall(
+            task="multiclass", average='macro', num_classes=self.num_classes, top_k=1)
+        self.val_recall = torchmetrics.Recall(
+            task="multiclass", average='macro', num_classes=self.num_classes, top_k=1)
+        self.test_recall = torchmetrics.Recall(
+            task="multiclass", average='macro', num_classes=self.num_classes, top_k=1)
+        # track F1 score
+        self.train_F1 = torchmetrics.F1Score(
+            task="multiclass", num_classes=self.num_classes, top_k=1)
+        self.val_F1 = torchmetrics.F1Score(
+            task="multiclass", num_classes=self.num_classes, top_k=1)
+        self.test_F1 = torchmetrics.F1Score(
+            task="multiclass", num_classes=self.num_classes, top_k=1)
 
         # track accuracy
         self.train_macro_accuracy = torchmetrics.Accuracy(
-            task='multiclass', average='macro', num_classes=self.num_classes, top_k=1)
+            task='multiclass', average='macro', num_classes=7, top_k=1)
         self.val_macro_accuracy = torchmetrics.Accuracy(
-            task='multiclass', average='macro', num_classes=self.num_classes, top_k=1)
+            task='multiclass', average='macro', num_classes=7, top_k=1)
+        self.test_macro_accuracy = torchmetrics.Accuracy(
+            task='multiclass', average='macro', num_classes=7, top_k=1)
 
         self.train_micro_accuracy = torchmetrics.Accuracy(
-            task='multiclass', average='micro', num_classes=self.num_classes, top_k=1)
+            task='multiclass', average='micro', num_classes=7, top_k=1)
         self.val_micro_accuracy = torchmetrics.Accuracy(
-            task='multiclass', average='micro', num_classes=self.num_classes, top_k=1)
+            task='multiclass', average='micro', num_classes=7, top_k=1)
+        self.test_micro_accuracy = torchmetrics.Accuracy(
+            task='multiclass', average='micro', num_classes=7, top_k=1)
 
         self.softmax = Softmax(dim=1)
 
@@ -97,15 +128,21 @@ class MultiLossModel(LightningModule):
         """
         # run the model for the image
         img = self.resnet(img)
+        img = self.dropout(img)
         img = self.fc6(F.relu(img))
 
         # forward pass for tabular data
         tab = tab.to(torch.float32)
         tab = F.relu(self.fc1(tab))
+        tab = self.dropout(tab)
         tab = F.relu(self.fc2(tab))
+        tab = self.dropout(tab)
         tab = F.relu(self.fc3(tab))
+        tab = self.dropout(tab)
         tab = F.relu(self.fc4(tab))
+        tab = self.dropout(tab)
         tab = F.relu(self.fc5(tab))
+        tab = self.dropout(tab)
         tab = self.fc6(tab)
 
         # concat image and tabular data
@@ -117,6 +154,7 @@ class MultiLossModel(LightningModule):
         x = x.squeeze()
 
         # get the final concatenated embedding
+        x = self.dropout(x)
         out1 = self.fc7(x)
         # calculate the output of classification head
         out2 = self.fc8(F.relu(out1))
@@ -135,54 +173,40 @@ class MultiLossModel(LightningModule):
             {'params': center_params[0][1], 'lr': 1e-4}
         ], lr=self.lr, weight_decay=self.wd)
 
-        # # UNCOMMENT FOR LR SCHEDULER
-        # scheduler = MultiStepLR(optimizer,
-        #                         # List of epoch indices
-        #                         milestones=[12],
-        #                         gamma=0.05)  # Multiplicative factor of learning rate decay
+        # UNCOMMENT FOR LR SCHEDULER
+        scheduler = MultiStepLR(optimizer,
+                                # List of epoch indices
+                                milestones=[23, 33],
+                                gamma=0.5)  # Multiplicative factor of learning rate decay
 
-        # return [optimizer], [scheduler]
-        return optimizer
+        return [optimizer], [scheduler]
+        # return optimizer
 
     def training_step(self, batch, batch_idx):
 
         # get tabular and image data from the batch
-        img, positive, negative, tab, positive_tab, negative_tab, y = batch[
-            0], batch[1], batch[2], batch[3], batch[4], batch[5], batch[6]
-
-        # TODO: dont feed positive and negatives to classification layer
+        # img, positive, negative, tab, positive_tab, negative_tab, y = batch[
+        #     0], batch[1], batch[2], batch[3], batch[4], batch[5], batch[6]
+        img, tab, y = batch
         embeddings, y_pred = self(img, tab)
-        pos_embeddings, _ = self(positive, positive_tab)
-        neg_embeddings, _ = self(negative, negative_tab)
 
-        # triplet loss
-        triplet_loss_function = nn.TripletMarginLoss()
-        triplet_loss = triplet_loss_function(
-            embeddings, pos_embeddings, neg_embeddings)
-        # cross entropy loss
-        cross_ent_loss_function = nn.CrossEntropyLoss(
-            weight=self.class_weights)
-        cross_ent_loss = cross_ent_loss_function(y_pred, y.squeeze())
+        cross_ent_loss = self.cross_ent_loss_function(y_pred, y.squeeze())
         # center loss
         center_loss = self.center_loss(embeddings, y.squeeze())
         # sum the losses
         loss = self.alpha_cross_ent*cross_ent_loss + \
-            self.alpha_center * center_loss + self.alpha_triplet*triplet_loss
+            self.alpha_center * center_loss
+
         # Log loss on every epoch
         self.log('train_epoch_loss', loss, on_epoch=True, on_step=False)
         self.log('train_center_loss', center_loss,
                  on_epoch=True, on_step=False)
         self.log('train_cross_ent_loss', cross_ent_loss,
                  on_epoch=True, on_step=False)
-        self.log('train_triplet_loss', triplet_loss,
-                 on_epoch=True, on_step=False)
-
         # log weights
         self.log('cross_ent_weight', self.alpha_cross_ent,
                  on_epoch=True, on_step=False)
         self.log('center_weight', self.alpha_center,
-                 on_epoch=True, on_step=False)
-        self.log('triplet_weight', self.alpha_triplet,
                  on_epoch=True, on_step=False)
 
         # calculate acc
@@ -194,13 +218,24 @@ class MultiLossModel(LightningModule):
         # get the index of max value
         pred_label = torch.argmax(y_pred_softmax, dim=1)
 
-        # calculate and log macro accuracy
-        train_acc = self.train_macro_accuracy(pred_label, y)
-        self.log('train_macro_acc', train_acc, on_epoch=True, on_step=False)
+        # calculate and log accuracy
+        self.train_macro_accuracy(pred_label, y)
+        self.train_micro_accuracy(pred_label, y)
+        self.train_F1(pred_label, y)
+        self.train_precision(pred_label, y)
+        self.train_recall(pred_label, y)
 
-        # calculate and log micro accuracy
-        train_micro_acc = self.train_micro_accuracy(pred_label, y)
-        self.log('train_micro_acc', train_micro_acc,
+        # log the metrics
+        self.log('train_macro_acc',
+                 self.train_macro_accuracy,
+                 on_epoch=True, on_step=False)
+        self.log('train_micro_acc', self.train_micro_accuracy,
+                 on_epoch=True, on_step=False)
+        self.log('train_F1', self.train_F1,
+                 on_epoch=True, on_step=False)
+        self.log('train_precision', self.train_precision,
+                 on_epoch=True, on_step=False)
+        self.log('train_recall', self.train_recall,
                  on_epoch=True, on_step=False)
 
         return loss
@@ -208,34 +243,23 @@ class MultiLossModel(LightningModule):
     def validation_step(self, batch, batch_idx):
 
         # get tabular and image data from the batch
-        img, positive, negative, tab, positive_tab, negative_tab, y = batch[
-            0], batch[1], batch[2], batch[3], batch[4], batch[5], batch[6]
-
-        # TODO: dont feed positive and negatives to classification layer
+        # img, positive, negative, tab, positive_tab, negative_tab, y = batch[
+        #     0], batch[1], batch[2], batch[3], batch[4], batch[5], batch[6]
+        img, tab, y = batch
         embeddings, y_pred = self(img, tab)
-        pos_embeddings, _ = self(positive, positive_tab)
-        neg_embeddings, _ = self(negative, negative_tab)
 
-        # triplet loss
-        triplet_loss_function = nn.TripletMarginLoss()
-        triplet_loss = triplet_loss_function(
-            embeddings, pos_embeddings, neg_embeddings)
         # cross entropy loss
-        cross_ent_loss_function = nn.CrossEntropyLoss(
-            weight=self.class_weights)
-        cross_ent_loss = cross_ent_loss_function(y_pred, y.squeeze())
+        cross_ent_loss = self.cross_ent_loss_function(y_pred, y.squeeze())
         # center loss
         center_loss = self.center_loss(embeddings, y.squeeze())
         # sum the losses
         loss = self.alpha_cross_ent*cross_ent_loss + \
-            self.alpha_center * center_loss + self.alpha_triplet*triplet_loss
+            self.alpha_center * center_loss
 
         # Log loss on every epoch
         self.log('val_epoch_loss', loss, on_epoch=True, on_step=False)
         self.log('val_center_loss', center_loss, on_epoch=True, on_step=False)
         self.log('val_cross_ent_loss', cross_ent_loss,
-                 on_epoch=True, on_step=False)
-        self.log('val_triplet_loss', triplet_loss,
                  on_epoch=True, on_step=False)
 
         # calculate acc
@@ -249,46 +273,75 @@ class MultiLossModel(LightningModule):
         pred_label = torch.argmax(y_pred_softmax, dim=1)
 
         # calculate and log accuracy
-        val_acc = self.val_macro_accuracy(pred_label, y)
-        self.log('val_macro_acc', val_acc, on_epoch=True, on_step=False)
+        self.val_macro_accuracy(pred_label, y)
+        self.val_micro_accuracy(pred_label, y)
+        self.val_F1(pred_label, y)
+        self.val_precision(pred_label, y)
+        self.val_recall(pred_label, y)
 
-        # calculate and log accuracy
-        val_micro_acc = self.val_micro_accuracy(pred_label, y)
-        self.log('val_micro_acc', val_micro_acc, on_epoch=True, on_step=False)
+        # log the metrics
+        self.log('val_macro_acc',
+                 self.val_macro_accuracy,
+                 on_epoch=True, on_step=False)
+        self.log('val_micro_acc', self.val_micro_accuracy,
+                 on_epoch=True, on_step=False)
+        self.log('val_F1', self.val_F1,
+                 on_epoch=True, on_step=False)
+        self.log('val_precision', self.val_precision,
+                 on_epoch=True, on_step=False)
+        self.log('val_recall', self.val_recall,
+                 on_epoch=True, on_step=False)
 
-        # Record all the predictions
-        records = {'prediction': pred_label.cpu(), 'label': y.cpu(),
-                   'epoch': self.current_epoch}
-        df = pd.DataFrame(data=records)
-        df.to_csv('result_multiloss.csv', mode='a', index=False, header=False)
         return loss
 
     def test_step(self, batch, batch_idx):
 
         # get tabular and image data from the batch
-        img, positive, negative, tab, positive_tab, negative_tab, y = batch[
-            0], batch[1], batch[2], batch[3], batch[4], batch[5], batch[6]
-
-        # TODO: dont feed positive and negatives to classification layer
+        # img, positive, negative, tab, positive_tab, negative_tab, y = batch[
+        #     0], batch[1], batch[2], batch[3], batch[4], batch[5], batch[6]
+        img, tab, y = batch
         embeddings, y_pred = self(img, tab)
-        pos_embeddings, _ = self(positive, positive_tab)
-        neg_embeddings, _ = self(negative, negative_tab)
 
-        # triplet loss
-        triplet_loss_function = nn.TripletMarginLoss()
-        triplet_loss = triplet_loss_function(
-            embeddings, pos_embeddings, neg_embeddings)
         # cross entropy loss
-        cross_ent_loss_function = nn.CrossEntropyLoss(
-            weight=self.class_weights)
-        cross_ent_loss = cross_ent_loss_function(y_pred, y.squeeze())
+        cross_ent_loss = self.cross_ent_loss_function(y_pred, y.squeeze())
         # center loss
         center_loss = self.center_loss(embeddings, y.squeeze())
         # sum the losses
         loss = self.alpha_cross_ent*cross_ent_loss + \
-            self.alpha_center * center_loss + self.alpha_triplet*triplet_loss
+            self.alpha_center * center_loss
 
         # Log loss on every epoch
         self.log('test_epoch_loss', loss, on_epoch=True, on_step=False)
+        self.log('test_center_loss', center_loss, on_epoch=True, on_step=False)
+        self.log('test_cross_ent_loss', cross_ent_loss,
+                 on_epoch=True, on_step=False)
+
+        # calculate acc
+        # take softmax
+        if len(y_pred.shape) == 1:
+            y_pred = y_pred.unsqueeze(0)
+        y_pred_softmax = self.softmax(y_pred)
+
+        # get the index of max value
+        pred_label = torch.argmax(y_pred_softmax, dim=1)
+
+        # calculate and log accuracy
+        self.test_macro_accuracy(pred_label, y)
+        self.test_micro_accuracy(pred_label, y)
+        self.test_F1(pred_label, y)
+        self.test_precision(pred_label, y)
+        self.test_recall(pred_label, y)
+
+        self.log('test_macro_acc',
+                 self.test_macro_accuracy,
+                 on_epoch=True, on_step=False)
+        self.log('test_micro_acc', self.test_micro_accuracy,
+                 on_epoch=True, on_step=False)
+        self.log('test_F1', self.test_F1,
+                 on_epoch=True, on_step=False)
+        self.log('test_precision', self.test_precision,
+                 on_epoch=True, on_step=False)
+        self.log('test_recall', self.test_recall,
+                 on_epoch=True, on_step=False)
 
         return loss
