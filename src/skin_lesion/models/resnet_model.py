@@ -6,7 +6,6 @@ import torchmetrics
 from torch.nn import Softmax
 from torch.optim.lr_scheduler import StepLR, MultiStepLR
 import torchvision
-import pandas as pd
 
 
 class ResnetModel(LightningModule):

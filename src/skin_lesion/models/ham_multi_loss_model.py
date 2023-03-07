@@ -3,13 +3,10 @@ from torch import nn
 from pytorch_lightning.core.module import LightningModule
 from torch.nn import functional as F
 from torch.optim.lr_scheduler import StepLR, MultiStepLR
-from pytorch_metric_learning import losses
 import torchmetrics
 from torch.nn import Softmax
 from center_loss import CenterLoss
 import torchvision
-from adversarial_loss import AdversarialLoss
-import pandas as pd
 
 
 class MultiLossModel(LightningModule):
