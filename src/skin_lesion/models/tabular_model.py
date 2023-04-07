@@ -41,39 +41,43 @@ class TabularModel(LightningModule):
         self.fc6 = nn.Linear(64, 32)
         self.fc7 = nn.Linear(32, self.num_classes)
 
-        # track AUC
-        self.train_auc = torchmetrics.AUROC(
-            task="multiclass", num_classes=self.num_classes)
-        self.val_auc = torchmetrics.AUROC(
-            task="multiclass", num_classes=self.num_classes)
         # track precision and recall
         self.train_precision = torchmetrics.Precision(
             task="multiclass", average='macro', num_classes=self.num_classes, top_k=1)
         self.val_precision = torchmetrics.Precision(
+            task="multiclass", average='macro', num_classes=self.num_classes, top_k=1)
+        self.test_precision = torchmetrics.Precision(
             task="multiclass", average='macro', num_classes=self.num_classes, top_k=1)
 
         self.train_recall = torchmetrics.Recall(
             task="multiclass", average='macro', num_classes=self.num_classes, top_k=1)
         self.val_recall = torchmetrics.Recall(
             task="multiclass", average='macro', num_classes=self.num_classes, top_k=1)
+        self.test_recall = torchmetrics.Recall(
+            task="multiclass", average='macro', num_classes=self.num_classes, top_k=1)
+
         # track F1 score
         self.train_F1 = torchmetrics.F1Score(
             task="multiclass", num_classes=self.num_classes, top_k=1)
         self.val_F1 = torchmetrics.F1Score(
             task="multiclass", num_classes=self.num_classes, top_k=1)
+        self.test_F1 = torchmetrics.F1Score(
+            task="multiclass", num_classes=self.num_classes, top_k=1)
+
         # track accuracy
         self.train_macro_accuracy = torchmetrics.Accuracy(
-            task='multiclass', average='macro', num_classes=self.num_classes, top_k=1)
+            task='multiclass', average='macro', num_classes=7, top_k=1)
         self.val_macro_accuracy = torchmetrics.Accuracy(
-            task='multiclass', average='macro', num_classes=self.num_classes, top_k=1)
+            task='multiclass', average='macro', num_classes=7, top_k=1)
+        self.test_macro_accuracy = torchmetrics.Accuracy(
+            task='multiclass', average='macro', num_classes=7, top_k=1)
 
         self.train_micro_accuracy = torchmetrics.Accuracy(
-            task='multiclass', average='micro', num_classes=self.num_classes, top_k=1)
+            task='multiclass', average='micro', num_classes=7, top_k=1)
         self.val_micro_accuracy = torchmetrics.Accuracy(
-            task='multiclass', average='micro', num_classes=self.num_classes, top_k=1)
-
-        self.train_acc = 0
-        self.total_samples = 0
+            task='multiclass', average='micro', num_classes=7, top_k=1)
+        self.test_micro_accuracy = torchmetrics.Accuracy(
+            task='multiclass', average='micro', num_classes=7, top_k=1)
 
         self.softmax = Softmax(dim=1)
 
@@ -123,10 +127,6 @@ class TabularModel(LightningModule):
         loss = loss_func(y_pred, y)
         self.log('train_epoch_loss', loss, on_epoch=True, on_step=False)
 
-        # record auc
-        train_auc = self.train_auc(y_pred, y)
-        self.log('train_auc', train_auc,
-                 on_epoch=True, on_step=False)
         # calculate acc
         # take softmax
         if len(y_pred.shape) == 1:
@@ -137,27 +137,23 @@ class TabularModel(LightningModule):
         pred_label = torch.argmax(y_pred_softmax, dim=1)
 
         # calculate and log accuracy
-        train_acc = self.train_macro_accuracy(pred_label, y)
-        self.log('train_macro_acc', train_acc, on_epoch=True, on_step=False)
+        self.train_macro_accuracy(pred_label, y)
+        self.train_micro_accuracy(pred_label, y)
+        self.train_F1(pred_label, y)
+        self.train_precision(pred_label, y)
+        self.train_recall(pred_label, y)
 
-        # calculate and log accuracy
-        train_micro_acc = self.train_micro_accuracy(pred_label, y)
-        self.log('train_micro_acc', train_micro_acc,
+        # log the metrics
+        self.log('train_macro_acc',
+                 self.train_macro_accuracy,
                  on_epoch=True, on_step=False)
-
-        # record f1 score
-        train_f1_score = self.train_F1(pred_label, y)
-        self.log('train_F1', train_f1_score,
+        self.log('train_micro_acc', self.train_micro_accuracy,
                  on_epoch=True, on_step=False)
-
-        # record precision score
-        train_precision = self.train_precision(pred_label, y)
-        self.log('train_precision', train_precision,
+        self.log('train_F1', self.train_F1,
                  on_epoch=True, on_step=False)
-
-        # record recall score
-        train_recall = self.train_recall(pred_label, y)
-        self.log('train_recall', train_recall,
+        self.log('train_precision', self.train_precision,
+                 on_epoch=True, on_step=False)
+        self.log('train_recall', self.train_recall,
                  on_epoch=True, on_step=False)
 
         return loss
@@ -172,10 +168,47 @@ class TabularModel(LightningModule):
         loss = loss_func(y_pred, y)
         self.log('val_epoch_loss', loss, on_epoch=True, on_step=False)
 
-        # record auc
-        val_auc = self.val_auc(y_pred, y)
-        self.log('val_auc', val_auc,
+        # calculate acc
+        # take softmax
+        if len(y_pred.shape) == 1:
+            y_pred = y_pred.unsqueeze(0)
+        y_pred_softmax = self.softmax(y_pred)
+
+        # get the index of max value
+        pred_label = torch.argmax(y_pred_softmax, dim=1)
+
+        # calculate and log accuracy
+        self.val_macro_accuracy(pred_label, y)
+        self.val_micro_accuracy(pred_label, y)
+        self.val_F1(pred_label, y)
+        self.val_precision(pred_label, y)
+        self.val_recall(pred_label, y)
+
+        # log the metrics
+        self.log('val_macro_acc',
+                 self.val_macro_accuracy,
                  on_epoch=True, on_step=False)
+        self.log('val_micro_acc', self.val_micro_accuracy,
+                 on_epoch=True, on_step=False)
+        self.log('val_F1', self.val_F1,
+                 on_epoch=True, on_step=False)
+        self.log('val_precision', self.val_precision,
+                 on_epoch=True, on_step=False)
+        self.log('val_recall', self.val_recall,
+                 on_epoch=True, on_step=False)
+
+        # Record all the predictions
+        return loss
+
+    def test_step(self, batch, batch_idx):
+
+        img, tab, y = batch
+        y_pred = self(tab)
+
+        loss_func = nn.CrossEntropyLoss(weight=self.class_weights)
+        loss = loss_func(y_pred, y)
+
+        self.log("test_epoch_loss", loss)
 
         # calculate acc
         # take softmax
@@ -187,43 +220,21 @@ class TabularModel(LightningModule):
         pred_label = torch.argmax(y_pred_softmax, dim=1)
 
         # calculate and log accuracy
-        val_acc = self.val_macro_accuracy(pred_label, y)
-        self.log('val_macro_acc', val_acc, on_epoch=True, on_step=False)
+        self.test_macro_accuracy(pred_label, y)
+        self.test_micro_accuracy(pred_label, y)
+        self.test_F1(pred_label, y)
+        self.test_precision(pred_label, y)
+        self.test_recall(pred_label, y)
 
-        # calculate and log accuracy
-        val_micro_acc = self.val_micro_accuracy(pred_label, y)
-        self.log('val_micro_acc', val_micro_acc, on_epoch=True, on_step=False)
-
-        # record f1 score
-        val_f1_score = self.val_F1(pred_label, y)
-        self.log('train_F1', val_f1_score,
+        self.log('test_macro_acc', self.test_macro_accuracy,
                  on_epoch=True, on_step=False)
-
-        # record precision score
-        val_precision = self.val_precision(pred_label, y)
-        self.log('val_precision', val_precision,
+        self.log('test_micro_acc', self.test_micro_accuracy,
                  on_epoch=True, on_step=False)
-
-        # record recall score
-        val_recall = self.val_recall(pred_label, y)
-        self.log('val_recall', val_recall,
+        self.log('test_F1', self.test_F1,
                  on_epoch=True, on_step=False)
-
-        # Record all the predictions
-        records = {'prediction': pred_label.cpu(), 'label': y.cpu(),
-                   'epoch': self.current_epoch}
-        df = pd.DataFrame(data=records)
-        df.to_csv('result_tabular.csv', mode='a', index=False, header=False)
-        return loss
-
-    def test_step(self, batch, batch_idx):
-
-        img, tab, y = batch
-        y_pred = self(tab)
-
-        loss_func = nn.CrossEntropyLoss(weight=self.class_weights)
-        loss = loss_func(y_pred, y)
-
-        self.log("test_loss", loss)
+        self.log('test_precision', self.test_precision,
+                 on_epoch=True, on_step=False)
+        self.log('test_recall', self.test_recall,
+                 on_epoch=True, on_step=False)
 
         return loss

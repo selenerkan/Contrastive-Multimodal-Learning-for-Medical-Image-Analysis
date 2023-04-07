@@ -3,7 +3,7 @@ from torch import nn
 import numpy as np
 import random
 from pytorch_lightning import seed_everything
-from ham_settings import SEED
+# from ham_settings import SEED
 import os
 from pytorch_lightning.core.module import LightningModule
 
@@ -17,15 +17,15 @@ class CenterLoss(nn.Module):
         feat_dim (int): feature dimension.
     """
 
-    def __init__(self, num_classes=10, feat_dim=2, use_gpu=True):
+    def __init__(self, seed, num_classes=10, feat_dim=2, use_gpu=True):
         super(CenterLoss, self).__init__()
 
-        seed_everything(SEED, workers=True)
-        torch.manual_seed(SEED)
-        np.random.seed(SEED)
-        torch.cuda.manual_seed(SEED)
-        random.seed(SEED)
-        np.random.seed(SEED)
+        seed_everything(seed, workers=True)
+        torch.manual_seed(seed)
+        np.random.seed(seed)
+        torch.cuda.manual_seed(seed)
+        random.seed(seed)
+        np.random.seed(seed)
         torch.use_deterministic_algorithms(True)
         self.num_classes = num_classes
         self.feat_dim = feat_dim

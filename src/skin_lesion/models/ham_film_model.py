@@ -8,7 +8,7 @@ from torch.optim.lr_scheduler import StepLR, MultiStepLR
 import torchvision
 # from ham_settings import class_weights
 import pandas as pd
-from models.model_blocks.ham_daft_block import DAFT, DAFTBlock
+from models.model_blocks.ham_daft_block import Film, FilmBlock
 
 
 class Identity(nn.Module):
@@ -19,7 +19,7 @@ class Identity(nn.Module):
         return x
 
 
-class DaftModel(LightningModule):
+class FilmModel(LightningModule):
     '''
     Resnet Model Class including the training, validation and testing steps
     '''
@@ -46,7 +46,7 @@ class DaftModel(LightningModule):
             weights=torchvision.models.ResNet18_Weights.DEFAULT)
         self.resnet.fc = Identity()
         self.resnet.avgpool = Identity()
-        self.blockX = DAFTBlock(self.resnet_dim, self.resnet_dim*2)  # 4
+        self.blockX = FilmBlock(self.resnet_dim, self.resnet_dim*2)  # 4
         self.global_pool = nn.AdaptiveAvgPool2d(1)
         self.fc = nn.Linear(self.resnet_dim*2, 7)
 

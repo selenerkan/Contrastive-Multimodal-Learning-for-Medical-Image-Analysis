@@ -17,7 +17,7 @@ class NewCenterModel(LightningModule):
     Uses ResNet for the image data, concatenates image and tabular data at the end
     '''
 
-    def __init__(self, learning_rate=0.013, weight_decay=0.01, alpha_center=0.01,  dropout_rate=0):
+    def __init__(self, seed, learning_rate=0.013, weight_decay=0.01, alpha_center=0.01,  dropout_rate=0):
 
         super().__init__()
         self.use_gpu = False
@@ -72,7 +72,7 @@ class NewCenterModel(LightningModule):
 
         # initiate losses
         self.center_loss = CenterLoss(
-            num_classes=self.num_classes, feat_dim=self.embedding_dimension, use_gpu=self.use_gpu)
+            num_classes=self.num_classes, feat_dim=self.embedding_dimension, use_gpu=self.use_gpu,seed=seed)
         self.cross_ent_loss_function = nn.CrossEntropyLoss(
             weight=self.class_weights)
 

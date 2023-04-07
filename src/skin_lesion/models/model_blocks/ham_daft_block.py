@@ -131,6 +131,91 @@ class FilmBase(nn.Module, metaclass=ABCMeta):
         return out
 
 
+class FilmBlock(FilmBase):
+    def __init__(
+        self,
+        in_channels: int,
+        out_channels: int,
+        bn_momentum: float = 0.1,
+        stride: int = 2,
+        ndim_non_img: int = 16,
+        location: int = 0,
+        activation: str = "linear",
+        scale: bool = True,
+        shift: bool = True,
+        bottleneck_dim: int = 7,
+    ):
+
+        super().__init__(
+            in_channels=in_channels,
+            out_channels=out_channels,
+            bn_momentum=bn_momentum,
+            stride=stride,
+            ndim_non_img=ndim_non_img,
+            location=location,
+            activation=activation,
+            scale=scale,
+            shift=shift,
+        )
+
+        self.bottleneck_dim = bottleneck_dim
+        # shift and scale decoding
+        self.split_size = 0
+        if scale and shift:
+            self.split_size = self.film_dims
+            self.scale = None
+            self.shift = None
+            self.film_dims = 2 * self.film_dims
+        elif not scale:
+            self.scale = 1
+            self.shift = None
+        elif not shift:
+            self.shift = 0
+            self.scale = None
+        # create aux net
+        layers = [
+            ("aux_base", nn.Linear(ndim_non_img, self.bottleneck_dim, bias=False)),
+            ("aux_relu", nn.ReLU()),
+            ("aux_out", nn.Linear(self.bottleneck_dim, self.film_dims, bias=False)),
+        ]
+        self.aux = nn.Sequential(OrderedDict(layers))
+
+    def rescale_features(self, feature_map, x_aux):
+
+        attention = self.aux(x_aux)
+
+        assert (attention.size(0) == feature_map.size(0)) and (
+            attention.dim() == 2
+        ), f"Invalid size of output tensor of auxiliary network: {attention.size()}"
+
+        if self.scale == self.shift:
+            v_scale, v_shift = torch.split(attention, self.split_size, dim=1)
+            v_scale = v_scale.view(*v_scale.size(), 1,
+                                   1).expand_as(feature_map)
+            v_shift = v_shift.view(*v_shift.size(), 1,
+                                   1).expand_as(feature_map)
+            if self.scale_activation is not None:
+                v_scale = self.scale_activation(v_scale)
+        elif self.scale is None:
+            v_scale = attention
+            v_scale = v_scale.view(*v_scale.size(), 1,
+                                   1).expand_as(feature_map)
+            v_shift = self.shift
+            if self.scale_activation is not None:
+                v_scale = self.scale_activation(v_scale)
+        elif self.shift is None:
+            v_scale = self.scale
+            v_shift = attention
+            v_shift = v_shift.view(*v_shift.size(), 1,
+                                   1).expand_as(feature_map)
+        else:
+            raise AssertionError(
+                f"Sanity checking on scale and shift failed. Must be of type bool or None: {self.scale}, {self.shift}"
+            )
+
+        return (v_scale * feature_map) + v_shift
+
+
 class DAFTBlock(FilmBase):
     # Block for ZeCatNet
     def __init__(
@@ -139,7 +224,7 @@ class DAFTBlock(FilmBase):
         out_channels: int,
         bn_momentum: float = 0.1,
         stride: int = 2,
-        ndim_non_img: int = 3,  # was 15 before
+        ndim_non_img: int = 16,  # was 15 before
         location: int = 0,
         activation: str = "linear",
         scale: bool = True,
@@ -217,6 +302,62 @@ class DAFTBlock(FilmBase):
             )
 
         return (v_scale * feature_map) + v_shift
+
+
+class Film(BaseModel):
+    """
+    adapted version of Perez et al. (AAAI, 2018)
+    https://arxiv.org/abs/1709.07871
+    """
+
+    def __init__(
+        self,
+        in_channels: int,
+        n_outputs: int,
+        bn_momentum: float = 0.1,
+        n_basefilters: int = 4,
+        filmblock_args: Optional[Dict[Any, Any]] = None,
+    ) -> None:
+        super().__init__()
+
+        if filmblock_args is None:
+            filmblock_args = {}
+
+        self.split_size = 4 * n_basefilters
+        self.conv1 = ConvBnReLU(
+            in_channels, n_basefilters, bn_momentum=bn_momentum)
+        self.pool1 = nn.MaxPool2d(2, stride=2)  # 32
+        self.block1 = ResBlock(
+            n_basefilters, n_basefilters, bn_momentum=bn_momentum)
+        self.block2 = ResBlock(
+            n_basefilters, 2 * n_basefilters, bn_momentum=bn_momentum, stride=2)  # 16
+        self.block3 = ResBlock(
+            2 * n_basefilters, 4 * n_basefilters, bn_momentum=bn_momentum, stride=2)  # 8
+        self.blockX = FilmBlock(4 * n_basefilters, 8 * n_basefilters,
+                                bn_momentum=bn_momentum, **filmblock_args)  # 4
+        self.global_pool = nn.AdaptiveAvgPool2d(1)
+        self.fc = nn.Linear(8 * n_basefilters, n_outputs)
+
+    @property
+    def input_names(self) -> Sequence[str]:
+        return ("image", "tabular")
+
+    @property
+    def output_names(self) -> Sequence[str]:
+        return ("logits",)
+
+    def forward(self, image, tabular):
+        out = self.conv1(image)
+        out = self.pool1(out)
+        out = self.block1(out)
+        out = self.block2(out)
+        out = self.block3(out)
+        out = self.blockX(out, tabular)
+        out = self.global_pool(out)
+        out = out.view(out.size(0), -1)
+        out = self.fc(out)
+
+        return {"logits": out}
 
 
 class DAFT(BaseModel):

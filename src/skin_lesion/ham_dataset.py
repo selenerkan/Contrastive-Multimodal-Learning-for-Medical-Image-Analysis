@@ -6,7 +6,7 @@ import numpy as np
 
 import pytorch_lightning as pl
 from sklearn.model_selection import StratifiedShuffleSplit
-from ham_settings import image_dir, TARGET, FEATURES, SEED, root_dir, train_dir, test_dir
+from ham_settings import image_dir, TARGET, FEATURES, root_dir, train_dir, test_dir
 from torch.utils.data import DataLoader
 from sklearn.model_selection import train_test_split
 import sys
@@ -297,7 +297,7 @@ class HAMDataModule(pl.LightningDataModule):
     #     print('number of patients in val: ', len(self.val_df))
     #     print('patient IDs in val: ', self.val_df.lesion_id.unique())
 
-    def prepare_data(self):
+    def prepare_data(self, seed):
 
         # ----------------------------------------
         # NEW
@@ -315,7 +315,7 @@ class HAMDataModule(pl.LightningDataModule):
 
         # get stritified split for train and val
         ss = StratifiedSampler(torch.FloatTensor(
-            train_patient_label_df.label), test_size=0.2)
+            train_patient_label_df.label), test_size=0.2, seed=seed)
         train_indices, val_indices = ss.gen_sample_array()
 
         # store indices of train, test, valin a dictionary
@@ -396,7 +396,7 @@ class StratifiedSampler(Sampler):
     Provides equal representation of target classes
     """
 
-    def __init__(self, class_vector, test_size, n_splits=1):
+    def __init__(self, class_vector, test_size, seed, n_splits=1):
         """
         Arguments
         ---------
@@ -408,11 +408,12 @@ class StratifiedSampler(Sampler):
         self.n_splits = n_splits
         self.class_vector = class_vector
         self.test_size = test_size
+        self.seed = seed
 
     def gen_sample_array(self):
 
         s = StratifiedShuffleSplit(
-            n_splits=self.n_splits, test_size=self.test_size, random_state=SEED)
+            n_splits=self.n_splits, test_size=self.test_size, random_state=self.seed)
         X = torch.randn(self.class_vector.size(0), 2).numpy()
         y = self.class_vector.numpy()
         s.get_n_splits(X, y)

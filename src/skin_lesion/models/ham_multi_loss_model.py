@@ -7,6 +7,8 @@ import torchmetrics
 from torch.nn import Softmax
 from center_loss import CenterLoss
 import torchvision
+from torchmetrics.classification import MulticlassPrecision
+from torchmetrics.classification import MulticlassRecall
 
 
 class MultiLossModel(LightningModule):
@@ -14,7 +16,7 @@ class MultiLossModel(LightningModule):
     Uses ResNet for the image data, concatenates image and tabular data at the end
     '''
 
-    def __init__(self, learning_rate=0.013, weight_decay=0.01, alpha_center=0.01,  dropout_rate=0):
+    def __init__(self, seed, learning_rate=0.013, weight_decay=0.01, alpha_center=0.01,  dropout_rate=0):
 
         super().__init__()
         self.use_gpu = False
@@ -70,12 +72,28 @@ class MultiLossModel(LightningModule):
 
         # initiate losses
         self.center_loss = CenterLoss(
-            num_classes=self.num_classes, feat_dim=self.feature_dim, use_gpu=self.use_gpu)
+            num_classes=self.num_classes, feat_dim=self.feature_dim, use_gpu=self.use_gpu, seed=seed)
         self.cross_ent_loss_function = nn.CrossEntropyLoss(
             weight=self.class_weights)
 
         # add dropout
         self.dropout = nn.Dropout(p=self.dr)
+
+        # track precision for each class
+        self.train_class_precision = MulticlassPrecision(
+            num_classes=self.num_classes, average='none')
+        self.val_class_precision = MulticlassPrecision(
+            num_classes=self.num_classes, average='none')
+        self.test_class_precision = MulticlassPrecision(
+            num_classes=self.num_classes, average='none')
+
+        # track recall for each class
+        self.train_class_recall = MulticlassRecall(
+            num_classes=self.num_classes, average='none')
+        self.val_class_recall = MulticlassRecall(
+            num_classes=self.num_classes, average='none')
+        self.test_class_recall = MulticlassRecall(
+            num_classes=self.num_classes, average='none')
 
         # track precision and recall
         self.train_precision = torchmetrics.Precision(
@@ -221,6 +239,8 @@ class MultiLossModel(LightningModule):
         self.train_F1(pred_label, y)
         self.train_precision(pred_label, y)
         self.train_recall(pred_label, y)
+        self.train_class_precision(pred_label, y)
+        self.train_class_recall(pred_label, y)
 
         # log the metrics
         self.log('train_macro_acc',
@@ -234,6 +254,35 @@ class MultiLossModel(LightningModule):
                  on_epoch=True, on_step=False)
         self.log('train_recall', self.train_recall,
                  on_epoch=True, on_step=False)
+        self.log('train_precision_class_0',
+                 self.train_class_precision.compute()[0], on_epoch=True, on_step=False)
+        self.log('train_precision_class_1',
+                 self.train_class_precision.compute()[1], on_epoch=True, on_step=False)
+        self.log('train_precision_class_2',
+                 self.train_class_precision.compute()[2], on_epoch=True, on_step=False)
+        self.log('train_precision_class_3',
+                 self.train_class_precision.compute()[3], on_epoch=True, on_step=False)
+        self.log('train_precision_class_4',
+                 self.train_class_precision.compute()[4], on_epoch=True, on_step=False)
+        self.log('train_precision_class_5',
+                 self.train_class_precision.compute()[5], on_epoch=True, on_step=False)
+        self.log('train_precision_class_6',
+                 self.train_class_precision.compute()[6], on_epoch=True, on_step=False)
+
+        self.log('train_recall_class_0',
+                 self.train_class_recall.compute()[0], on_epoch=True, on_step=False)
+        self.log('train_recall_class_1',
+                 self.train_class_recall.compute()[1], on_epoch=True, on_step=False)
+        self.log('train_recall_class_2',
+                 self.train_class_recall.compute()[2], on_epoch=True, on_step=False)
+        self.log('train_recall_class_3',
+                 self.train_class_recall.compute()[3], on_epoch=True, on_step=False)
+        self.log('train_recall_class_4',
+                 self.train_class_recall.compute()[4], on_epoch=True, on_step=False)
+        self.log('train_recall_class_5',
+                 self.train_class_recall.compute()[5], on_epoch=True, on_step=False)
+        self.log('train_recall_class_6',
+                 self.train_class_recall.compute()[6], on_epoch=True, on_step=False)
 
         return loss
 
@@ -275,6 +324,8 @@ class MultiLossModel(LightningModule):
         self.val_F1(pred_label, y)
         self.val_precision(pred_label, y)
         self.val_recall(pred_label, y)
+        self.val_class_precision(pred_label, y)
+        self.val_class_recall(pred_label, y)
 
         # log the metrics
         self.log('val_macro_acc',
@@ -288,6 +339,35 @@ class MultiLossModel(LightningModule):
                  on_epoch=True, on_step=False)
         self.log('val_recall', self.val_recall,
                  on_epoch=True, on_step=False)
+        self.log('val_precision_class_0',
+                 self.val_class_precision.compute()[0], on_epoch=True, on_step=False)
+        self.log('val_precision_class_1',
+                 self.val_class_precision.compute()[1], on_epoch=True, on_step=False)
+        self.log('val_precision_class_2',
+                 self.val_class_precision.compute()[2], on_epoch=True, on_step=False)
+        self.log('val_precision_class_3',
+                 self.val_class_precision.compute()[3], on_epoch=True, on_step=False)
+        self.log('val_precision_class_4',
+                 self.val_class_precision.compute()[4], on_epoch=True, on_step=False)
+        self.log('val_precision_class_5',
+                 self.val_class_precision.compute()[5], on_epoch=True, on_step=False)
+        self.log('val_precision_class_6',
+                 self.val_class_precision.compute()[6], on_epoch=True, on_step=False)
+
+        self.log('val_recall_class_0',
+                 self.val_class_recall.compute()[0], on_epoch=True, on_step=False)
+        self.log('val_recall_class_1',
+                 self.val_class_recall.compute()[1], on_epoch=True, on_step=False)
+        self.log('val_recall_class_2',
+                 self.val_class_recall.compute()[2], on_epoch=True, on_step=False)
+        self.log('val_recall_class_3',
+                 self.val_class_recall.compute()[3], on_epoch=True, on_step=False)
+        self.log('val_recall_class_4',
+                 self.val_class_recall.compute()[4], on_epoch=True, on_step=False)
+        self.log('val_recall_class_5',
+                 self.val_class_recall.compute()[5], on_epoch=True, on_step=False)
+        self.log('val_recall_class_6',
+                 self.val_class_recall.compute()[6], on_epoch=True, on_step=False)
 
         return loss
 
@@ -328,6 +408,8 @@ class MultiLossModel(LightningModule):
         self.test_F1(pred_label, y)
         self.test_precision(pred_label, y)
         self.test_recall(pred_label, y)
+        self.test_class_precision(pred_label, y)
+        self.test_class_recall(pred_label, y)
 
         self.log('test_macro_acc',
                  self.test_macro_accuracy,
@@ -340,5 +422,34 @@ class MultiLossModel(LightningModule):
                  on_epoch=True, on_step=False)
         self.log('test_recall', self.test_recall,
                  on_epoch=True, on_step=False)
+        self.log('test_precision_class_0',
+                 self.test_class_precision.compute()[0], on_epoch=True, on_step=False)
+        self.log('test_precision_class_1',
+                 self.test_class_precision.compute()[1], on_epoch=True, on_step=False)
+        self.log('test_precision_class_2',
+                 self.test_class_precision.compute()[2], on_epoch=True, on_step=False)
+        self.log('test_precision_class_3',
+                 self.test_class_precision.compute()[3], on_epoch=True, on_step=False)
+        self.log('test_precision_class_4',
+                 self.test_class_precision.compute()[4], on_epoch=True, on_step=False)
+        self.log('test_precision_class_5',
+                 self.test_class_precision.compute()[5], on_epoch=True, on_step=False)
+        self.log('test_precision_class_6',
+                 self.test_class_precision.compute()[6], on_epoch=True, on_step=False)
+
+        self.log('test_recal_class_0',
+                 self.test_class_recall.compute()[0], on_epoch=True, on_step=False)
+        self.log('test_recal_class_1',
+                 self.test_class_recall.compute()[1], on_epoch=True, on_step=False)
+        self.log('test_recal_class_2',
+                 self.test_class_recall.compute()[2], on_epoch=True, on_step=False)
+        self.log('test_recal_class_3',
+                 self.test_class_recall.compute()[3], on_epoch=True, on_step=False)
+        self.log('test_recal_class_4',
+                 self.test_class_recall.compute()[4], on_epoch=True, on_step=False)
+        self.log('test_recal_class_5',
+                 self.test_class_recall.compute()[5], on_epoch=True, on_step=False)
+        self.log('test_recal_class_6',
+                 self.test_class_recall.compute()[6], on_epoch=True, on_step=False)
 
         return loss

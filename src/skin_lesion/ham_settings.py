@@ -14,13 +14,13 @@ FEATURES = ['age', 'sex_numeric', 'label', 'abdomen', 'acral',	'back',	'chest', 
 TARGET = 'label'
 
 seed_list = [1997, 25, 12, 1966, 3297]
-SEED = 3297
+# SEED = 1997
 
 image_shape = (3, 224, 224)
 
 multiloss_config = {
     'batch_size': 512,  # 512
-    'max_epochs': 70,  # 40
+    'max_epochs': 40,  # 40
     'age': None,
     'learning_rate': 1e-4,
     'weight_decay': 0,
@@ -29,19 +29,24 @@ multiloss_config = {
     # 'checkpoint': r'/home/guests/selen_erkan/experiments/checkpoints/final/multi_loss/lr_sch_23/07.03.2023-20.53HAM_PROPOSED_SEED=12_lr=0.0001_wd=0-epoch=039.ckpt',
     # 'checkpoint': r'/home/guests/selen_erkan/experiments/checkpoints/final/multi_loss/lr_sch_23/07.03.2023-21.14HAM_PROPOSED_SEED=1966_lr=0.0001_wd=0-epoch=039.ckpt',
     # 'checkpoint': r'/home/guests/selen_erkan/experiments/checkpoints/final/multi_loss/lr_sch_23/07.03.2023-21.15HAM_PROPOSED_SEED=3297_lr=0.0001_wd=0-epoch=039.ckpt',
-    # 'checkpoint_concat': r'/home/guests/selen_erkan/experiments/checkpoints/final/multi_loss_concat/06.03.2023-22.32_FINAL_HAM_CONCAT_CC_SEED=1997_lr=0.0001_wd=0-epoch=020.ckpt',
-    # 'checkpoint_concat': r'/home/guests/selen_erkan/experiments/checkpoints/final/multi_loss_concat/06.03.2023-22.51_FINAL_HAM_CONCAT_CC_SEED=1966_lr=0.0001_wd=0-epoch=020.ckpt',
-    # 'checkpoint_concat': r'/home/guests/selen_erkan/experiments/checkpoints/final/multi_loss_concat/06.03.2023-22.52_FINAL_HAM_CONCAT_CC_SEED=3297_lr=0.0001_wd=0-epoch=020.ckpt',
-    # 'checkpoint_concat': r'/home/guests/selen_erkan/experiments/checkpoints/final/multi_loss_concat/07.03.2023-00.31_FINAL_MISSING_CONCAT_HAM_CC_SEED=25_lr=0.0001_wd=0-epoch=020.ckpt',
-    # 'checkpoint_concat': r'/home/guests/selen_erkan/experiments/checkpoints/final/multi_loss_concat/07.03.2023-00.32_FINAL_MISSING_CONCAT_HAM_CC_SEED=12_lr=0.0001_wd=0-epoch=020.ckpt',
-    # 'checkpoint_new_center': r'/home/guests/selen_erkan/experiments/checkpoints/final/new_center/18/06.03.2023-23.12_FINAL_HAM_NEW_CENTER_CONCAT_SEED=25_lr=0.0001_wd=0-epoch=018.ckpt',
-    # 'checkpoint_new_center': r'/home/guests/selen_erkan/experiments/checkpoints/final/new_center/18/06.03.2023-23.13_FINAL_HAM_NEW_CENTER_CONCAT_SEED=12_lr=0.0001_wd=0-epoch=018.ckpt',
-    # 'checkpoint_new_center': r'/home/guests/selen_erkan/experiments/checkpoints/final/new_center/18/06.03.2023-23.33_FINAL_HAM_NEW_CENTER_CONCAT_SEED=1966_lr=0.0001_wd=0-epoch=018.ckpt',
-    # 'checkpoint_new_center': r'/home/guests/selen_erkan/experiments/checkpoints/final/new_center/18/06.03.2023-23.34_FINAL_HAM_NEW_CENTER_CONCAT_SEED=3297_lr=0.0001_wd=0-epoch=018.ckpt',
-    # 'checkpoint_new_center': r'/home/guests/selen_erkan/experiments/checkpoints/final/new_center/18/07.03.2023-15.06MISSING_HAM_NEW_CENTER_CC_SEED=1997_lr=0.0001_wd=0-epoch=018.ckpt',
+    # 'checkpoint_concat': r'/home/guests/selen_erkan/experiments/checkpoints/final/multi_loss_concat/min_loss/08.03.2023-04.07HAM_SEED=1997_lr=0.0001_wd=0-epoch=039.ckpt',
+    # 'checkpoint_concat': r'/home/guests/selen_erkan/experiments/checkpoints/final/multi_loss_concat/min_loss/08.03.2023-04.25HAM_SEED=25_lr=0.0001_wd=0-epoch=039.ckpt',
+    # 'checkpoint_concat': r'/home/guests/selen_erkan/experiments/checkpoints/final/multi_loss_concat/min_loss/08.03.2023-04.44HAM_SEED=12_lr=0.0001_wd=0-epoch=039.ckpt',
+    # 'checkpoint_concat': r'/home/guests/selen_erkan/experiments/checkpoints/final/multi_loss_concat/min_loss/08.03.2023-05.03HAM_SEED=1966_lr=0.0001_wd=0-epoch=039.ckpt',
+    # 'checkpoint_concat': r'/home/guests/selen_erkan/experiments/checkpoints/final/multi_loss_concat/min_loss/08.03.2023-05.22HAM_SEED=3297_lr=0.0001_wd=0-epoch=039.ckpt',
+    # 'checkpoint_new_center': r'/home/guests/selen_erkan/experiments/checkpoints/final/new_center/min_loss/08.03.2023-04.19HAM_SEED=1997_lr=0.0001_wd=0-epoch=034.ckpt',
+    # 'checkpoint_new_center': r'/home/guests/selen_erkan/experiments/checkpoints/final/new_center/min_loss/08.03.2023-04.37HAM_SEED=25_lr=0.0001_wd=0-epoch=034.ckpt',
+    # 'checkpoint_new_center': r'/home/guests/selen_erkan/experiments/checkpoints/final/new_center/min_loss/08.03.2023-04.55HAM_SEED=12_lr=0.0001_wd=0-epoch=034.ckpt',
+    # 'checkpoint_new_center': r'/home/guests/selen_erkan/experiments/checkpoints/final/new_center/min_loss/08.03.2023-05.13HAM_SEED=1966_lr=0.0001_wd=0-epoch=034.ckpt',
+    # 'checkpoint_new_center': r'/home/guests/selen_erkan/experiments/checkpoints/final/new_center/min_loss/08.03.2023-05.31HAM_SEED=3297_lr=0.0001_wd=0-epoch=034.ckpt',
+    # 'checkpoint_modality_center': r'/home/guests/selen_erkan/experiments/checkpoints/final/modality_center/min_loss/09.03.2023-18.51HAM_SEED=1997_lr=0.0001_wd=0-epoch=039.ckpt',
+    # 'checkpoint_modality_center': r'/home/guests/selen_erkan/experiments/checkpoints/final/modality_center/min_loss/09.03.2023-18.52HAM_SEED=12_lr=0.0001_wd=0-epoch=039.ckpt',
+    # 'checkpoint_modality_center': r'/home/guests/selen_erkan/experiments/checkpoints/final/modality_center/min_loss/09.03.2023-18.52HAM_SEED=3297_lr=0.0001_wd=0-epoch=039.ckpt',
+    # 'checkpoint_modality_center': r'/home/guests/selen_erkan/experiments/checkpoints/final/modality_center/min_loss/09.03.2023-19.10HAM_SEED=25_lr=0.0001_wd=0-epoch=039.ckpt',
+    'checkpoint_modality_center': r'/home/guests/selen_erkan/experiments/checkpoints/final/modality_center/min_loss/09.03.2023-19.12HAM_SEED=1966_lr=0.0001_wd=0-epoch=039.ckpt',
     'alpha_center': 0.01,
     'triplet_ratio': 0.7,
-    'SEED': SEED,
+    # 'SEED': SEED,
     'dropout': 0,
 }
 
@@ -51,28 +56,44 @@ supervised_config = {
     'age': None,
     'learning_rate': 1e-4,
     'weight_decay': 0,
-    # 'checkpoint': r'/home/guests/selen_erkan/experiments/checkpoints/final/supervised/06.03.2023-19.11_FINAL_HAM_SEED=1997_lr=0.0001_wd=0-epoch=020.ckpt',
-    # 'checkpoint': r'/home/guests/selen_erkan/experiments/checkpoints/final/supervised/06.03.2023-19.41_FINAL_HAM_SEED=25_lr=0.0001_wd=0-epoch=020.ckpt',
-    # 'checkpoint': r'/home/guests/selen_erkan/experiments/checkpoints/final/supervised/06.03.2023-20.26_FINAL_HAM_SEED=12_lr=0.0001_wd=0-epoch=020.ckpt',
-    # 'checkpoint': r'/home/guests/selen_erkan/experiments/checkpoints/final/supervised/06.03.2023-21.11_FINAL_HAM_SEED=1966_lr=0.0001_wd=0-epoch=020.ckpt',
-    # 'checkpoint': r'/home/guests/selen_erkan/experiments/checkpoints/final/supervised/06.03.2023-23.52_MISSING_HAM_SEED=3297_lr=0.0001_wd=0-epoch=020.ckpt',
+    # 'checkpoint': r'/home/guests/selen_erkan/experiments/checkpoints/final/supervised/min_lost/08.03.2023-04.15_HAM_SEED=1997_lr=0.0001_wd=0-epoch=011.ckpt',
+    # 'checkpoint': r'/home/guests/selen_erkan/experiments/checkpoints/final/supervised/min_lost/08.03.2023-04.34_HAM_SEED=25_lr=0.0001_wd=0-epoch=011.ckpt',
+    # 'checkpoint': r'/home/guests/selen_erkan/experiments/checkpoints/final/supervised/min_lost/08.03.2023-04.52_HAM_SEED=12_lr=0.0001_wd=0-epoch=011.ckpt',
+    # 'checkpoint': r'/home/guests/selen_erkan/experiments/checkpoints/final/supervised/min_lost/08.03.2023-05.11_HAM_SEED=1966_lr=0.0001_wd=0-epoch=011.ckpt',
+    # 'checkpoint': r'/home/guests/selen_erkan/experiments/checkpoints/final/supervised/min_lost/08.03.2023-05.30_HAM_SEED=3297_lr=0.0001_wd=0-epoch=011.ckpt',
+    # 'checkpoint_corr': r'/home/guests/selen_erkan/experiments/checkpoints/final/supervised_corre/min_loss/08.03.2023-11.51_HAM_SEED=1997_lr=0.0001_wd=0-epoch=005.ckpt',
+    # 'checkpoint_corr': r'/home/guests/selen_erkan/experiments/checkpoints/final/supervised_corre/min_loss/08.03.2023-12.09_HAM_SEED=25_lr=0.0001_wd=0-epoch=005.ckpt',
+    # 'checkpoint_corr': r'/home/guests/selen_erkan/experiments/checkpoints/final/supervised_corre/min_loss/08.03.2023-12.26_HAM_SEED=12_lr=0.0001_wd=0-epoch=005.ckpt',
+    # 'checkpoint_corr': r'/home/guests/selen_erkan/experiments/checkpoints/final/supervised_corre/min_loss/08.03.2023-12.44_HAM_SEED=1966_lr=0.0001_wd=0-epoch=005.ckpt',
+    # 'checkpoint_corr': r'/home/guests/selen_erkan/experiments/checkpoints/final/supervised_corre/min_loss/08.03.2023-13.01_HAM_SEED=3297_lr=0.0001_wd=0-epoch=005.ckpt',
     # 'checkpoint_resnet': r'/home/guests/selen_erkan/experiments/checkpoints/final/resnet/min_lost/06.03.2023-19.08_FINAL_HAM_SEED=1997_lr=0.0001_wd=0-epoch=009.ckpt',
     # 'checkpoint_resnet': r'/home/guests/selen_erkan/experiments/checkpoints/final/resnet/min_lost/06.03.2023-19.40_FINAL_HAM_SEED=25_lr=0.0001_wd=0-epoch=009.ckpt',
     # 'checkpoint_resnet': r'/home/guests/selen_erkan/experiments/checkpoints/final/resnet/min_lost/06.03.2023-20.25_FINAL_HAM_SEED=12_lr=0.0001_wd=0-epoch=009.ckpt',
     # 'checkpoint_resnet': r'/home/guests/selen_erkan/experiments/checkpoints/final/resnet/min_lost/06.03.2023-21.12_FINAL_HAM_SEED=1966_lr=0.0001_wd=0-epoch=009.ckpt',
     # 'checkpoint_resnet': r'/home/guests/selen_erkan/experiments/checkpoints/final/resnet/min_lost/07.03.2023-16.23_FINAL_MISSING_HAM_SEED=3297_lr=0.0001_wd=0-epoch=009.ckpt',
-    'SEED': SEED
+    # 'checkpoint_daft': r'/home/guests/selen_erkan/experiments/checkpoints/final/daft/min_loss/08.03.2023-15.58HAM_SEED=1997_lr=0.0001_wd=0-epoch=007.ckpt',
+    # 'checkpoint_daft': r'/home/guests/selen_erkan/experiments/checkpoints/final/daft/min_loss/08.03.2023-16.19HAM_SEED=25_lr=0.0001_wd=0-epoch=007.ckpt',
+    # 'checkpoint_daft': r'/home/guests/selen_erkan/experiments/checkpoints/final/daft/min_loss/08.03.2023-16.40HAM_SEED=12_lr=0.0001_wd=0-epoch=007.ckpt',
+    # 'checkpoint_daft': r'/home/guests/selen_erkan/experiments/checkpoints/final/daft/min_loss/08.03.2023-17.02HAM_SEED=1966_lr=0.0001_wd=0-epoch=007.ckpt',
+    # 'checkpoint_daft': r'/home/guests/selen_erkan/experiments/checkpoints/final/daft/min_loss/08.03.2023-17.23HAM_SEED=3297_lr=0.0001_wd=0-epoch=007.ckpt',
+    # 'checkpoint_film': r'/home/guests/selen_erkan/experiments/checkpoints/final/film/min_loss/09.03.2023-11.43HAM_SEED=1997_lr=0.0001_wd=0-epoch=006.ckpt',
+    # 'checkpoint_film': r'/home/guests/selen_erkan/experiments/checkpoints/final/film/min_loss/09.03.2023-11.45HAM_SEED=12_lr=0.0001_wd=0-epoch=006.ckpt',
+    # 'checkpoint_film': r'/home/guests/selen_erkan/experiments/checkpoints/final/film/min_loss/09.03.2023-11.47HAM_SEED=3297_lr=0.0001_wd=0-epoch=006.ckpt',
+    # 'checkpoint_film': r'/home/guests/selen_erkan/experiments/checkpoints/final/film/min_loss/09.03.2023-12.08HAM_SEED=25_lr=0.0001_wd=0-epoch=006.ckpt',
+    # 'checkpoint_film': r'/home/guests/selen_erkan/experiments/checkpoints/final/film/min_loss/09.03.2023-12.10HAM_SEED=1966_lr=0.0001_wd=0-epoch=006.ckpt',
+    # 'SEED': SEED
 }
 
 tabular_config = {
     'batch_size': 512,  # 512
-    'max_epochs': 100,
+    'max_epochs': 40,
     'age': None,
     'learning_rate': 1e-3,
     'weight_decay': 0,
-    'checkpoint': None,
-    'contrastive_checkpoint': None,
-    'checkpoint_flag': False,
-    'contrastive_checkpoint_flag': False,
-    'SEED': SEED
+    # 'checkpoint': r'/home/guests/selen_erkan/experiments/checkpoints/final/tabular/min_loss/08.03.2023-17.30_HAM_SEED=25_lr=0.001_wd=0-epoch=035.ckpt',
+    # 'checkpoint': r'/home/guests/selen_erkan/experiments/checkpoints/final/tabular/min_loss/08.03.2023-17.43_HAM_SEED=12_lr=0.001_wd=0-epoch=035.ckpt',
+    # 'checkpoint': r'/home/guests/selen_erkan/experiments/checkpoints/final/tabular/min_loss/08.03.2023-17.56_HAM_SEED=1966_lr=0.001_wd=0-epoch=035.ckpt',
+    # 'checkpoint': r'/home/guests/selen_erkan/experiments/checkpoints/final/tabular/min_loss/08.03.2023-18.02_HAM_SEED=1997_lr=0.001_wd=0-epoch=035.ckpt',
+    # 'checkpoint': r'/home/guests/selen_erkan/experiments/checkpoints/final/tabular/min_loss/08.03.2023-18.09_HAM_SEED=3297_lr=0.001_wd=0-epoch=035.ckpt',
+    # # 'SEED': SEED
 }
