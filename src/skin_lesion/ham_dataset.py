@@ -181,6 +181,7 @@ class HAMDataModule(pl.LightningDataModule):
         self.age = age
         self.csv_dir = csv_dir
         self.batch_size = batch_size
+        self.n_views = 2
 
         self.num_workers = 0
         if torch.cuda.is_available():
@@ -352,6 +353,18 @@ class HAMDataModule(pl.LightningDataModule):
         self.val = Supervised_Multimodal_Dataset(self.val_df, image_base_dir=image_dir,
                                                  target=TARGET, features=FEATURES, transform=self.get_transforms()['val'])
 
+    def set_contrastive_loss_dataloader(self):
+
+        # create the dataset object using the dataframes created above
+        self.train = Supervised_Multimodal_Dataset(self.train_df, image_base_dir=image_dir,
+                                                   target=TARGET, features=FEATURES, transform=ContrastiveLearningViewGenerator(self.get_transforms(), self.n_views))
+
+        self.test = Supervised_Multimodal_Dataset(self.test_df, image_base_dir=image_dir,
+                                                  target=TARGET, features=FEATURES, transform=ContrastiveLearningViewGenerator(self.get_transforms(), self.n_views))
+
+        self.val = Supervised_Multimodal_Dataset(self.val_df, image_base_dir=image_dir,
+                                                 target=TARGET, features=FEATURES, transform=ContrastiveLearningViewGenerator(self.get_transforms(), self.n_views))
+
     def set_triplet_dataloader(self):
 
         # create the dataset object using the dataframes created above
@@ -426,3 +439,36 @@ class StratifiedSampler(Sampler):
 
     def __len__(self):
         return len(self.class_vector)
+
+
+class ContrastiveLearningViewGenerator(object):
+    """Take two random crops of one image as the query and key.
+
+    Params:
+        - base_transform: the transform to apply
+        - n_views: how many transforms of the same image to create
+
+    Returns:
+        - the stacked tensor of augmented images (shape: n_views x 1 x width x height x depth)
+    """
+
+    def __init__(self, base_transform, n_views=2):
+        self.base_transform = base_transform
+        self.n_views = n_views
+
+    def __call__(self, x):
+
+        # change the dtype
+        x = np.array(x, dtype=np.float32)
+
+        # scale images between [0,1]
+        # min_val = x.min()
+        # x = (x - min_val) / (x.max() - min_val)
+
+        # this must ransform the tensor between [0,1]
+        x = torch.tensor(x)
+
+        # create the channel dimension
+        x = torch.unsqueeze(x, 0)
+
+        return torch.stack([self.base_transform(x) for _ in range(self.n_views)])
