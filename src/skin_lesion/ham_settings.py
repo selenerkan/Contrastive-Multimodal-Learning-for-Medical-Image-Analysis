@@ -14,7 +14,7 @@ FEATURES = ['age', 'sex_numeric', 'label', 'abdomen', 'acral',	'back',	'chest', 
 TARGET = 'label'
 
 seed_list = [1997, 25, 12, 1966, 3297]
-# SEED = 1997
+SEED = 1997
 
 image_shape = (3, 224, 224)
 
@@ -96,4 +96,14 @@ tabular_config = {
     # 'checkpoint': r'/home/guests/selen_erkan/experiments/checkpoints/final/tabular/min_loss/08.03.2023-18.02_HAM_SEED=1997_lr=0.001_wd=0-epoch=035.ckpt',
     # 'checkpoint': r'/home/guests/selen_erkan/experiments/checkpoints/final/tabular/min_loss/08.03.2023-18.09_HAM_SEED=3297_lr=0.001_wd=0-epoch=035.ckpt',
     # # 'SEED': SEED
+}
+
+contrastive_loss_config = {
+
+    'batch_size': 512,  # 512
+    'max_epochs': 40,  # 40
+    'age': None,
+    'learning_rate': 1e-4,
+    'weight_decay': 0,
+    'correlation': False,
 }
