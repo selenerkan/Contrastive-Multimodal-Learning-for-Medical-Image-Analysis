@@ -357,13 +357,13 @@ class HAMDataModule(pl.LightningDataModule):
 
         # create the dataset object using the dataframes created above
         self.train = Supervised_Multimodal_Dataset(self.train_df, image_base_dir=image_dir,
-                                                   target=TARGET, features=FEATURES, transform=ContrastiveLearningViewGenerator(self.get_transforms(), self.n_views))
+                                                   target=TARGET, features=FEATURES, transform=ContrastiveLearningViewGenerator(self.get_transforms()['train'], self.n_views))
 
         self.test = Supervised_Multimodal_Dataset(self.test_df, image_base_dir=image_dir,
-                                                  target=TARGET, features=FEATURES, transform=ContrastiveLearningViewGenerator(self.get_transforms(), self.n_views))
+                                                  target=TARGET, features=FEATURES, transform=ContrastiveLearningViewGenerator(self.get_transforms()['val'], self.n_views))
 
         self.val = Supervised_Multimodal_Dataset(self.val_df, image_base_dir=image_dir,
-                                                 target=TARGET, features=FEATURES, transform=ContrastiveLearningViewGenerator(self.get_transforms(), self.n_views))
+                                                 target=TARGET, features=FEATURES, transform=ContrastiveLearningViewGenerator(self.get_transforms()['val'], self.n_views))
 
     def set_triplet_dataloader(self):
 
@@ -457,18 +457,5 @@ class ContrastiveLearningViewGenerator(object):
         self.n_views = n_views
 
     def __call__(self, x):
-
-        # change the dtype
-        x = np.array(x, dtype=np.float32)
-
-        # scale images between [0,1]
-        # min_val = x.min()
-        # x = (x - min_val) / (x.max() - min_val)
-
-        # this must ransform the tensor between [0,1]
-        x = torch.tensor(x)
-
-        # create the channel dimension
-        x = torch.unsqueeze(x, 0)
-
+        # return n positive pairs per image
         return torch.stack([self.base_transform(x) for _ in range(self.n_views)])
