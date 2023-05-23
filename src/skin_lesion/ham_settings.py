@@ -18,6 +18,16 @@ SEED = 1997
 
 image_shape = (3, 224, 224)
 
+triplet_center_config = {
+    'batch_size': 3,  # 512
+    'max_epochs': 40,  # 40
+    'age': None,
+    'learning_rate': 1e-4,
+    'weight_decay': 0,
+    'alpha_center': 0.01,
+    'alpha_triplet': 0.3,
+}
+
 multiloss_config = {
     'batch_size': 512,  # 512
     'max_epochs': 40,  # 40

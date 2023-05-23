@@ -3,7 +3,7 @@ from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.callbacks import ModelCheckpoint
 import os
-from ham_settings import csv_dir, supervised_config, CHECKPOINT_DIR, tabular_config, multiloss_config, seed_list, contrastive_loss_config
+from ham_settings import csv_dir, supervised_config, CHECKPOINT_DIR, tabular_config, multiloss_config, seed_list, contrastive_loss_config, triplet_center_config
 from models.ham_supervised_model import SupervisedModel
 from models.image_model import BaselineModel
 from models.resnet_model import ResnetModel
@@ -22,24 +22,7 @@ from models.ham_film_model import FilmModel
 from models.ham_new_center_model import NewCenterModel
 from models.ham_modality_specific_center import ModalityCenterModel
 from models.ham_contrastive_loss_model import HamContrastiveModel
-
-
-# from enum import Enum
-
-
-# class Models(Enum):
-#     DAFT = 1
-#     FILM = 2
-
-
-# def main2(model: Models):
-#     if model is Models.DAFT:
-#         pass
-#     elif model is Models.FILM:
-#         pass
-
-
-# main2(Models.FILM)
+from models.ham_triplet_center_cross_ent import TripletCenterModel
 
 
 def main_baseline(config=None):
@@ -1049,6 +1032,59 @@ def main_supervised_contrastive_weights(seed, config=None):
     wandb.finish()
 
 
+def main_triplet_center_cross_entropy(seed, config=None):
+    '''
+    main function to run the multimodal architecture with triplet + center + cross entropy loss
+    '''
+
+    print('YOU ARE RUNNING MULTIMODAL NETWORK WITH TRIPLET + CENTER + CROSS ENT. LOSS FOR HAM DATASET')
+    print('THIS MODEL IS ALWAYS WITH CORRELATION')
+    print(config)
+
+    wandb.init(group='TRIPLET_CENTER_CROSS_LOSS_HAM',
+               project="final_multimodal_training",  config=config)
+    wandb_logger = WandbLogger()
+
+    model = TripletCenterModel(
+        seed, learning_rate=wandb.config.learning_rate, weight_decay=wandb.config.weight_decay, alpha_center=wandb.config.alpha_center, alpha_triplet=wandb.config.alpha_triplet)
+    wandb.watch(model, log="all")
+
+    # load the data
+    data = HAMDataModule(
+        csv_dir, age=wandb.config.age, batch_size=wandb.config.batch_size)
+    data.prepare_data(seed=seed)
+    data.set_triplet_dataloader()
+    train_dataloader = data.train_dataloader()
+    val_dataloader = data.val_dataloader()
+
+    accelerator = 'cpu'
+    devices = None
+    if torch.cuda.is_available():
+        accelerator = 'gpu'
+        devices = 1
+
+    # save the checkpoint in a different folder
+    # use datetime value in the file name
+    date_time = datetime.now()
+    dt_string = date_time.strftime("%d.%m.%Y-%H.%M")
+    checkpoint_callback = ModelCheckpoint(
+        dirpath=os.path.join(
+            CHECKPOINT_DIR, 'triplet_center_cross/training'),
+        filename=dt_string+'HAM_SEED='+str(seed)+'_lr='+str(wandb.config.learning_rate)+'_wd=' +
+        str(wandb.config.weight_decay)+'-{epoch:03d}',
+        monitor='val_macro_acc',
+        save_top_k=wandb.config.max_epochs,
+        mode='max')
+
+    # Add learning rate scheduler monitoring
+    lr_monitor = LearningRateMonitor(logging_interval='epoch')
+    trainer = Trainer(accelerator=accelerator, devices=devices,
+                      max_epochs=wandb.config.max_epochs, logger=wandb_logger, callbacks=[checkpoint_callback, lr_monitor], deterministic=True)
+    trainer.fit(model, train_dataloaders=train_dataloader,
+                val_dataloaders=val_dataloader)
+    wandb.finish()
+
+
 if __name__ == '__main__':
 
     # set the seed of the environment
@@ -1133,15 +1169,17 @@ if __name__ == '__main__':
     #     torch.use_deterministic_algorithms(True)
     #     main_daft(seed, supervised_config)
 
-    for seed in seed_list:
-        seed_everything(seed, workers=True)
-        torch.manual_seed(seed)
-        np.random.seed(seed)
-        torch.cuda.manual_seed(seed)
-        random.seed(seed)
-        np.random.seed(seed)
-        torch.use_deterministic_algorithms(True)
-        main_contrastive_loss(seed, contrastive_loss_config)
+    # for seed in seed_list:
+    #     seed_everything(seed, workers=True)
+    #     torch.manual_seed(seed)
+    #     np.random.seed(seed)
+    #     torch.cuda.manual_seed(seed)
+    #     random.seed(seed)
+    #     np.random.seed(seed)
+    #     torch.use_deterministic_algorithms(True)
+    #     main_contrastive_loss(seed, contrastive_loss_config)
+
+    main_triplet_center_cross_entropy(473, config=triplet_center_config)
 
     # TESTING
     # test_supervised_multimodal(seed=1997, config=supervised_config)

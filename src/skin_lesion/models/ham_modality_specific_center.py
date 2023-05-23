@@ -8,7 +8,6 @@ import torchmetrics
 from torch.nn import Softmax
 from center_loss import CenterLoss
 import torchvision
-from adversarial_loss import AdversarialLoss
 import pandas as pd
 
 

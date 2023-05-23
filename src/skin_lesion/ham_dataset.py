@@ -38,79 +38,86 @@ class Triplet_Loss_Dataset(Dataset):
         self.tabular_data = tabular_data.copy()
 
         # keep relevant features in the tabular data
-        self.features = features
-        self.tabular = self.tabular_data[self.features]
-
+        self.features = features.copy()
+        self.features.remove('label')
+        
         # Save target and predictors
         self.target = target
-        self.X = self.tabular.drop(self.target, axis=1)
-        self.y = self.tabular[self.target]
-
+        
         # IMAGE DATA
         self.imge_base_dir = image_base_dir
         self.transform = transform
 
     def __len__(self):
 
-        return len(self.tabular)
+        return len(self.tabular_data)
 
+    def load_pairs(self,idx):
+        # remove the data belongs to the sample individual
+        label_anchor = self.tabular_data[self.target].iloc[idx]
+        lesion_id = self.tabular_data['lesion_id'].iloc[idx]
+        tabular = self.tabular_data[self.tabular_data['lesion_id']!=lesion_id]
+
+        # get the positive and negative pair names
+        # dont get the images form the same person as positive pairs?
+        positive_pairs = tabular[tabular.label
+                                 == label_anchor].drop_duplicates()
+        negative_pairs = tabular[tabular.label
+                                 != label_anchor].drop_duplicates()
+        
+        # pick a random positive and negative image
+        pos_idx=int(torch.randint(len(positive_pairs), (1,)))
+        neg_idx=int(torch.randint(len(negative_pairs), (1,)))    
+
+        positive_img_name=positive_pairs['image_id'].iloc[pos_idx]
+        pos_img_folder_name = positive_pairs.dx.iloc[pos_idx]
+        pos_img_path = os.path.join(
+            self.imge_base_dir, pos_img_folder_name, positive_img_name + '.jpg')
+        
+        negative_img_name=negative_pairs['image_id'].iloc[neg_idx]
+        neg_img_folder_name = negative_pairs.dx.iloc[neg_idx]
+        neg_img_path = os.path.join(
+            self.imge_base_dir, neg_img_folder_name, negative_img_name + '.jpg')
+        
+        positive_image = Image.open(pos_img_path)
+        positive_image = positive_image.convert("RGB")
+        negative_image = Image.open(neg_img_path)
+        negative_image = negative_image.convert("RGB")
+        
+        # get the tabular data for given index
+        positive_tab = positive_pairs[self.features].iloc[pos_idx].values
+        negative_tab = negative_pairs[self.features].iloc[neg_idx].values
+
+        return positive_image, positive_tab, negative_image, negative_tab
+    
     def __getitem__(self, idx):
 
         # Convert idx from tensor to list due to pandas bug (that arises when using pytorch's random_split)
         if isinstance(idx, torch.Tensor):
             idx = idx.tolist()
 
-        label_anchor = self.y[idx]
-        # remove the current image form the tabular data
-        tabular = self.tabular_data.drop(idx).reset_index(drop=True)
-        # get the positive and negative pair names
-        # TODO: dont get the images form the same person as positive pairs?
-        positive_pairs = tabular[tabular.label
-                                 == label_anchor]['image_id'].unique()
-        negative_pairs = tabular[tabular.label
-                                 != label_anchor]['image_id'].unique()
-
-        # pick a random positive and negative image
-        positive_img_name = random.choice(positive_pairs)
-        negative_img_name = random.choice(negative_pairs)
-
-        # get the index of the positive and negative pairs
-        pos_idx = tabular.index[tabular['image_id']
-                                == positive_img_name][0]
-        neg_idx = tabular.index[tabular['image_id']
-                                == negative_img_name][0]
+        # get the label and tabular features of the sample
+        label_anchor = self.tabular_data[self.target].iloc[idx]
+        tab_anchor = self.tabular_data[self.features].iloc[idx].values
 
         # get image name for the given index
         img_folder_name = self.tabular_data.dx[idx]
         img_name = self.tabular_data['image_id'][idx]
         img_path = os.path.join(
             self.imge_base_dir, img_folder_name, img_name + '.jpg')
-        pos_img_folder_name = tabular.dx[pos_idx]
-        pos_img_path = os.path.join(
-            self.imge_base_dir, pos_img_folder_name, positive_img_name + '.jpg')
-        neg_img_folder_name = tabular.dx[neg_idx]
-        neg_img_path = os.path.join(
-            self.imge_base_dir, neg_img_folder_name, negative_img_name + '.jpg')
-
+        
         # load all three images
         image = Image.open(img_path)
         image = image.convert("RGB")
-        positive_image = Image.open(pos_img_path)
-        positive_image = positive_image.convert("RGB")
-        negative_image = Image.open(neg_img_path)
-        negative_image = negative_image.convert("RGB")
+
+        positive_image, positive_tab, negative_image, negative_tab = self.load_pairs(idx)
 
         if self.transform:
             transformed_images = self.transform(image)
             transformed_positive_images = self.transform(positive_image)
             transformed_negative_images = self.transform(negative_image)
 
-        # get the tabular data for given index
-        tab = self.X.iloc[idx].values
-        positive_tab = self.X.iloc[pos_idx].values
-        negative_tab = self.X.iloc[neg_idx].values
-
-        return transformed_images, transformed_positive_images, transformed_negative_images, tab, positive_tab.squeeze(), negative_tab.squeeze(), label_anchor
+        return transformed_images, transformed_positive_images, transformed_negative_images, tab_anchor, positive_tab, negative_tab, label_anchor
 
 
 class Supervised_Multimodal_Dataset(Dataset):
@@ -335,7 +342,15 @@ class HAMDataModule(pl.LightningDataModule):
         # prepare val dataframe
         self.val_df = self.train_data[self.train_data['lesion_id'].isin(
             self.val_patients.lesion_id)].reset_index(drop=True)
-
+        
+        # # ONLY FOR OVERFITTING ON ONE IMAGE
+        # self.train_df = self.train_df.groupby(
+        #     'label').apply(lambda x: x.sample(5)).droplevel(0).reset_index(drop=True)
+        # self.val_df = self.val_df.groupby(
+        #     'label').apply(lambda x: x.sample(5)).droplevel(0).reset_index(drop=True)
+        # self.test_df = self.test_df.groupby(
+        #     'label').apply(lambda x: x.sample(5)).droplevel(0).reset_index(drop=True)
+        
         print('number of patients in train: ', len(self.train_df))
         print('patient IDs in train: ', self.train_df.lesion_id.unique())
         print('number of patients in val: ', len(self.val_df))
