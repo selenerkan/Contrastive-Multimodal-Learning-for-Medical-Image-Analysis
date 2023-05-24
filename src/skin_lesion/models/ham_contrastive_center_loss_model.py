@@ -6,17 +6,21 @@ from models.model_blocks.ham_resnet_block import ResNet
 from torch.optim.lr_scheduler import StepLR, MultiStepLR
 from pytorch_metric_learning import losses
 import torchvision
+from center_loss import CenterLoss
 
 
-class HamContrastiveModel(LightningModule):
+class HamContrastiveCenterModel(LightningModule):
     '''
     Uses ResNet for the image data, concatenates image and tabular data at the end
     '''
 
-    def __init__(self, learning_rate=0.013, weight_decay=0.01, correlation=False):
+    def __init__(self, seed, learning_rate=0.013, weight_decay=0.01, alpha_center=0.01, correlation=False):
 
         super().__init__()
         self.save_hyperparameters()
+        self.use_gpu = False
+        if torch.cuda.is_available():
+            self.use_gpu = True
 
         self.lr = learning_rate
         self.wd = weight_decay
@@ -24,11 +28,13 @@ class HamContrastiveModel(LightningModule):
         self.feature_dim = 32
         self.embedding_dimension = 64
         self.correlation = correlation
+        # weights of the losses
+        self.alpha_center = alpha_center
+        self.alpha_contrastive = (1-alpha_center)
 
         # IMAGE DATA
-        # self.resnet = torchvision.models.resnet18(
-        #     weights=torchvision.models.ResNet18_Weights.DEFAULT)  # output features are 1000
-        self.resnet = torchvision.models.resnet18()  # output features are 1000
+        self.resnet = torchvision.models.resnet18(
+            weights=torchvision.models.ResNet18_Weights.DEFAULT)  # output features are 1000
         # change resnet fc output to 128 features
         self.resnet.fc = nn.Linear(512, 128)
 
@@ -59,6 +65,10 @@ class HamContrastiveModel(LightningModule):
             nn.Sigmoid(),
             nn.Linear(self.feature_dim, self.feature_dim)
         )
+
+        # initiate losses
+        self.center_loss = CenterLoss(
+            num_classes=self.num_classes, feat_dim=self.feature_dim, use_gpu=self.use_gpu, seed=seed)
 
     def forward(self, img, tab):
         """
@@ -119,7 +129,7 @@ class HamContrastiveModel(LightningModule):
     def training_step(self, batch, batch_idx):
 
         # get tabular and image data from the batch
-        img, tab, label = batch
+        img, tab, y = batch
 
         embeddings = self(img, tab)
 
@@ -129,20 +139,31 @@ class HamContrastiveModel(LightningModule):
         batch_size = img.size(0) * 2
         labels = torch.arange(batch_size)
         labels[1::2] = labels[0::2]
+        y = torch.repeat_interleave(y, repeats=2, dim=0)
 
-        loss_function = losses.NTXentLoss(
+        # contrastive loss
+        contrastive_loss_function = losses.NTXentLoss(
             temperature=0.5)  # temperature value is copied from simCLR
-        loss = loss_function(embeddings, labels)
+        contrastive_loss = contrastive_loss_function(
+            embeddings, labels)
+        # center loss
+        center_loss = self.center_loss(embeddings, y.squeeze())
+        # sum of the losses
+        loss = self.alpha_contrastive * contrastive_loss + self.alpha_center * center_loss
 
         # Log loss on every epoch
         self.log('train_epoch_loss', loss, on_epoch=True, on_step=False)
+        self.log('train_contrastive_loss', contrastive_loss,
+                 on_epoch=True, on_step=False)
+        self.log('train_center_loss', center_loss,
+                 on_epoch=True, on_step=False)
 
         return loss
 
     def validation_step(self, batch, batch_idx):
 
         # get tabular and image data from the batch
-        img, tab, label = batch
+        img, tab, y = batch
 
         embeddings = self(img, tab)
 
@@ -152,20 +173,31 @@ class HamContrastiveModel(LightningModule):
         batch_size = img.size(0) * 2
         labels = torch.arange(batch_size)
         labels[1::2] = labels[0::2]
+        y = torch.repeat_interleave(y, repeats=2, dim=0)
 
-        loss_function = losses.NTXentLoss(
+        # contrastive loss
+        contrastive_loss_function = losses.NTXentLoss(
             temperature=0.5)  # temperature value is copied from simCLR
-        loss = loss_function(embeddings, labels)
+        contrastive_loss = contrastive_loss_function(
+            embeddings, labels)
+        # center loss
+        center_loss = self.center_loss(embeddings, y.squeeze())
+        # sum of the losses
+        loss = self.alpha_contrastive * contrastive_loss + self.alpha_center * center_loss
 
         # Log loss on every epoch
         self.log('val_epoch_loss', loss, on_epoch=True, on_step=False)
+        self.log('val_contrastive_loss', contrastive_loss,
+                 on_epoch=True, on_step=False)
+        self.log('val_center_loss', center_loss,
+                 on_epoch=True, on_step=False)
 
         return loss
 
     def test_step(self, batch, batch_idx):
 
         # get tabular and image data from the batch
-        img, tab, label = batch
+        img, tab, y = batch
 
         embeddings = self(img, tab)
 
@@ -175,12 +207,23 @@ class HamContrastiveModel(LightningModule):
         batch_size = img.size(0) * 2
         labels = torch.arange(batch_size)
         labels[1::2] = labels[0::2]
+        y = torch.repeat_interleave(y, repeats=2, dim=0)
 
-        loss_function = losses.NTXentLoss(
+        # contrastive loss
+        contrastive_loss_function = losses.NTXentLoss(
             temperature=0.5)  # temperature value is copied from simCLR
-        loss = loss_function(embeddings, labels)
+        contrastive_loss = contrastive_loss_function(
+            embeddings, labels)
+        # center loss
+        center_loss = self.center_loss(embeddings, y.squeeze())
+        # sum of the losses
+        loss = self.alpha_contrastive * contrastive_loss + self.alpha_center * center_loss
 
         # Log loss on every epoch
         self.log('test_epoch_loss', loss, on_epoch=True, on_step=False)
+        self.log('test_contrastive_loss', contrastive_loss,
+                 on_epoch=True, on_step=False)
+        self.log('test_center_loss', center_loss,
+                 on_epoch=True, on_step=False)
 
         return loss

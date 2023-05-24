@@ -211,13 +211,13 @@ def main_supervised_multimodal(seed, config=None):
     print('YOU ARE RUNNING SEED SUPERVISED MULTIMODAL FOR HAM DATASET')
     print(config)
 
-    wandb.init(group='SEED_FULL_CORRELATION_SUPERVISED_HAM',
+    wandb.init(group='SEED_SUPERVISED_RANDOM_INIT_CONCAT',
                project="final_multimodal_training", config=config)
     wandb_logger = WandbLogger()
 
     # get the model
     model = SupervisedModel(learning_rate=wandb.config.learning_rate,
-                            weight_decay=wandb.config.weight_decay)
+                            weight_decay=wandb.config.weight_decay, correlation=wandb.config.correlation)
     wandb.watch(model, log="all")
 
     # load the data
@@ -239,7 +239,8 @@ def main_supervised_multimodal(seed, config=None):
     date_time = datetime.now()
     dt_string = date_time.strftime("%d.%m.%Y-%H.%M")
     checkpoint_callback = ModelCheckpoint(
-        dirpath=os.path.join(CHECKPOINT_DIR, 'supervised/full/correlation'),
+        dirpath=os.path.join(
+            CHECKPOINT_DIR, 'supervised/random_init/concat/seed/'),
         filename=dt_string+'_HAM_SEED='+str(seed)+'_lr='+str(wandb.config.learning_rate)+'_wd=' +
         str(wandb.config.weight_decay)+'-{epoch:03d}',
         monitor='val_macro_acc',
@@ -269,7 +270,7 @@ def test_supervised_multimodal(seed, config=None):
 
     # get the model
     model = SupervisedModel(learning_rate=wandb.config.learning_rate,
-                            weight_decay=wandb.config.weight_decay)
+                            weight_decay=wandb.config.weight_decay, correlation=wandb.config.correlation)
     wandb.watch(model, log="all")
 
     # load the data
@@ -306,7 +307,7 @@ def test_supervised_corr_multimodal(seed, config=None):
 
     # get the model
     model = SupervisedModel(learning_rate=wandb.config.learning_rate,
-                            weight_decay=wandb.config.weight_decay)
+                            weight_decay=wandb.config.weight_decay, correlation=wandb.config.correlation)
     wandb.watch(model, log="all")
 
     # load the data
@@ -920,7 +921,7 @@ def main_contrastive_loss(seed, config=None):
     print('YOU ARE RUNNING MULTIMODAL NETWORK WITH CONTRASTIVE LOSS FOR HAM DATASET')
     print(config)
 
-    wandb.init(group='CONTRASTIVE_LOSS_HAM',
+    wandb.init(group='SEED_CONTRASTIVE_LOSS_RANDOM_INIT_HAM',
                project="final_multimodal_training",  config=config)
     wandb_logger = WandbLogger()
 
@@ -948,12 +949,12 @@ def main_contrastive_loss(seed, config=None):
     dt_string = date_time.strftime("%d.%m.%Y-%H.%M")
     checkpoint_callback = ModelCheckpoint(
         dirpath=os.path.join(
-            CHECKPOINT_DIR, 'contrastive_loss/full'),
-        filename=dt_string+'HAM_SEED='+str(seed)+'_lr='+str(wandb.config.learning_rate)+'_wd=' +
+            CHECKPOINT_DIR, 'contrastive_loss/seed/concat/random_init'),
+        filename=dt_string+'_HAM_SEED='+str(seed)+'_lr='+str(wandb.config.learning_rate)+'_wd=' +
         str(wandb.config.weight_decay)+'-{epoch:03d}',
-        monitor='val_macro_acc',
+        monitor='val_epoch_loss',
         save_top_k=wandb.config.max_epochs,
-        mode='max')
+        mode='min')
 
     # Add learning rate scheduler monitoring
     lr_monitor = LearningRateMonitor(logging_interval='epoch')
@@ -967,21 +968,29 @@ def main_contrastive_loss(seed, config=None):
 def main_supervised_contrastive_weights(seed, config=None):
     '''
     main function to run the supervised multimodal architecture with contrastive weights
+    this function is only for the CORRELATION setup
     '''
+    if config['correlation']:
+        text = 'CORR'
+    else:
+        text = 'CONCAT'
 
-    print('YOU ARE RUNNING SUPERVISED MULTIMODAL WITH CONTRASTIVE LEARNING WEIGHTS FOR HAM DATASET')
+    print('YOU ARE RUNNING SUPERVISED MULTIMODAL (', text,
+          ') WITH CONTRASTIVE LEARNING WEIGHTS FOR HAM DATASET')
     print(config)
 
-    wandb.init(group='SUPERVISED_CONTRAST_WEIGHTS_CORR',
+    wandb.init(group='SEED_SUPERVISED_CONTRAST_WEIGHTS_RANDOM_CONCAT_INIT_' + text,
                project="final_multimodal_training", config=config)
     wandb_logger = WandbLogger()
 
+    checkpoints = wandb.config.contrastive_checkpoint
+    checkpoint = checkpoints[str(seed)]
+
     # get the cintrastive model from the checkpoint
-    cont_model = HamContrastiveModel.load_from_checkpoint(
-        wandb.config.contrastive_checkpoint)
+    cont_model = HamContrastiveModel.load_from_checkpoint(checkpoint)
     # get the supervised model
     model = SupervisedModel(learning_rate=wandb.config.learning_rate,
-                            weight_decay=wandb.config.weight_decay)
+                            weight_decay=wandb.config.weight_decay, correlation=wandb.config.correlation)
     # initialize the supervised model weights using contrastive model
     model.resnet = cont_model.resnet
     model.resnet.fc = cont_model.resnet.fc
@@ -1015,7 +1024,96 @@ def main_supervised_contrastive_weights(seed, config=None):
     dt_string = date_time.strftime("%d.%m.%Y-%H.%M")
     checkpoint_callback = ModelCheckpoint(
         dirpath=os.path.join(
-            CHECKPOINT_DIR, 'supervised/contrastive_init/correlation'),
+            CHECKPOINT_DIR, 'supervised/contrastive_init/random_contrastive_init/seed/'+text),
+        filename=dt_string+'_HAM_SEED='+str(seed)+'_lr='+str(wandb.config.learning_rate)+'_wd=' +
+        str(wandb.config.weight_decay)+'-{epoch:03d}',
+        monitor='val_macro_acc',
+        save_top_k=wandb.config.max_epochs,
+        mode='max')
+
+    # Add learning rate scheduler monitoring
+    lr_monitor = LearningRateMonitor(logging_interval='epoch')
+    trainer = Trainer(accelerator=accelerator, devices=devices,
+                      max_epochs=wandb.config.max_epochs, logger=wandb_logger, callbacks=[checkpoint_callback, lr_monitor], deterministic=True)
+    trainer.fit(model, train_dataloaders=train_dataloader,
+                val_dataloaders=val_dataloader)
+
+    wandb.finish()
+
+
+def main_contrastive_evaluate(seed, config=None):
+    '''
+    main function to run the supervised multimodal architecture with contrastive weights
+    weights are frozen
+    so the model checks the performance only
+    '''
+    if config['correlation']:
+        text = 'CORR'
+    else:
+        text = 'CONCAT'
+
+    print('YOU ARE RUNNING SUPERVISED MULTIMODAL (', text,
+          ') WITH CONTRASTIVE LEARNING FROZEN WEIGHTS FOR HAM DATASET')
+    print(config)
+
+    wandb.init(group='SEED_CONTRASTIVE_RANDOM_INIT_EVAL_' + text,
+               project="final_multimodal_training", config=config)
+    wandb_logger = WandbLogger()
+
+    checkpoints = wandb.config.contrastive_checkpoint
+    checkpoint = checkpoints[str(seed)]
+
+    # get the cintrastive model from the checkpoint
+    cont_model = HamContrastiveModel.load_from_checkpoint(checkpoint)
+    # get the supervised model
+    model = SupervisedModel(learning_rate=wandb.config.learning_rate,
+                            weight_decay=wandb.config.weight_decay, correlation=wandb.config.correlation)
+    # initialize the supervised model weights using contrastive model
+    model.resnet = cont_model.resnet
+    # model.resnet.fc = cont_model.resnet.fc
+    model.fc1 = cont_model.fc1
+    model.fc2 = cont_model.fc2
+    model.fc3 = cont_model.fc3
+    model.fc4 = cont_model.fc4
+    model.fc5 = cont_model.fc5
+    model.fc6 = cont_model.fc6
+    model.fc7 = cont_model.fc7
+
+    # freeze network weights (uncomment if you want to freeze the network weights)
+    # Freeze the weights of the ResNet-18
+    for param in model.resnet.parameters():
+        param.requires_grad = False
+    model.fc1.requires_grad_(False)
+    model.fc2.requires_grad_(False)
+    model.fc3.requires_grad_(False)
+    model.fc4.requires_grad_(False)
+    model.fc5.requires_grad_(False)
+    model.fc6.requires_grad_(False)
+    model.fc7.requires_grad_(False)
+
+    wandb.watch(model, log="all")
+
+    # load the data
+    data = HAMDataModule(
+        csv_dir, age=wandb.config.age, batch_size=wandb.config.batch_size)
+    data.prepare_data(seed=seed)
+    data.set_supervised_multimodal_dataloader()
+    train_dataloader = data.train_dataloader()
+    val_dataloader = data.val_dataloader()
+
+    accelerator = 'cpu'
+    devices = None
+    if torch.cuda.is_available():
+        accelerator = 'gpu'
+        devices = 1
+
+    # save the checkpoint in a different folder
+    # use datetime value in the file name
+    date_time = datetime.now()
+    dt_string = date_time.strftime("%d.%m.%Y-%H.%M")
+    checkpoint_callback = ModelCheckpoint(
+        dirpath=os.path.join(
+            CHECKPOINT_DIR, 'supervised/contrastive_random_init/frozen/seed/'+text),
         filename=dt_string+'_HAM_SEED='+str(seed)+'_lr='+str(wandb.config.learning_rate)+'_wd=' +
         str(wandb.config.weight_decay)+'-{epoch:03d}',
         monitor='val_macro_acc',
@@ -1169,6 +1267,29 @@ if __name__ == '__main__':
     #     torch.use_deterministic_algorithms(True)
     #     main_daft(seed, supervised_config)
 
+
+
+    # for seed in [473]:
+    #     seed_everything(seed, workers=True)
+    #     torch.manual_seed(seed)
+    #     np.random.seed(seed)
+    #     torch.cuda.manual_seed(seed)
+    #     random.seed(seed)
+    #     np.random.seed(seed)
+    #     torch.use_deterministic_algorithms(True)
+    #     main_contrastive_loss(seed, contrastive_loss_config)
+
+    # for seed in seed_list:
+    #     seed_everything(seed, workers=True)
+    #     torch.manual_seed(seed)
+    #     np.random.seed(seed)
+    #     torch.cuda.manual_seed(seed)
+    #     random.seed(seed)
+    #     np.random.seed(seed)
+    #     torch.use_deterministic_algorithms(True)
+    #     main_contrastive_loss(seed, supervised_config)
+
+
     # for seed in seed_list:
     #     seed_everything(seed, workers=True)
     #     torch.manual_seed(seed)
@@ -1179,7 +1300,29 @@ if __name__ == '__main__':
     #     torch.use_deterministic_algorithms(True)
     #     main_contrastive_loss(seed, contrastive_loss_config)
 
+
     main_triplet_center_cross_entropy(473, config=triplet_center_config)
+
+    # for seed in seed_list:
+    #     seed_everything(seed, workers=True)
+    #     torch.manual_seed(seed)
+    #     np.random.seed(seed)
+    #     torch.cuda.manual_seed(seed)
+    #     random.seed(seed)
+    #     np.random.seed(seed)
+    #     torch.use_deterministic_algorithms(True)
+    #     main_supervised_contrastive_weights(seed, supervised_config)
+
+    # for seed in seed_list:
+    #     seed_everything(seed, workers=True)
+    #     torch.manual_seed(seed)
+    #     np.random.seed(seed)
+    #     torch.cuda.manual_seed(seed)
+    #     random.seed(seed)
+    #     np.random.seed(seed)
+    #     torch.use_deterministic_algorithms(True)
+    #     main_contrastive_evaluate(seed, supervised_config)
+
 
     # TESTING
     # test_supervised_multimodal(seed=1997, config=supervised_config)

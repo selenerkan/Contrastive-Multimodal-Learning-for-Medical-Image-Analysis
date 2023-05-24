@@ -14,7 +14,7 @@ FEATURES = ['age', 'sex_numeric', 'label', 'abdomen', 'acral',	'back',	'chest', 
 TARGET = 'label'
 
 seed_list = [1997, 25, 12, 1966, 3297]
-SEED = 1997
+SEED = 25
 
 image_shape = (3, 224, 224)
 
@@ -66,6 +66,21 @@ supervised_config = {
     'age': None,
     'learning_rate': 1e-4,
     'weight_decay': 0,
+    'correlation': False,
+    # resnet init
+    # 'contrastive_checkpoint': {
+    #     '25': r'/home/guests/selen_erkan/experiments/checkpoints/contrastive_loss/seed/concat/gathered/18.04.2023-22.14_HAM_SEED=25_lr=0.0001_wd=0-epoch=099.ckpt',
+    #     '1997': r'/home/guests/selen_erkan/experiments/checkpoints/contrastive_loss/seed/concat/gathered/18.04.2023-21.08_HAM_SEED=1997_lr=0.0001_wd=0-epoch=099.ckpt',
+    #     '12': r'/home/guests/selen_erkan/experiments/checkpoints/contrastive_loss/seed/concat/gathered/18.04.2023-23.21_HAM_SEED=12_lr=0.0001_wd=0-epoch=099.ckpt',
+    #     '1966': r'/home/guests/selen_erkan/experiments/checkpoints/contrastive_loss/seed/concat/gathered/19.04.2023-00.27_HAM_SEED=1966_lr=0.0001_wd=0-epoch=099.ckpt',
+    #     '3297': r'/home/guests/selen_erkan/experiments/checkpoints/contrastive_loss/seed/concat/gathered/19.04.2023-01.34_HAM_SEED=3297_lr=0.0001_wd=0-epoch=099.ckpt'},
+    # random init
+    'contrastive_checkpoint': {
+        '25': r'/home/guests/selen_erkan/experiments/checkpoints/contrastive_loss/seed/concat/random_init/gathered/20.04.2023-02.09_HAM_SEED=25_lr=0.0001_wd=0-epoch=099.ckpt',
+        '1997': r'/home/guests/selen_erkan/experiments/checkpoints/contrastive_loss/seed/concat/random_init/gathered/20.04.2023-01.01_HAM_SEED=1997_lr=0.0001_wd=0-epoch=099.ckpt',
+        '12': r'/home/guests/selen_erkan/experiments/checkpoints/contrastive_loss/seed/concat/random_init/gathered/20.04.2023-03.16_HAM_SEED=12_lr=0.0001_wd=0-epoch=099.ckpt',
+        '1966': r'/home/guests/selen_erkan/experiments/checkpoints/contrastive_loss/seed/concat/random_init/gathered/20.04.2023-04.22_HAM_SEED=1966_lr=0.0001_wd=0-epoch=099.ckpt',
+        '3297': r'/home/guests/selen_erkan/experiments/checkpoints/contrastive_loss/seed/concat/random_init/gathered/20.04.2023-05.27_HAM_SEED=3297_lr=0.0001_wd=0-epoch=099.ckpt'},
     # 'checkpoint': r'/home/guests/selen_erkan/experiments/checkpoints/final/supervised/min_lost/08.03.2023-04.15_HAM_SEED=1997_lr=0.0001_wd=0-epoch=011.ckpt',
     # 'checkpoint': r'/home/guests/selen_erkan/experiments/checkpoints/final/supervised/min_lost/08.03.2023-04.34_HAM_SEED=25_lr=0.0001_wd=0-epoch=011.ckpt',
     # 'checkpoint': r'/home/guests/selen_erkan/experiments/checkpoints/final/supervised/min_lost/08.03.2023-04.52_HAM_SEED=12_lr=0.0001_wd=0-epoch=011.ckpt',
@@ -111,7 +126,7 @@ tabular_config = {
 contrastive_loss_config = {
 
     'batch_size': 512,  # 512
-    'max_epochs': 40,  # 40
+    'max_epochs': 100,  # 40
     'age': None,
     'learning_rate': 1e-4,
     'weight_decay': 0,
