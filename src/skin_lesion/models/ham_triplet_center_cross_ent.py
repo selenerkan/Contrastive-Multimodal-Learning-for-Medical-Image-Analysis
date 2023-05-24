@@ -10,13 +10,9 @@ import torchvision
 from torchmetrics.classification import MulticlassPrecision
 from torchmetrics.classification import MulticlassRecall
 from torchmetrics.classification import MulticlassF1Score
-from sklearn.metrics import roc_curve
-import numpy as np
+# from sklearn.metrics import roc_curve
 import wandb
-
-import wandb
-from wandb import util
-from wandb.plots.utils import test_missing, test_types
+from roc_curve import roc_curve
 
 
 class TripletCenterModel(LightningModule):
@@ -143,18 +139,18 @@ class TripletCenterModel(LightningModule):
 
         # track accuracy
         self.train_macro_accuracy = torchmetrics.Accuracy(
-            task='multiclass', average='macro', num_classes=7, top_k=1)
+            task='multiclass', average='macro', num_classes=self.num_classes, top_k=1)
         self.val_macro_accuracy = torchmetrics.Accuracy(
-            task='multiclass', average='macro', num_classes=7, top_k=1)
+            task='multiclass', average='macro', num_classes=self.num_classes, top_k=1)
         self.test_macro_accuracy = torchmetrics.Accuracy(
-            task='multiclass', average='macro', num_classes=7, top_k=1)
+            task='multiclass', average='macro', num_classes=self.num_classes, top_k=1)
 
         self.train_micro_accuracy = torchmetrics.Accuracy(
-            task='multiclass', average='micro', num_classes=7, top_k=1)
+            task='multiclass', average='micro', num_classes=self.num_classes, top_k=1)
         self.val_micro_accuracy = torchmetrics.Accuracy(
-            task='multiclass', average='micro', num_classes=7, top_k=1)
+            task='multiclass', average='micro', num_classes=self.num_classes, top_k=1)
         self.test_micro_accuracy = torchmetrics.Accuracy(
-            task='multiclass', average='micro', num_classes=7, top_k=1)
+            task='multiclass', average='micro', num_classes=self.num_classes, top_k=1)
 
         self.softmax = Softmax(dim=1)
 
@@ -386,8 +382,8 @@ class TripletCenterModel(LightningModule):
         preds = torch.cat(self.val_predictions)
         preds = torch.nn.functional.softmax(preds, dim=1)
         targets = torch.cat(self.val_targets)
-        wandb.log({f"validation_roc_curve_epoch_{self.current_epoch}": wandb.plot.roc_curve(targets.unsqueeze(1), preds.unsqueeze(1),
-                                                                                            labels=["akiec", "bcc", 'bkl', 'df', 'mel', 'nv', 'vasc'])})
+        wandb.log({f"validation_roc_curve_epoch_{self.current_epoch}": roc_curve(targets.unsqueeze(1), preds,
+                                                                                 labels=["akiec", "bcc", 'bkl', 'df', 'mel', 'nv', 'vasc'], title='Val ROC Epoch:{self.current_epoch}')})
 
         self.val_predictions = []
         self.val_targets = []
@@ -478,7 +474,7 @@ class TripletCenterModel(LightningModule):
 
         preds = torch.cat(self.test_predictions)
         targets = torch.cat(self.test_targets)
-        wandb.log({"ROC_Validation": wandb.plot.roc_curve(targets.unsqueeze(1), preds,
-                                                          labels=["akiec", "bcc", 'bkl', 'df', 'mel', 'nv', 'vasc'])})
+        wandb.log({"ROC_Test": roc_curve(targets.unsqueeze(1), preds,
+                                         labels=["akiec", "bcc", 'bkl', 'df', 'mel', 'nv', 'vasc'], title='ROC_Test')})
         self.test_predictions = []
         self.test_targets = []
