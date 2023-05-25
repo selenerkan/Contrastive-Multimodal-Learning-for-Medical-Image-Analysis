@@ -1267,8 +1267,6 @@ if __name__ == '__main__':
     #     torch.use_deterministic_algorithms(True)
     #     main_daft(seed, supervised_config)
 
-
-
     # for seed in [473]:
     #     seed_everything(seed, workers=True)
     #     torch.manual_seed(seed)
@@ -1289,19 +1287,15 @@ if __name__ == '__main__':
     #     torch.use_deterministic_algorithms(True)
     #     main_contrastive_loss(seed, supervised_config)
 
-
-    # for seed in seed_list:
-    #     seed_everything(seed, workers=True)
-    #     torch.manual_seed(seed)
-    #     np.random.seed(seed)
-    #     torch.cuda.manual_seed(seed)
-    #     random.seed(seed)
-    #     np.random.seed(seed)
-    #     torch.use_deterministic_algorithms(True)
-    #     main_contrastive_loss(seed, contrastive_loss_config)
-
-
-    main_triplet_center_cross_entropy(473, config=triplet_center_config)
+    for seed in seed_list:
+        seed_everything(seed, workers=True)
+        torch.manual_seed(seed)
+        np.random.seed(seed)
+        torch.cuda.manual_seed(seed)
+        random.seed(seed)
+        np.random.seed(seed)
+        torch.use_deterministic_algorithms(True)
+        main_triplet_center_cross_entropy(seed, triplet_center_config)
 
     # for seed in seed_list:
     #     seed_everything(seed, workers=True)
@@ -1322,7 +1316,6 @@ if __name__ == '__main__':
     #     np.random.seed(seed)
     #     torch.use_deterministic_algorithms(True)
     #     main_contrastive_evaluate(seed, supervised_config)
-
 
     # TESTING
     # test_supervised_multimodal(seed=1997, config=supervised_config)

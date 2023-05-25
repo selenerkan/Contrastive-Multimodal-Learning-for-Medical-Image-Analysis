@@ -56,7 +56,7 @@ class HamContrastiveModel(LightningModule):
         # MLP head, it will be replaced with an FC layer in classification
         self.mlp = nn.Sequential(
             nn.Linear(self.feature_dim, self.feature_dim),
-            nn.Sigmoid(),
+            nn.ReLU(),
             nn.Linear(self.feature_dim, self.feature_dim)
         )
 
@@ -97,7 +97,7 @@ class HamContrastiveModel(LightningModule):
             x = torch.cat((img, tab), dim=1)
 
         # get the final concatenated embedding
-        x = self.fc7(x)
+        x = F.relu(self.fc7(x))
         # calculate the output of the mlp head
         out = self.mlp(x)
 
