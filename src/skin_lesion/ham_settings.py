@@ -25,7 +25,7 @@ triplet_center_config = {
     'learning_rate': 1e-4,
     'weight_decay': 0,
     'alpha_center': 0.01,
-    'alpha_triplet': 0.3,
+    'alpha_triplet': 0.2,
 }
 
 multiloss_config = {

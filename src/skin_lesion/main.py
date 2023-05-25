@@ -1186,16 +1186,16 @@ if __name__ == '__main__':
 
     # set the seed of the environment
     # Function that sets seed for pseudo-random number generators in: pytorch, numpy, python.random
-    SEED = 1997
-    seed_everything(SEED, workers=True)
-    torch.manual_seed(SEED)
-    np.random.seed(SEED)
-    torch.cuda.manual_seed(SEED)
-    random.seed(SEED)
-    np.random.seed(SEED)
-    torch.use_deterministic_algorithms(True)
+    # SEED = 1997
+    # seed_everything(SEED, workers=True)
+    # torch.manual_seed(SEED)
+    # np.random.seed(SEED)
+    # torch.cuda.manual_seed(SEED)
+    # random.seed(SEED)
+    # np.random.seed(SEED)
+    # torch.use_deterministic_algorithms(True)
 
-    run_grid_search('triplet_center_cross_entropy')
+    # run_grid_search('triplet_center_cross_entropy')
 
     # run baseline
     # main_baseline(supervised_config)
@@ -1289,15 +1289,15 @@ if __name__ == '__main__':
     #     torch.use_deterministic_algorithms(True)
     #     main_contrastive_loss(seed, supervised_config)
 
-    # for seed in seed_list:
-    #     seed_everything(seed, workers=True)
-    #     torch.manual_seed(seed)
-    #     np.random.seed(seed)
-    #     torch.cuda.manual_seed(seed)
-    #     random.seed(seed)
-    #     np.random.seed(seed)
-    #     torch.use_deterministic_algorithms(True)
-    #     main_triplet_center_cross_entropy(seed, triplet_center_config)
+    for seed in seed_list:
+        seed_everything(seed, workers=True)
+        torch.manual_seed(seed)
+        np.random.seed(seed)
+        torch.cuda.manual_seed(seed)
+        random.seed(seed)
+        np.random.seed(seed)
+        torch.use_deterministic_algorithms(True)
+        main_triplet_center_cross_entropy(seed, triplet_center_config)
 
     # for seed in seed_list:
     #     seed_everything(seed, workers=True)
