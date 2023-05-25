@@ -47,8 +47,8 @@ def roc_curve(
         "roc requires the scikit library, install with `pip install scikit-learn`",
     )
 
-    y_true = np.cpu().array(y_true)
-    y_probas = np.cpu().array(y_probas)
+    y_true = y_true.cpu().numpy()
+    y_probas = y_probas.cpu().numpy()
 
     if not test_missing(y_true=y_true, y_probas=y_probas):
         return
