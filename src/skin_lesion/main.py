@@ -442,8 +442,7 @@ def run_grid_search(network):
             'learning_rate': {'values': [1e-4]},
             'weight_decay': {'value': 0},
             'alpha_center': {'values': [0.01, 0.05, 0.1]},
-            'dropout': {'value': 0},
-            'triplet_ratio': {'values': [0.2, 0.3, 0.4]},
+            'alpha_triplet': {'values': [0.2, 0.3, 0.4]},
         }
     }
 
