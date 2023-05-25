@@ -437,13 +437,13 @@ def run_grid_search(network):
         'parameters': {
             'network': {'value': network},
             'batch_size': {'value': 512},
-            'max_epochs': {'value': 60},
+            'max_epochs': {'value': 10},
             'age': {'value': None},
-            'learning_rate': {'values': [1e-4, 1e-3]},
+            'learning_rate': {'values': [1e-4]},
             'weight_decay': {'value': 0},
-            'alpha_center': {'values': [0.01, 0.05, 0.1, 0.2, 0.3, 0.4]},
+            'alpha_center': {'values': [0.01, 0.05, 0.1]},
             'dropout': {'value': 0},
-            'triplet_ratio': {'value': 0},
+            'triplet_ratio': {'values': [0.2, 0.3, 0.4]},
         }
     }
 
@@ -483,7 +483,7 @@ def run_grid_search(network):
     sweep_id = wandb.sweep(
         sweep_config,
         project="final_multimodal_training", )
-    wandb.agent(sweep_id, function=main_multiloss)
+    wandb.agent(sweep_id, function=main_triplet_center_cross_entropy)
     wandb.finish()
 
 
@@ -1130,7 +1130,7 @@ def main_contrastive_evaluate(seed, config=None):
     wandb.finish()
 
 
-def main_triplet_center_cross_entropy(seed, config=None):
+def main_triplet_center_cross_entropy(seed=1997, config=None):
     '''
     main function to run the multimodal architecture with triplet + center + cross entropy loss
     '''
@@ -1187,13 +1187,16 @@ if __name__ == '__main__':
 
     # set the seed of the environment
     # Function that sets seed for pseudo-random number generators in: pytorch, numpy, python.random
-    # seed_everything(SEED, workers=True)
-    # torch.manual_seed(SEED)
-    # np.random.seed(SEED)
-    # torch.cuda.manual_seed(SEED)
-    # random.seed(SEED)
-    # np.random.seed(SEED)
-    # torch.use_deterministic_algorithms(True)
+    SEED = 1997
+    seed_everything(SEED, workers=True)
+    torch.manual_seed(SEED)
+    np.random.seed(SEED)
+    torch.cuda.manual_seed(SEED)
+    random.seed(SEED)
+    np.random.seed(SEED)
+    torch.use_deterministic_algorithms(True)
+
+    run_grid_search('triplet_center_cross_entropy')
 
     # run baseline
     # main_baseline(supervised_config)
@@ -1287,15 +1290,15 @@ if __name__ == '__main__':
     #     torch.use_deterministic_algorithms(True)
     #     main_contrastive_loss(seed, supervised_config)
 
-    for seed in seed_list:
-        seed_everything(seed, workers=True)
-        torch.manual_seed(seed)
-        np.random.seed(seed)
-        torch.cuda.manual_seed(seed)
-        random.seed(seed)
-        np.random.seed(seed)
-        torch.use_deterministic_algorithms(True)
-        main_triplet_center_cross_entropy(seed, triplet_center_config)
+    # for seed in seed_list:
+    #     seed_everything(seed, workers=True)
+    #     torch.manual_seed(seed)
+    #     np.random.seed(seed)
+    #     torch.cuda.manual_seed(seed)
+    #     random.seed(seed)
+    #     np.random.seed(seed)
+    #     torch.use_deterministic_algorithms(True)
+    #     main_triplet_center_cross_entropy(seed, triplet_center_config)
 
     # for seed in seed_list:
     #     seed_everything(seed, workers=True)
