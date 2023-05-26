@@ -3,7 +3,7 @@ from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.callbacks import ModelCheckpoint
 import os
-from ham_settings import csv_dir, supervised_config, CHECKPOINT_DIR, tabular_config, multiloss_config, seed_list, contrastive_loss_config, triplet_center_config
+from ham_settings import csv_dir, supervised_config, CHECKPOINT_DIR, tabular_config, multiloss_config, seed_list, contrastive_loss_config, triplet_center_config, daft_config
 from models.ham_supervised_model import SupervisedModel
 from models.image_model import BaselineModel
 from models.resnet_model import ResnetModel
@@ -494,7 +494,7 @@ def main_daft(seed, config=None):
     print('YOU ARE RUNNING DAFT FOR HAM DATASET')
     print(config)
 
-    wandb.init(group='FULL_ONLY_DAFT',
+    wandb.init(group='DAFT',
                project="final_multimodal_training", config=config)
     wandb_logger = WandbLogger()
 
@@ -522,8 +522,8 @@ def main_daft(seed, config=None):
     date_time = datetime.now()
     dt_string = date_time.strftime("%d.%m.%Y-%H.%M")
     checkpoint_callback = ModelCheckpoint(
-        dirpath=os.path.join(CHECKPOINT_DIR, 'daft/full/only_daft'),
-        filename=dt_string+'HAM_SEED='+str(seed)+'_lr='+str(wandb.config.learning_rate)+'_wd=' +
+        dirpath=os.path.join(CHECKPOINT_DIR, '_DAFT/training'),
+        filename=dt_string+'_HAM_SEED='+str(seed)+'_lr='+str(wandb.config.learning_rate)+'_wd=' +
         str(wandb.config.weight_decay)+'-{epoch:03d}',
         monitor='val_macro_acc',
         save_top_k=wandb.config.max_epochs,
@@ -1297,15 +1297,15 @@ if __name__ == '__main__':
     #     torch.use_deterministic_algorithms(True)
     #     main_new_center(seed, multiloss_config)
 
-    # for seed in seed_list:
-    #     seed_everything(seed, workers=True)
-    #     torch.manual_seed(seed)
-    #     np.random.seed(seed)
-    #     torch.cuda.manual_seed(seed)
-    #     random.seed(seed)
-    #     np.random.seed(seed)
-    #     torch.use_deterministic_algorithms(True)
-    #     main_daft(seed, supervised_config)
+    for seed in seed_list:
+        seed_everything(seed, workers=True)
+        torch.manual_seed(seed)
+        np.random.seed(seed)
+        torch.cuda.manual_seed(seed)
+        random.seed(seed)
+        np.random.seed(seed)
+        torch.use_deterministic_algorithms(True)
+        main_daft(seed, daft_config)
 
     # for seed in [473]:
     #     seed_everything(seed, workers=True)
@@ -1327,15 +1327,15 @@ if __name__ == '__main__':
     #     torch.use_deterministic_algorithms(True)
     #     main_contrastive_loss(seed, supervised_config)
 
-    for seed in seed_list:
-        seed_everything(seed, workers=True)
-        torch.manual_seed(seed)
-        np.random.seed(seed)
-        torch.cuda.manual_seed(seed)
-        random.seed(seed)
-        np.random.seed(seed)
-        torch.use_deterministic_algorithms(True)
-        test_triplet_center_cross_ent(seed, triplet_center_config)
+    # for seed in seed_list:
+    #     seed_everything(seed, workers=True)
+    #     torch.manual_seed(seed)
+    #     np.random.seed(seed)
+    #     torch.cuda.manual_seed(seed)
+    #     random.seed(seed)
+    #     np.random.seed(seed)
+    #     torch.use_deterministic_algorithms(True)
+    #     test_triplet_center_cross_ent(seed, triplet_center_config)
 
     # for seed in seed_list:
     #     seed_everything(seed, workers=True)

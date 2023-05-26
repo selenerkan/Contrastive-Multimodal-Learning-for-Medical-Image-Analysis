@@ -34,6 +34,14 @@ triplet_center_config = {
         '3297': CHECKPOINT_DIR + r'triplet_center_cross/training/25.05.2023-19.58HAM_SEED=3297_lr=0.0001_wd=0-epoch=039.ckpt'},
 }
 
+daft_config = {
+    'batch_size': 512,  # 512
+    'max_epochs': 40,  # 40
+    'age': None,
+    'learning_rate': 1e-4,
+    'weight_decay': 0,
+}
+
 multiloss_config = {
     'batch_size': 512,  # 512
     'max_epochs': 40,  # 40
