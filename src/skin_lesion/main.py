@@ -71,7 +71,7 @@ def main_resnet(seed, config=None):
     print('YOU ARE RUNNING RESNET FOR HAM DATASET')
     print(config)
 
-    wandb.init(group='SEED_MISSING_HAM_resnet',
+    wandb.init(group='RESNET',
                project="final_multimodal_training", config=config)
     wandb_logger = WandbLogger()
 
@@ -83,7 +83,7 @@ def main_resnet(seed, config=None):
     # load the data
     data = HAMDataModule(
         csv_dir, age=wandb.config.age, batch_size=wandb.config.batch_size)
-    data.prepare_data()
+    data.prepare_data(seed)
     data.set_supervised_multimodal_dataloader()
     train_dataloader = data.train_dataloader()
     val_dataloader = data.val_dataloader()
@@ -99,8 +99,8 @@ def main_resnet(seed, config=None):
     date_time = datetime.now()
     dt_string = date_time.strftime("%d.%m.%Y-%H.%M")
     checkpoint_callback = ModelCheckpoint(
-        dirpath=os.path.join(CHECKPOINT_DIR, 'resnet'),
-        filename=dt_string+'_FINAL_MISSING_HAM_SEED='+str(seed)+'_lr='+str(wandb.config.learning_rate)+'_wd=' +
+        dirpath=os.path.join(CHECKPOINT_DIR, '_RESNET/train'),
+        filename=dt_string+'_HAM_SEED='+str(seed)+'_lr='+str(wandb.config.learning_rate)+'_wd=' +
         str(wandb.config.weight_decay)+'-{epoch:03d}',
         monitor='val_macro_acc',
         save_top_k=wandb.config.max_epochs,
@@ -1235,67 +1235,7 @@ if __name__ == '__main__':
 
     # run_grid_search('triplet_center_cross_entropy')
 
-    # run baseline
-    # main_baseline(supervised_config)
-
-    # run resnet baseline
-    # main_resnet(supervised_config)
-
-    # run tabular baseline
-    # main_tabular(tabular_config)
-
-    # run multimodal
-    # main_supervised_multimodal(supervised_config)
-
-    # run multiloss model (center + cross entropy + triplet)
-    # main_multiloss(multiloss_config)
-
-    # run grid search
-    # run_grid_search('multi_loss')
-
-    # run daft
-    # main_daft(supervised_config)
-
     # RUN MODELS FOR EVERY SEED
-    # for seed in seed_list:
-    #     seed_everything(seed, workers=True)
-    #     torch.manual_seed(seed)
-    #     np.random.seed(seed)
-    #     torch.cuda.manual_seed(seed)
-    #     random.seed(seed)
-    #     np.random.seed(seed)
-    #     torch.use_deterministic_algorithms(True)
-    #     main_multiloss(seed, multiloss_config)
-
-    # for seed in seed_list:
-    #     seed_everything(seed, workers=True)
-    #     torch.manual_seed(seed)
-    #     np.random.seed(seed)
-    #     torch.cuda.manual_seed(seed)
-    #     random.seed(seed)
-    #     np.random.seed(seed)
-    #     torch.use_deterministic_algorithms(True)
-    #     main_supervised_multimodal(seed, config['supervised_config'])
-
-    # for seed in seed_list:
-    #     seed_everything(seed, workers=True)
-    #     torch.manual_seed(seed)
-    #     np.random.seed(seed)
-    #     torch.cuda.manual_seed(seed)
-    #     random.seed(seed)
-    #     np.random.seed(seed)
-    #     torch.use_deterministic_algorithms(True)
-    #     main_tabular(seed, tabular_config)
-
-    # for seed in seed_list:
-    #     seed_everything(seed, workers=True)
-    #     torch.manual_seed(seed)
-    #     np.random.seed(seed)
-    #     torch.cuda.manual_seed(seed)
-    #     random.seed(seed)
-    #     np.random.seed(seed)
-    #     torch.use_deterministic_algorithms(True)
-    #     main_new_center(seed, multiloss_config)
 
     for seed in seed_list:
         seed_everything(seed, workers=True)
@@ -1305,27 +1245,14 @@ if __name__ == '__main__':
         random.seed(seed)
         np.random.seed(seed)
         torch.use_deterministic_algorithms(True)
+
+        # main_new_center(seed, multiloss_config)
         main_film(seed, config['film_config'])
+        # main_supervised_multimodal(seed, config['supervised_config'])
+        # main_resnet(seed, config['resnet_config'])
+        # main_tabular(seed, tabular_config)
 
-    # for seed in [473]:
-    #     seed_everything(seed, workers=True)
-    #     torch.manual_seed(seed)
-    #     np.random.seed(seed)
-    #     torch.cuda.manual_seed(seed)
-    #     random.seed(seed)
-    #     np.random.seed(seed)
-    #     torch.use_deterministic_algorithms(True)
-    #     main_contrastive_loss(seed, contrastive_loss_config)
-
-    # for seed in seed_list:
-    #     seed_everything(seed, workers=True)
-    #     torch.manual_seed(seed)
-    #     np.random.seed(seed)
-    #     torch.cuda.manual_seed(seed)
-    #     random.seed(seed)
-    #     np.random.seed(seed)
-    #     torch.use_deterministic_algorithms(True)
-    #     main_contrastive_loss(seed, supervised_config)
+    # RUN TEST LOOP
 
     # for seed in seed_list:
     #     seed_everything(seed, workers=True)
@@ -1337,27 +1264,6 @@ if __name__ == '__main__':
     #     torch.use_deterministic_algorithms(True)
     #     test_triplet_center_cross_ent(seed, triplet_center_config)
 
-    # for seed in seed_list:
-    #     seed_everything(seed, workers=True)
-    #     torch.manual_seed(seed)
-    #     np.random.seed(seed)
-    #     torch.cuda.manual_seed(seed)
-    #     random.seed(seed)
-    #     np.random.seed(seed)
-    #     torch.use_deterministic_algorithms(True)
-    #     main_supervised_contrastive_weights(seed, supervised_config)
-
-    # for seed in seed_list:
-    #     seed_everything(seed, workers=True)
-    #     torch.manual_seed(seed)
-    #     np.random.seed(seed)
-    #     torch.cuda.manual_seed(seed)
-    #     random.seed(seed)
-    #     np.random.seed(seed)
-    #     torch.use_deterministic_algorithms(True)
-    #     main_contrastive_evaluate(seed, supervised_config)
-
-    # TESTING
     # test_supervised_multimodal(seed=1997, config=supervised_config)
     # test_supervised_corr_multimodal(seed=1997, config=supervised_config)
     # test_resnet(supervised_config)
