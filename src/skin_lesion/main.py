@@ -3,7 +3,7 @@ from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.callbacks import ModelCheckpoint
 import os
-from ham_settings import csv_dir, supervised_config, CHECKPOINT_DIR, tabular_config, multiloss_config, seed_list, contrastive_loss_config, triplet_center_config, daft_config
+from ham_settings import csv_dir, CHECKPOINT_DIR, seed_list, config
 from models.ham_supervised_model import SupervisedModel
 from models.image_model import BaselineModel
 from models.resnet_model import ResnetModel
@@ -711,7 +711,7 @@ def main_film(seed, config):
     print('YOU ARE RUNNING FILM FOR HAM DATASET')
     print(config)
 
-    wandb.init(group='FULL_FILM',
+    wandb.init(group='FILM',
                project="final_multimodal_training", config=config)
     wandb_logger = WandbLogger()
 
@@ -739,8 +739,8 @@ def main_film(seed, config):
     date_time = datetime.now()
     dt_string = date_time.strftime("%d.%m.%Y-%H.%M")
     checkpoint_callback = ModelCheckpoint(
-        dirpath=os.path.join(CHECKPOINT_DIR, 'film/full'),
-        filename=dt_string+'HAM_SEED='+str(seed)+'_lr='+str(wandb.config.learning_rate)+'_wd=' +
+        dirpath=os.path.join(CHECKPOINT_DIR, '_FILM'),
+        filename=dt_string+'_HAM_SEED='+str(seed)+'_lr='+str(wandb.config.learning_rate)+'_wd=' +
         str(wandb.config.weight_decay)+'-{epoch:03d}',
         monitor='val_macro_acc',
         save_top_k=wandb.config.max_epochs,
@@ -1305,7 +1305,7 @@ if __name__ == '__main__':
         random.seed(seed)
         np.random.seed(seed)
         torch.use_deterministic_algorithms(True)
-        main_daft(seed, daft_config)
+        main_film(seed, config['film_config'])
 
     # for seed in [473]:
     #     seed_everything(seed, workers=True)
