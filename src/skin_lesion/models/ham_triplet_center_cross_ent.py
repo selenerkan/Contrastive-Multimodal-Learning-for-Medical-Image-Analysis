@@ -10,7 +10,6 @@ import torchvision
 from torchmetrics.classification import MulticlassPrecision
 from torchmetrics.classification import MulticlassRecall
 from torchmetrics.classification import MulticlassF1Score
-# from sklearn.metrics import roc_curve
 import wandb
 from roc_curve import roc_curve
 

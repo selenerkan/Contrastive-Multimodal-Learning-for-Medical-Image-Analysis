@@ -211,7 +211,7 @@ def main_supervised_multimodal(seed, config=None):
     print('YOU ARE RUNNING SEED SUPERVISED MULTIMODAL FOR HAM DATASET')
     print(config)
 
-    wandb.init(group='SEED_SUPERVISED_RANDOM_INIT_CONCAT',
+    wandb.init(group='SUPERVISED_CONCAT',
                project="final_multimodal_training", config=config)
     wandb_logger = WandbLogger()
 
@@ -240,7 +240,7 @@ def main_supervised_multimodal(seed, config=None):
     dt_string = date_time.strftime("%d.%m.%Y-%H.%M")
     checkpoint_callback = ModelCheckpoint(
         dirpath=os.path.join(
-            CHECKPOINT_DIR, 'supervised/random_init/concat/seed/'),
+            CHECKPOINT_DIR, '_SUPERVISED/train/'),
         filename=dt_string+'_HAM_SEED='+str(seed)+'_lr='+str(wandb.config.learning_rate)+'_wd=' +
         str(wandb.config.weight_decay)+'-{epoch:03d}',
         monitor='val_macro_acc',
@@ -739,7 +739,7 @@ def main_film(seed, config):
     date_time = datetime.now()
     dt_string = date_time.strftime("%d.%m.%Y-%H.%M")
     checkpoint_callback = ModelCheckpoint(
-        dirpath=os.path.join(CHECKPOINT_DIR, '_FILM'),
+        dirpath=os.path.join(CHECKPOINT_DIR, '_FILM/train'),
         filename=dt_string+'_HAM_SEED='+str(seed)+'_lr='+str(wandb.config.learning_rate)+'_wd=' +
         str(wandb.config.weight_decay)+'-{epoch:03d}',
         monitor='val_macro_acc',
@@ -1275,7 +1275,7 @@ if __name__ == '__main__':
     #     random.seed(seed)
     #     np.random.seed(seed)
     #     torch.use_deterministic_algorithms(True)
-    #     main_supervised_multimodal(seed, supervised_config)
+    #     main_supervised_multimodal(seed, config['supervised_config'])
 
     # for seed in seed_list:
     #     seed_everything(seed, workers=True)

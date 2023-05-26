@@ -55,7 +55,8 @@ class FilmModel(LightningModule):
         self.global_pool = nn.AdaptiveAvgPool2d(1)
         self.fc = nn.Linear(self.resnet_dim*2, 7)
 
-        # self.daft = DAFT(n_outputs=7, in_channels=3)
+        self.cross_ent_loss_function = nn.CrossEntropyLoss(
+            weight=self.class_weights)
 
         # TRACK METRICS
 
@@ -160,8 +161,7 @@ class FilmModel(LightningModule):
 
         y_pred = self(img, tab)
 
-        loss_func = nn.CrossEntropyLoss(weight=self.class_weights)
-        loss = loss_func(y_pred, y)
+        loss = self.cross_ent_loss_function(y_pred, y)
         self.log('train_epoch_loss', loss, on_epoch=True, on_step=False)
 
         # calculate acc
@@ -223,8 +223,7 @@ class FilmModel(LightningModule):
 
         y_pred = self(img, tab)
 
-        loss_func = nn.CrossEntropyLoss(weight=self.class_weights)
-        loss = loss_func(y_pred, y)
+        loss = self.cross_ent_loss_function(y_pred, y)
         self.log('val_epoch_loss', loss, on_epoch=True, on_step=False)
 
         # calculate acc
@@ -297,8 +296,7 @@ class FilmModel(LightningModule):
         img, tab, y = batch
         y_pred = self(img, tab)
 
-        loss_func = nn.CrossEntropyLoss(weight=self.class_weights)
-        loss = loss_func(y_pred, y)
+        loss = self.cross_ent_loss_function(y_pred, y)
 
         self.log("test_epoch_loss", loss)
 
