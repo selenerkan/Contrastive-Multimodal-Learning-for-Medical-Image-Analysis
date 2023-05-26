@@ -1,6 +1,6 @@
 import torch
 
-root_dir = r'/home/guests/selen_erkan/datasets/skin_lesion'
+root_dir = r'/vol/aimspace/users/erks/datasets/skin_lesion'
 image_dir = root_dir + r"/HAM10K_grouped_images"
 csv_dir = root_dir + r"/HAM10000_metadata.csv"
 train_dir = r'/train_data.csv'
