@@ -153,6 +153,12 @@ class DaftModel(LightningModule):
 
         optimizer = torch.optim.Adam(
             self.parameters(), lr=self.lr, weight_decay=self.wd)
+        scheduler = MultiStepLR(optimizer,
+                                # List of epoch indices
+                                milestones=[24, 28],
+                                gamma=[0.1, 0.5])  # Multiplicative factor of learning rate decay
+
+        return [optimizer], [scheduler]
         return optimizer
 
     def training_step(self, batch, batch_idx):
