@@ -1182,6 +1182,44 @@ def main_triplet_center_cross_entropy(seed=1997, config=None):
     wandb.finish()
 
 
+def test_triplet_center_cross_ent(seed, config):
+    print('YOU ARE RUNNING FILM FOR HAM DATASET')
+    print(config)
+
+    wandb.init(group='TEST_TRIPLET_CENTER_CROSS',
+               project="final_multimodal_training", config=config)
+    wandb_logger = WandbLogger()
+
+    checkpoints = wandb.config.checkpoint
+    checkpoint = checkpoints[str(seed)]
+
+    # get the model
+    model = TripletCenterModel(
+        seed, learning_rate=wandb.config.learning_rate, weight_decay=wandb.config.weight_decay, alpha_center=wandb.config.alpha_center, alpha_triplet=wandb.config.alpha_triplet)
+    wandb.watch(model, log="all")
+
+    # load the data
+    data = HAMDataModule(
+        csv_dir, age=wandb.config.age, batch_size=wandb.config.batch_size)
+    data.prepare_data(seed)
+    data.set_triplet_dataloader()
+    test_dataloader = data.test_dataloader()
+
+    accelerator = 'cpu'
+    devices = None
+    if torch.cuda.is_available():
+        accelerator = 'gpu'
+        devices = 1
+
+    # Add learning rate scheduler monitoring
+    lr_monitor = LearningRateMonitor(logging_interval='epoch')
+    trainer = Trainer(accelerator=accelerator, devices=devices,
+                      max_epochs=wandb.config.max_epochs, logger=wandb_logger, callbacks=[lr_monitor], deterministic=True)
+    trainer.test(model, dataloaders=test_dataloader,
+                 ckpt_path=checkpoint)
+    wandb.finish()
+
+
 if __name__ == '__main__':
 
     # set the seed of the environment
@@ -1297,7 +1335,7 @@ if __name__ == '__main__':
         random.seed(seed)
         np.random.seed(seed)
         torch.use_deterministic_algorithms(True)
-        main_triplet_center_cross_entropy(seed, triplet_center_config)
+        test_triplet_center_cross_ent(seed, triplet_center_config)
 
     # for seed in seed_list:
     #     seed_everything(seed, workers=True)

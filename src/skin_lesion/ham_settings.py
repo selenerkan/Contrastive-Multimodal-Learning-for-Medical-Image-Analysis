@@ -5,7 +5,7 @@ image_dir = root_dir + r"/HAM10K_grouped_images"
 csv_dir = root_dir + r"/HAM10000_metadata.csv"
 train_dir = r'/train_data.csv'
 test_dir = r'/test_data.csv'
-CHECKPOINT_DIR = r'/home/guests/selen_erkan/experiments/checkpoints'
+CHECKPOINT_DIR = r'/vol/aimspace/users/erks/experiments/checkpoints/'
 
 FEATURES = ['age', 'sex_numeric', 'label', 'abdomen', 'acral',	'back',	'chest', 'ear',	'face',	'foot',
             'genital',	'hand',	'lower extremity',	'neck',	'scalp',	'trunk',	'upper extremity']
@@ -26,6 +26,12 @@ triplet_center_config = {
     'weight_decay': 0,
     'alpha_center': 0.01,
     'alpha_triplet': 0.2,
+    'checkpoint': {
+        '25': CHECKPOINT_DIR + r'triplet_center_cross/training/25.05.2023-17.39HAM_SEED=25_lr=0.0001_wd=0-epoch=039.ckpt',
+        '1997': CHECKPOINT_DIR + r'triplet_center_cross/training/25.05.2023-16.52HAM_SEED=1997_lr=0.0001_wd=0-epoch=039.ckpt',
+        '12': CHECKPOINT_DIR + r'triplet_center_cross/training/25.05.2023-18.25HAM_SEED=12_lr=0.0001_wd=0-epoch=039.ckpt',
+        '1966': CHECKPOINT_DIR + r'triplet_center_cross/training/25.05.2023-19.11HAM_SEED=1966_lr=0.0001_wd=0-epoch=039.ckpt',
+        '3297': CHECKPOINT_DIR + r'triplet_center_cross/training/25.05.2023-19.58HAM_SEED=3297_lr=0.0001_wd=0-epoch=039.ckpt'},
 }
 
 multiloss_config = {
