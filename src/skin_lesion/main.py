@@ -159,7 +159,7 @@ def main_tabular(seed, config=None):
     print('YOU ARE RUNNING TABULAR MODEL FOR HAM DATASET')
     print(config)
 
-    wandb.init(group='FULL_NEWWW_HAM_tabular',
+    wandb.init(group='TABULAR',
                project="final_multimodal_training", config=config)
     wandb_logger = WandbLogger()
 
@@ -187,7 +187,7 @@ def main_tabular(seed, config=None):
     date_time = datetime.now()
     dt_string = date_time.strftime("%d.%m.%Y-%H.%M")
     checkpoint_callback = ModelCheckpoint(
-        dirpath=os.path.join(CHECKPOINT_DIR, 'tabular/full'),
+        dirpath=os.path.join(CHECKPOINT_DIR, '_TABULAR/train'),
         filename=dt_string+'_HAM_SEED='+str(seed)+'_lr='+str(wandb.config.learning_rate)+'_wd=' +
         str(wandb.config.weight_decay)+'-{epoch:03d}',
         monitor='val_macro_acc',
@@ -1250,7 +1250,7 @@ if __name__ == '__main__':
         main_film(seed, config['film_config'])
         # main_supervised_multimodal(seed, config['supervised_config'])
         # main_resnet(seed, config['resnet_config'])
-        # main_tabular(seed, tabular_config)
+        # main_tabular(seed, config['tabular_config'])
 
     # RUN TEST LOOP
 
