@@ -790,7 +790,7 @@ def test_film(seed, config):
     wandb.finish()
 
 
-def main_modality_center(seed, config):
+def main_modality_center(seed, config=None):
     '''
     main function to run the multimodal architecture
     '''
@@ -798,7 +798,7 @@ def main_modality_center(seed, config):
     print('YOU ARE RUNNING SEED MULTI LOSS MODEL CENTER + CROSS ENTROPY LOSSES FOR HAM DATASET')
     print(config)
 
-    wandb.init(group='SEED_MODALITY_CENTER_HAM',
+    wandb.init(group='MODALITY_CENTER',
                project="final_multimodal_training",  config=config)
     wandb_logger = WandbLogger()
 
@@ -826,7 +826,7 @@ def main_modality_center(seed, config):
     dt_string = date_time.strftime("%d.%m.%Y-%H.%M")
     checkpoint_callback = ModelCheckpoint(
         dirpath=os.path.join(
-            CHECKPOINT_DIR, 'multi_loss/modality_center/full'),
+            CHECKPOINT_DIR, 'MODALITY_CENTER/training'),
         filename=dt_string+'HAM_SEED='+str(seed)+'_lr='+str(wandb.config.learning_rate)+'_wd=' +
         str(wandb.config.weight_decay)+'-{epoch:03d}',
         monitor='val_macro_acc',
@@ -1256,6 +1256,7 @@ if __name__ == '__main__':
 
         # main_multiloss(seed, config['multiloss_config'])
         main_cross_modal_center(seed, config['cross_modal_center_config'])
+        # main_modality_center(seed, config['modality_center_config'])
 
     # RUN TEST LOOP
 
