@@ -4,7 +4,7 @@ from pytorch_lightning.core.module import LightningModule
 from torch.nn import functional as F
 import torchmetrics
 from torch.nn import Softmax
-from torch.optim.lr_scheduler import StepLR, MultiStepLR
+from torch.optim.lr_scheduler import MultiplicativeLR
 import torchvision
 # from ham_settings import class_weights
 import pandas as pd
@@ -153,13 +153,13 @@ class DaftModel(LightningModule):
 
         optimizer = torch.optim.Adam(
             self.parameters(), lr=self.lr, weight_decay=self.wd)
-        scheduler = MultiStepLR(optimizer,
-                                # List of epoch indices
-                                milestones=[24, 28],
-                                gamma=[0.1, 0.5])  # Multiplicative factor of learning rate decay
+        milestones = [18, 27]
+        # Factors to drop learning rate at epoch 24 and 28, respectively
+        gamma = [0.1, 0.5]
+        scheduler = MultiplicativeLR(
+            optimizer, lr_lambda=lambda epoch: gamma[milestones.index(epoch)] if epoch in milestones else 1)
 
         return [optimizer], [scheduler]
-        return optimizer
 
     def training_step(self, batch, batch_idx):
 
