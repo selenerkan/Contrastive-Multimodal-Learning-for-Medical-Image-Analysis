@@ -19,7 +19,7 @@ import numpy as np
 import random
 from models.ham_daft_model import DaftModel
 from models.ham_film_model import FilmModel
-from models.ham_new_center_model import NewCenterModel
+from models.ham_cross_modal_center import CrossModalCenterModel
 from models.ham_modality_specific_center import ModalityCenterModel
 from models.ham_contrastive_loss_model import HamContrastiveModel
 from models.ham_triplet_center_cross_ent import TripletCenterModel
@@ -575,7 +575,7 @@ def test_daft(seed, config):
     wandb.finish()
 
 
-def main_new_center(seed, config=None):
+def main_cross_modal_center(seed, config=None):
     '''
     main function to run the multimodal architecture
     '''
@@ -583,12 +583,12 @@ def main_new_center(seed, config=None):
     print('YOU ARE RUNNING SEED MULTI LOSS MODEL CENTER + CROSS ENTROPY LOSSES FOR HAM DATASET')
     print(config)
 
-    wandb.init(group='SEED_FULL_NEW_CENTER_HAM',
+    wandb.init(group='CROSS_MODAL_CENTER',
                project="final_multimodal_training",  config=config)
     wandb_logger = WandbLogger()
 
-    model = NewCenterModel(learning_rate=wandb.config.learning_rate, weight_decay=wandb.config.weight_decay,
-                           alpha_center=wandb.config.alpha_center, dropout_rate=wandb.config.dropout, seed=seed)
+    model = CrossModalCenterModel(learning_rate=wandb.config.learning_rate, weight_decay=wandb.config.weight_decay,
+                                  alpha_center=wandb.config.alpha_center, dropout_rate=wandb.config.dropout, seed=seed)
     wandb.watch(model, log="all")
 
     # load the data
@@ -610,7 +610,7 @@ def main_new_center(seed, config=None):
     date_time = datetime.now()
     dt_string = date_time.strftime("%d.%m.%Y-%H.%M")
     checkpoint_callback = ModelCheckpoint(
-        dirpath=os.path.join(CHECKPOINT_DIR, 'multi_loss/new_center/full'),
+        dirpath=os.path.join(CHECKPOINT_DIR, 'CROSS_MODAL_CENTER/training'),
         filename=dt_string+'HAM_SEED='+str(seed)+'_lr='+str(wandb.config.learning_rate)+'_wd=' +
         str(wandb.config.weight_decay)+'-{epoch:03d}',
         monitor='val_macro_acc',
@@ -621,12 +621,12 @@ def main_new_center(seed, config=None):
     lr_monitor = LearningRateMonitor(logging_interval='epoch')
     trainer = Trainer(accelerator=accelerator, devices=devices,
                       max_epochs=wandb.config.max_epochs, logger=wandb_logger, callbacks=[checkpoint_callback, lr_monitor], deterministic=True)
-    # trainer.test(model, dataloaders=test_dataloader,
-    #              ckpt_path=wandb.config.checkpoint_new_center)
+    trainer.fit(model, train_dataloaders=train_dataloader,
+                val_dataloaders=val_dataloader)
     wandb.finish()
 
 
-def test_new_center(seed, config=None):
+def test_cross_modal_center(seed, config=None):
     '''
     main function to run the test loop for multiloss architecture
     '''
@@ -639,10 +639,8 @@ def test_new_center(seed, config=None):
 
     # get the model
     # CONCAT
-    model = NewCenterModel(seed=seed,
-                           learning_rate=wandb.config.learning_rate, weight_decay=wandb.config.weight_decay, alpha_center=wandb.config.alpha_center, dropout_rate=wandb.config.dropout)
-    # use this only for center loss with dim=0 concat
-    # model = NewCenterModel(learning_rate=wandb.config.learning_rate, weight_decay=wandb.config.weight_decay, alpha_center=wandb.config.alpha_center, dropout_rate=wandb.config.dropout)
+    model = CrossModalCenterModel(seed=seed,
+                                  learning_rate=wandb.config.learning_rate, weight_decay=wandb.config.weight_decay, alpha_center=wandb.config.alpha_center, dropout_rate=wandb.config.dropout)
 
     wandb.watch(model, log="all")
 
@@ -1253,9 +1251,11 @@ if __name__ == '__main__':
         # main_resnet(seed, config['resnet_config'])
         # main_tabular(seed, config['tabular_config'])
         # main_daft(seed, config['daft_config'])
+
         ##############  ABLATION  ################
-        main_multiloss(seed, config['multiloss_config'])
-        # main_new_center(seed, multiloss_config)
+
+        # main_multiloss(seed, config['multiloss_config'])
+        main_cross_modal_center(seed, config['cross_modal_center_config'])
 
     # RUN TEST LOOP
 

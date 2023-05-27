@@ -100,7 +100,7 @@ config = {
         'dropout': 0,
     },
 
-    'new_center_config': {
+    'cross_modal_center_config': {
         'batch_size': 512,  # 512
         'max_epochs': 40,  # 40
         'age': None,
