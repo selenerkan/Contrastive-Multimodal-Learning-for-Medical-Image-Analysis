@@ -21,7 +21,7 @@ from models.ham_daft_model import DaftModel
 from models.ham_film_model import FilmModel
 from models.ham_cross_modal_center import CrossModalCenterModel
 from models.ham_modality_specific_center import ModalityCenterModel
-from models.ham_contrastive_loss_model import HamContrastiveModel
+from models.ham_contrastive_pretrain_model import HamContrastiveModel
 from models.ham_triplet_center_cross_ent import TripletCenterModel
 
 
@@ -912,15 +912,15 @@ def test_film(seed, config):
     wandb.finish()
 
 
-def main_contrastive_loss(seed, config=None):
+def main_contrastive_pretrain(seed, config=None):
     '''
     main function to run the multimodal architecture with contrastive loss
     '''
 
-    print('YOU ARE RUNNING MULTIMODAL NETWORK WITH CONTRASTIVE LOSS FOR HAM DATASET')
+    print('YOU ARE RUNNING CONTRASTIVE PRETRAINING FOR HAM DATASET')
     print(config)
 
-    wandb.init(group='SEED_CONTRASTIVE_LOSS_RANDOM_INIT_HAM',
+    wandb.init(group='CONTRASTIVE_PRETRAIN',
                project="final_multimodal_training",  config=config)
     wandb_logger = WandbLogger()
 
@@ -948,7 +948,7 @@ def main_contrastive_loss(seed, config=None):
     dt_string = date_time.strftime("%d.%m.%Y-%H.%M")
     checkpoint_callback = ModelCheckpoint(
         dirpath=os.path.join(
-            CHECKPOINT_DIR, 'contrastive_loss/seed/concat/random_init'),
+            CHECKPOINT_DIR, 'CONTRASTIVE_PRETRAIN/training'),
         filename=dt_string+'_HAM_SEED='+str(seed)+'_lr='+str(wandb.config.learning_rate)+'_wd=' +
         str(wandb.config.weight_decay)+'-{epoch:03d}',
         monitor='val_epoch_loss',
@@ -1257,6 +1257,7 @@ if __name__ == '__main__':
         # main_multiloss(seed, config['multiloss_config'])
         main_cross_modal_center(seed, config['cross_modal_center_config'])
         # main_modality_center(seed, config['modality_center_config'])
+        # main_contrastive_pretrain(seed, config['contrastive_pretrain_config'])
 
     # RUN TEST LOOP
 

@@ -84,6 +84,18 @@ config = {
         'correlation': False,
     },
 
+    'contrastive_pretrain_config': {
+        'batch_size': 512,  # 512
+        'max_epochs': 100,  # 40
+        'age': None,
+        'learning_rate': 1e-4,
+        'weight_decay': 0,
+        'checkpoint': {},
+        'alpha_center': 0.01,
+        'alpha_contrastive': 0.2,
+        'correlation': True,
+    },
+
     'modality_center_config': {
         'batch_size': 512,  # 512
         'max_epochs': 40,  # 40
@@ -181,14 +193,5 @@ config = {
             '3297': CHECKPOINT_DIR + r'final/tabular/min_loss/08.03.2023-18.09_HAM_SEED=3297_lr=0.001_wd=0-epoch=035.ckpt', },
     },
 
-    'contrastive_loss_config': {
-
-        'batch_size': 512,  # 512
-        'max_epochs': 100,  # 40
-        'age': None,
-        'learning_rate': 1e-4,
-        'weight_decay': 0,
-        'correlation': False,
-    }
 
 }

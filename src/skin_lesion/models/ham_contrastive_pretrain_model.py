@@ -13,7 +13,7 @@ class HamContrastiveModel(LightningModule):
     Uses ResNet for the image data, concatenates image and tabular data at the end
     '''
 
-    def __init__(self, learning_rate=0.013, weight_decay=0.01, correlation=False):
+    def __init__(self, learning_rate=0.013, weight_decay=0.01, correlation=True):
 
         super().__init__()
         self.save_hyperparameters()
@@ -26,9 +26,8 @@ class HamContrastiveModel(LightningModule):
         self.correlation = correlation
 
         # IMAGE DATA
-        # self.resnet = torchvision.models.resnet18(
-        #     weights=torchvision.models.ResNet18_Weights.DEFAULT)  # output features are 1000
-        self.resnet = torchvision.models.resnet18()  # output features are 1000
+        self.resnet = torchvision.models.resnet18(
+            weights=torchvision.models.ResNet18_Weights.DEFAULT)  # output features are 1000
         # change resnet fc output to 128 features
         self.resnet.fc = nn.Linear(512, 128)
 
@@ -108,12 +107,6 @@ class HamContrastiveModel(LightningModule):
         # weight decay can be added, lr can be changed
         optimizer = torch.optim.Adam(
             self.parameters(), lr=self.lr, weight_decay=self.wd)
-        # scheduler = MultiStepLR(optimizer,
-        #                         # List of epoch indices
-        #                         milestones=[18, 27],
-        #                         gamma=0.1)  # Multiplicative factor of learning rate decay
-
-        # return [optimizer], [scheduler]
         return optimizer
 
     def training_step(self, batch, batch_idx):
