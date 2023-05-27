@@ -339,14 +339,16 @@ def main_multiloss(seed, config=None):
     print('YOU ARE RUNNING SEED MULTI LOSS MODEL CENTER + CROSS ENTROPY LOSSES FOR HAM DATASET')
     print(config)
 
-    wandb.init(group='SEED_FULL_CONCAT_HAM',
+    corr = 'CONCAT'
+    if config['correlation']:
+        corr = 'CORRELATION'
+
+    wandb.init(group='CENTER_CROSS_ENT_'+corr,
                project="final_multimodal_training",  config=config)
     wandb_logger = WandbLogger()
 
     model = MultiLossModel(
-        learning_rate=wandb.config.learning_rate, weight_decay=wandb.config.weight_decay, alpha_center=wandb.config.alpha_center, dropout_rate=wandb.config.dropout, seed=seed)
-    # use this only for center loss with dim=0 concat
-    # model = NewCenterModel(learning_rate=wandb.config.learning_rate, weight_decay=wandb.config.weight_decay, alpha_center=wandb.config.alpha_center, dropout_rate=wandb.config.dropout)
+        learning_rate=wandb.config.learning_rate, weight_decay=wandb.config.weight_decay, alpha_center=wandb.config.alpha_center, dropout_rate=wandb.config.dropout, seed=seed, correlation=wandb.config.correlation)
     wandb.watch(model, log="all")
 
     # load the data
@@ -368,8 +370,8 @@ def main_multiloss(seed, config=None):
     date_time = datetime.now()
     dt_string = date_time.strftime("%d.%m.%Y-%H.%M")
     checkpoint_callback = ModelCheckpoint(
-        dirpath=os.path.join(CHECKPOINT_DIR, 'multi_loss/concat/full'),
-        filename=dt_string+'HAM_SEED='+str(seed)+'_lr='+str(wandb.config.learning_rate)+'_wd=' +
+        dirpath=os.path.join(CHECKPOINT_DIR, 'CENTER_CROSS_ENT/train/'+corr),
+        filename=dt_string+'_HAM_SEED='+str(seed)+'_lr='+str(wandb.config.learning_rate)+'_wd=' +
         str(wandb.config.weight_decay)+'-{epoch:03d}',
         monitor='val_macro_acc',
         save_top_k=wandb.config.max_epochs,
@@ -1246,12 +1248,14 @@ if __name__ == '__main__':
         np.random.seed(seed)
         torch.use_deterministic_algorithms(True)
 
-        # main_new_center(seed, multiloss_config)
         # main_film(seed, config['film_config'])
         # main_supervised_multimodal(seed, config['supervised_config'])
         # main_resnet(seed, config['resnet_config'])
         # main_tabular(seed, config['tabular_config'])
-        main_daft(seed, config['daft_config'])
+        # main_daft(seed, config['daft_config'])
+        ##############  ABLATION  ################
+        main_multiloss(seed, config['multiloss_config'])
+        # main_new_center(seed, multiloss_config)
 
     # RUN TEST LOOP
 
