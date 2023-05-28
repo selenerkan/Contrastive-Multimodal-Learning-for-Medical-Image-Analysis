@@ -91,6 +91,16 @@ config = {
         'learning_rate': 1e-4,
         'weight_decay': 0,
         'checkpoint': {},
+        'correlation': True,
+    },
+
+    'contrastive_center_cross_config': {
+        'batch_size': 512,  # 512
+        'max_epochs': 40,  # 40
+        'age': None,
+        'learning_rate': 1e-4,
+        'weight_decay': 0,
+        'checkpoint': {},
         'alpha_center': 0.01,
         'alpha_contrastive': 0.2,
         'correlation': True,

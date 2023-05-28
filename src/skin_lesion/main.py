@@ -23,6 +23,7 @@ from models.ham_cross_modal_center import CrossModalCenterModel
 from models.ham_modality_specific_center import ModalityCenterModel
 from models.ham_contrastive_pretrain_model import HamContrastiveModel
 from models.ham_triplet_center_cross_ent import TripletCenterModel
+from models.ham_contrastive_center_cross_ent_model import HamContrastiveCenterCrossModel
 
 
 def main_baseline(config=None):
@@ -1129,6 +1130,58 @@ def main_contrastive_evaluate(seed, config=None):
     wandb.finish()
 
 
+def main_contrastive_center_cross_ent(seed, config=None):
+    '''
+    main function to run the multimodal architecture with contrastive loss
+    '''
+
+    print('YOU ARE RUNNING CONTRASTIVE PRETRAINING FOR HAM DATASET')
+    print(config)
+
+    wandb.init(group='CONTRASTIVE_CENTER_CROSS_ENT',
+               project="final_multimodal_training",  config=config)
+    wandb_logger = WandbLogger()
+
+    model = HamContrastiveCenterCrossModel(
+        learning_rate=wandb.config.learning_rate, weight_decay=wandb.config.weight_decay, alpha_contrastive=wandb.config.alpha_contrastive, alpha_center=wandb.config.alpha_center, correlation=wandb.config.correlation, seed=seed)
+    wandb.watch(model, log="all")
+
+    # load the data
+    data = HAMDataModule(
+        csv_dir, age=wandb.config.age, batch_size=wandb.config.batch_size)
+    data.prepare_data(seed=seed)
+    data.set_contrastive_loss_dataloader()
+    train_dataloader = data.train_dataloader()
+    val_dataloader = data.val_dataloader()
+
+    accelerator = 'cpu'
+    devices = None
+    if torch.cuda.is_available():
+        accelerator = 'gpu'
+        devices = 1
+
+    # save the checkpoint in a different folder
+    # use datetime value in the file name
+    date_time = datetime.now()
+    dt_string = date_time.strftime("%d.%m.%Y-%H.%M")
+    checkpoint_callback = ModelCheckpoint(
+        dirpath=os.path.join(
+            CHECKPOINT_DIR, 'CONTRASTIVE_CENTER_CE/training'),
+        filename=dt_string+'_HAM_SEED='+str(seed)+'_lr='+str(wandb.config.learning_rate)+'_wd=' +
+        str(wandb.config.weight_decay)+'-{epoch:03d}',
+        monitor='val_epoch_loss',
+        save_top_k=wandb.config.max_epochs,
+        mode='min')
+
+    # Add learning rate scheduler monitoring
+    lr_monitor = LearningRateMonitor(logging_interval='epoch')
+    trainer = Trainer(accelerator=accelerator, devices=devices,
+                      max_epochs=wandb.config.max_epochs, logger=wandb_logger, callbacks=[checkpoint_callback, lr_monitor], deterministic=True)
+    trainer.fit(model, train_dataloaders=train_dataloader,
+                val_dataloaders=val_dataloader)
+    wandb.finish()
+
+
 def main_triplet_center_cross_entropy(seed=1997, config=None):
     '''
     main function to run the multimodal architecture with triplet + center + cross entropy loss
@@ -1255,9 +1308,11 @@ if __name__ == '__main__':
         ##############  ABLATION  ################
 
         # main_multiloss(seed, config['multiloss_config'])
-        main_cross_modal_center(seed, config['cross_modal_center_config'])
-        # main_modality_center(seed, config['modality_center_config'])
+        # main_cross_modal_center(seed, config['cross_modal_center_config'])
+        main_modality_center(seed, config['modality_center_config'])
         # main_contrastive_pretrain(seed, config['contrastive_pretrain_config'])
+        # main_contrastive_center_cross_ent(
+        #     seed, config=config['contrastive_center_cross_config'])
 
     # RUN TEST LOOP
 
