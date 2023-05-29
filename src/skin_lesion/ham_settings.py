@@ -56,6 +56,12 @@ config = {
         'age': None,
         'learning_rate': 1e-4,  # 3e-4
         'weight_decay': 0,  # 1e-5
+        'checkpoint': {
+            '1997': CHECKPOINT_DIR + r'_FILM/train/26.05.2023-21.00_HAM_SEED=1997_lr=0.0001_wd=0-epoch=011.ckpt',
+            '25': CHECKPOINT_DIR + r'_FILM/train/26.05.2023-21.17_HAM_SEED=25_lr=0.0001_wd=0-epoch=011.ckpt',
+            '12': CHECKPOINT_DIR + r'_FILM/train/26.05.2023-21.35_HAM_SEED=12_lr=0.0001_wd=0-epoch=011.ckpt',
+            '1966': CHECKPOINT_DIR + r'_FILM/train/26.05.2023-21.53_HAM_SEED=1966_lr=0.0001_wd=0-epoch=011.ckpt',
+            '3297': CHECKPOINT_DIR + r'_FILM/train/'},
     },
 
     'multiloss_config': {
