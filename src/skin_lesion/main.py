@@ -122,9 +122,12 @@ def test_resnet(seed, config=None):
 
     print('YOU ARE RUNNING TEST LOOP FOR RESNET MODEL FOR HAM DATASET')
 
-    wandb.init(group='TEST_MIN_LOSS_HAM_resnet',
+    wandb.init(group='TEST_RESNET',
                project="final_multimodal_training", config=config)
     wandb_logger = WandbLogger()
+
+    checkpoints = wandb.config.checkpoint
+    checkpoint = checkpoints[str(seed)]
 
     # get the model
     model = ResnetModel(learning_rate=wandb.config.learning_rate,
@@ -149,7 +152,7 @@ def test_resnet(seed, config=None):
     trainer = Trainer(accelerator=accelerator, devices=devices,
                       max_epochs=wandb.config.max_epochs, logger=wandb_logger, callbacks=[lr_monitor], deterministic=True)
     trainer.test(model, dataloaders=test_dataloader,
-                 ckpt_path=wandb.config.checkpoint_resnet)
+                 ckpt_path=checkpoint)
 
 
 def main_tabular(seed, config=None):
@@ -265,7 +268,14 @@ def test_supervised_multimodal(seed, config=None):
 
     print('YOU ARE RUNNING TEST LOOP FORSUPERVISED MULTIMODAL FOR HAM DATASET')
 
-    wandb.init(group='TEST_FULL_NEWWW_SUPERVISED_CONCAT_HAM',
+    corr = 'CONCAT'
+    if config['correlation']:
+        corr = 'CORRELATION'
+
+    checkpoints = wandb.config.checkpoint
+    checkpoint = checkpoints[str(seed)]
+
+    wandb.init(group='TEST_SUPERVISED_'+corr,
                project="final_multimodal_training", config=config)
     wandb_logger = WandbLogger()
 
@@ -292,44 +302,7 @@ def test_supervised_multimodal(seed, config=None):
     trainer = Trainer(accelerator=accelerator, devices=devices,
                       max_epochs=wandb.config.max_epochs, logger=wandb_logger, callbacks=[lr_monitor], deterministic=True)
     trainer.test(model, dataloaders=test_dataloader,
-                 ckpt_path=wandb.config.checkpoint)
-
-
-def test_supervised_corr_multimodal(seed, config=None):
-    '''
-    main function to run the test loop for supervised multimodal architecture
-    '''
-
-    print('YOU ARE RUNNING TEST LOOP FORSUPERVISED MULTIMODAL FOR HAM DATASET')
-
-    wandb.init(group='TEST_FULL_NEWW_SUPERVISED_CORR_HAM',
-               project="final_multimodal_training", config=config)
-    wandb_logger = WandbLogger()
-
-    # get the model
-    model = SupervisedModel(learning_rate=wandb.config.learning_rate,
-                            weight_decay=wandb.config.weight_decay, correlation=wandb.config.correlation)
-    wandb.watch(model, log="all")
-
-    # load the data
-    data = HAMDataModule(
-        csv_dir, age=wandb.config.age, batch_size=wandb.config.batch_size)
-    data.prepare_data(seed=seed)
-    data.set_supervised_multimodal_dataloader()
-    test_dataloader = data.test_dataloader()
-
-    accelerator = 'cpu'
-    devices = None
-    if torch.cuda.is_available():
-        accelerator = 'gpu'
-        devices = 1
-
-    # Add learning rate scheduler monitoring
-    lr_monitor = LearningRateMonitor(logging_interval='epoch')
-    trainer = Trainer(accelerator=accelerator, devices=devices,
-                      max_epochs=wandb.config.max_epochs, logger=wandb_logger, callbacks=[lr_monitor], deterministic=True)
-    trainer.test(model, dataloaders=test_dataloader,
-                 ckpt_path=wandb.config.checkpoint_corr)
+                 ckpt_path=checkpoint)
 
 
 def main_multiloss(seed, config=None):
@@ -394,17 +367,20 @@ def test_multiloss(seed, config=None):
 
     print('YOU ARE RUNNING TEST LOOP FOR MULTILOSS FOR HAM DATASET')
 
-    wandb.init(group='TEST_FULL_CONCAT_HAM',
+    corr = 'CONCAT'
+    if config['correlation']:
+        corr = 'CORRELATION'
+
+    wandb.init(group='TEST_CENTER_CROSS_ENT_'+corr,
                project="final_multimodal_training", config=config)
     wandb_logger = WandbLogger()
 
+    checkpoints = wandb.config.checkpoint
+    checkpoint = checkpoints[str(seed)]
     # get the model
     # CONCAT
     model = MultiLossModel(seed=seed,
                            learning_rate=wandb.config.learning_rate, weight_decay=wandb.config.weight_decay, alpha_center=wandb.config.alpha_center, dropout_rate=wandb.config.dropout)
-    # use this only for center loss with dim=0 concat
-    # model = NewCenterModel(learning_rate=wandb.config.learning_rate, weight_decay=wandb.config.weight_decay, alpha_center=wandb.config.alpha_center, dropout_rate=wandb.config.dropout)
-
     wandb.watch(model, log="all")
 
     # load the data
@@ -424,10 +400,8 @@ def test_multiloss(seed, config=None):
     lr_monitor = LearningRateMonitor(logging_interval='epoch')
     trainer = Trainer(accelerator=accelerator, devices=devices,
                       max_epochs=wandb.config.max_epochs, logger=wandb_logger, callbacks=[lr_monitor], deterministic=True)
-    # trainer.test(model, dataloaders=test_dataloader,
-    #              ckpt_path=wandb.config.checkpoint)
     trainer.test(model, dataloaders=test_dataloader,
-                 ckpt_path=wandb.config.checkpoint_concat)
+                 ckpt_path=checkpoint)
 
 
 def run_grid_search(network):
@@ -545,7 +519,10 @@ def test_daft(seed, config):
     print('YOU ARE RUNNING DAFT FOR HAM DATASET')
     print(config)
 
-    wandb.init(group='TEST_NEW_DAFT',
+    checkpoints = wandb.config.checkpoint
+    checkpoint = checkpoints[str(seed)]
+
+    wandb.init(group='TEST_DAFT',
                project="final_multimodal_training", config=config)
     wandb_logger = WandbLogger()
 
@@ -572,7 +549,7 @@ def test_daft(seed, config):
     trainer = Trainer(accelerator=accelerator, devices=devices,
                       max_epochs=wandb.config.max_epochs, logger=wandb_logger, callbacks=[lr_monitor], deterministic=True)
     trainer.test(model, dataloaders=test_dataloader,
-                 ckpt_path=wandb.config.checkpoint_daft)
+                 ckpt_path=checkpoint)
     wandb.finish()
 
 
@@ -634,10 +611,12 @@ def test_cross_modal_center(seed, config=None):
 
     print('YOU ARE RUNNING TEST LOOP FOR MULTILOSS FOR HAM DATASET')
 
-    wandb.init(group='TEST_FULL_NEWWW_NEW_CENTER_HAM',
+    wandb.init(group='TEST_CROSS_MODAL_CENTER',
                project="final_multimodal_training", config=config)
     wandb_logger = WandbLogger()
 
+    checkpoints = wandb.config.checkpoint
+    checkpoint = checkpoints[str(seed)]
     # get the model
     # CONCAT
     model = CrossModalCenterModel(seed=seed,
@@ -665,7 +644,7 @@ def test_cross_modal_center(seed, config=None):
     # trainer.test(model, dataloaders=test_dataloader,
     #              ckpt_path=wandb.config.checkpoint)
     trainer.test(model, dataloaders=test_dataloader,
-                 ckpt_path=wandb.config.checkpoint_new_center)
+                 ckpt_path=checkpoint)
 
 
 def test_tabular(seed, config):
@@ -673,9 +652,12 @@ def test_tabular(seed, config):
     print('YOU ARE RUNNING TABULAR MODEL FOR HAM DATASET')
     print(config)
 
-    wandb.init(group='TEST_HAM_tabular',
+    wandb.init(group='TEST_TABULAR',
                project="final_multimodal_training", config=config)
     wandb_logger = WandbLogger()
+
+    checkpoints = wandb.config.checkpoint
+    checkpoint = checkpoints[str(seed)]
 
     # get the model
     model = TabularModel(learning_rate=wandb.config.learning_rate,
@@ -701,7 +683,7 @@ def test_tabular(seed, config):
     trainer = Trainer(accelerator=accelerator, devices=devices,
                       max_epochs=wandb.config.max_epochs, logger=wandb_logger, callbacks=[lr_monitor], deterministic=True)
     trainer.test(model, dataloaders=test_dataloader,
-                 ckpt_path=wandb.config.checkpoint)
+                 ckpt_path=checkpoint)
 
 
 def main_film(seed, config):
@@ -760,6 +742,9 @@ def test_film(seed, config):
     print('YOU ARE RUNNING FILM FOR HAM DATASET')
     print(config)
 
+    checkpoints = wandb.config.checkpoint
+    checkpoint = checkpoints[str(seed)]
+
     wandb.init(group='TEST_FILM',
                project="final_multimodal_training", config=config)
     wandb_logger = WandbLogger()
@@ -787,7 +772,7 @@ def test_film(seed, config):
     trainer = Trainer(accelerator=accelerator, devices=devices,
                       max_epochs=wandb.config.max_epochs, logger=wandb_logger, callbacks=[lr_monitor], deterministic=True)
     trainer.test(model, dataloaders=test_dataloader,
-                 ckpt_path=wandb.config.checkpoint_film)
+                 ckpt_path=checkpoint)
     wandb.finish()
 
 
@@ -847,7 +832,10 @@ def test_modality_center(seed, config):
     print('YOU ARE RUNNING test modality center FOR HAM DATASET')
     print(config)
 
-    wandb.init(group='TEST_MODALITY_CENTER',
+    checkpoints = wandb.config.checkpoint
+    checkpoint = checkpoints[str(seed)]
+
+    wandb.init(group='TEST_MODALITY_SPEC_CENTER',
                project="final_multimodal_training", config=config)
     wandb_logger = WandbLogger()
 
@@ -874,42 +862,7 @@ def test_modality_center(seed, config):
     trainer = Trainer(accelerator=accelerator, devices=devices,
                       max_epochs=wandb.config.max_epochs, logger=wandb_logger, callbacks=[lr_monitor], deterministic=True)
     trainer.test(model, dataloaders=test_dataloader,
-                 ckpt_path=wandb.config.checkpoint_modality_center)
-    wandb.finish()
-
-
-def test_film(seed, config):
-    print('YOU ARE RUNNING FILM FOR HAM DATASET')
-    print(config)
-
-    wandb.init(group='TEST_FILM',
-               project="final_multimodal_training", config=config)
-    wandb_logger = WandbLogger()
-
-    # get the model
-    model = FilmModel(learning_rate=wandb.config.learning_rate,
-                      weight_decay=wandb.config.weight_decay)
-    wandb.watch(model, log="all")
-
-    # load the data
-    data = HAMDataModule(
-        csv_dir, age=wandb.config.age, batch_size=wandb.config.batch_size)
-    data.prepare_data(seed)
-    data.set_supervised_multimodal_dataloader()
-    test_dataloader = data.test_dataloader()
-
-    accelerator = 'cpu'
-    devices = None
-    if torch.cuda.is_available():
-        accelerator = 'gpu'
-        devices = 1
-
-    # Add learning rate scheduler monitoring
-    lr_monitor = LearningRateMonitor(logging_interval='epoch')
-    trainer = Trainer(accelerator=accelerator, devices=devices,
-                      max_epochs=wandb.config.max_epochs, logger=wandb_logger, callbacks=[lr_monitor], deterministic=True)
-    trainer.test(model, dataloaders=test_dataloader,
-                 ckpt_path=wandb.config.checkpoint_film)
+                 ckpt_path=checkpoint)
     wandb.finish()
 
 
@@ -1299,20 +1252,20 @@ if __name__ == '__main__':
         np.random.seed(seed)
         torch.use_deterministic_algorithms(True)
 
-        # main_film(seed, config['film_config'])
-        # main_supervised_multimodal(seed, config['supervised_config'])
-        # main_resnet(seed, config['resnet_config'])
-        # main_tabular(seed, config['tabular_config'])
-        # main_daft(seed, config['daft_config'])
+    #     # main_film(seed, config['film_config'])
+    #     # main_supervised_multimodal(seed, config['supervised_config'])
+    #     # main_resnet(seed, config['resnet_config'])
+    #     # main_tabular(seed, config['tabular_config'])
+    #     # main_daft(seed, config['daft_config'])
 
-        ##############  ABLATION  ################
+    #     ##############  ABLATION  ################
 
-        # main_multiloss(seed, config['multiloss_config'])
-        # main_cross_modal_center(seed, config['cross_modal_center_config'])
-        main_modality_center(seed, config['modality_center_config'])
-        # main_contrastive_pretrain(seed, config['contrastive_pretrain_config'])
-        # main_contrastive_center_cross_ent(
-        #     seed, config=config['contrastive_center_cross_config'])
+        main_multiloss(seed, config['multiloss_config'])
+    #     # main_cross_modal_center(seed, config['cross_modal_center_config'])
+    #     # main_modality_center(seed, config['modality_center_config'])
+    #     # main_contrastive_pretrain(seed, config['contrastive_pretrain_config'])
+    #     # main_contrastive_center_cross_ent(
+    #     #     seed, config=config['contrastive_center_cross_config'])
 
     # RUN TEST LOOP
 
@@ -1324,14 +1277,18 @@ if __name__ == '__main__':
     #     random.seed(seed)
     #     np.random.seed(seed)
     #     torch.use_deterministic_algorithms(True)
-    #     test_triplet_center_cross_ent(seed, triplet_center_config)
 
-    # test_supervised_multimodal(seed=1997, config=supervised_config)
-    # test_supervised_corr_multimodal(seed=1997, config=supervised_config)
-    # test_resnet(supervised_config)
-    # test_multiloss(seed=1997, config=multiloss_config)
-    # test_new_center(seed=1997, config=multiloss_config)
-    # test_daft(seed=1997, config=supervised_config)
-    # test_tabular(seed=1997, config=tabular_config)
-    # test_film(seed=1997, config=supervised_config)
-    # test_modality_center(seed=1997, config=multiloss_config)
+    #     # test_resnet(seed, config=config['resnet_config'])
+    #     # test_tabular(seed, config=config['tabular_config'])
+    #     # test_supervised_multimodal(seed, config['supervised_config'])
+    #     # test_daft(seed, config['daft_config'])
+    #     # test_film(seed, config['film_config'])
+    #     # test_triplet_center_cross_ent(seed, cinfig['triplet_center_config']
+
+    #     ################# ABLATION #####################################
+
+    #     # test_supervised_multimodal(seed, config['supervised_config']) # CORRELATION
+    #     # test_multiloss(seed, config['multiloss_config'])
+    #     # test_cross_modal_center(seed, config['cross_modal_center_config'])
+    #     # test_modality_center(seed, config['modality_center_config'])
+    #     # ADD CONTRASTIVE PRETRAIN

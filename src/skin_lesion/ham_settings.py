@@ -41,12 +41,12 @@ config = {
         'age': None,
         'learning_rate': 1e-4,
         'weight_decay': 0,
-        # 'checkpoint_daft': r'/home/guests/selen_erkan/experiments/checkpoints/final/daft/min_loss/08.03.2023-15.58HAM_SEED=1997_lr=0.0001_wd=0-epoch=007.ckpt',
-        # 'checkpoint_daft': r'/home/guests/selen_erkan/experiments/checkpoints/final/daft/min_loss/08.03.2023-16.19HAM_SEED=25_lr=0.0001_wd=0-epoch=007.ckpt',
-        # 'checkpoint_daft': r'/home/guests/selen_erkan/experiments/checkpoints/final/daft/min_loss/08.03.2023-16.40HAM_SEED=12_lr=0.0001_wd=0-epoch=007.ckpt',
-        # 'checkpoint_daft': r'/home/guests/selen_erkan/experiments/checkpoints/final/daft/min_loss/08.03.2023-17.02HAM_SEED=1966_lr=0.0001_wd=0-epoch=007.ckpt',
-        # 'checkpoint_daft': r'/home/guests/selen_erkan/experiments/checkpoints/final/daft/min_loss/08.03.2023-17.23HAM_SEED=3297_lr=0.0001_wd=0-epoch=007.ckpt',
-
+        'checkpoint': {
+            '1997': CHECKPOINT_DIR + r'_DAFT/training/26.05.2023-19.27_HAM_SEED=1997_lr=0.0001_wd=0-epoch=006.ckpt',
+            '25': CHECKPOINT_DIR + r'_DAFT/training/26.05.2023-19.46_HAM_SEED=25_lr=0.0001_wd=0-epoch=006.ckpt',
+            '12': CHECKPOINT_DIR + r'_DAFT/training/26.05.2023-20.04_HAM_SEED=12_lr=0.0001_wd=0-epoch=006.ckpt',
+            '1966': CHECKPOINT_DIR + r'_DAFT/training/26.05.2023-20.21_HAM_SEED=1966_lr=0.0001_wd=0-epoch=012.ckpt',
+            '3297': CHECKPOINT_DIR + r'_DAFT/training/26.05.2023-20.39_HAM_SEED=3297_lr=0.0001_wd=0-epoch=006.ckpt'},
     },
 
 
@@ -56,11 +56,6 @@ config = {
         'age': None,
         'learning_rate': 1e-4,  # 3e-4
         'weight_decay': 0,  # 1e-5
-        # 'checkpoint_film': r'/home/guests/selen_erkan/experiments/checkpoints/final/film/min_loss/09.03.2023-11.43HAM_SEED=1997_lr=0.0001_wd=0-epoch=006.ckpt',
-        # 'checkpoint_film': r'/home/guests/selen_erkan/experiments/checkpoints/final/film/min_loss/09.03.2023-11.45HAM_SEED=12_lr=0.0001_wd=0-epoch=006.ckpt',
-        # 'checkpoint_film': r'/home/guests/selen_erkan/experiments/checkpoints/final/film/min_loss/09.03.2023-11.47HAM_SEED=3297_lr=0.0001_wd=0-epoch=006.ckpt',
-        # 'checkpoint_film': r'/home/guests/selen_erkan/experiments/checkpoints/final/film/min_loss/09.03.2023-12.08HAM_SEED=25_lr=0.0001_wd=0-epoch=006.ckpt',
-        # 'checkpoint_film': r'/home/guests/selen_erkan/experiments/checkpoints/final/film/min_loss/09.03.2023-12.10HAM_SEED=1966_lr=0.0001_wd=0-epoch=006.ckpt',
     },
 
     'multiloss_config': {
@@ -81,7 +76,7 @@ config = {
         # 'checkpoint_concat': r'/home/guests/selen_erkan/experiments/checkpoints/final/multi_loss_concat/min_loss/08.03.2023-05.22HAM_SEED=3297_lr=0.0001_wd=0-epoch=039.ckpt',
         'alpha_center': 0.01,
         'dropout': 0,
-        'correlation': False,
+        'correlation': True,
     },
 
     'contrastive_pretrain_config': {
