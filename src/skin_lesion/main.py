@@ -137,7 +137,7 @@ def test_resnet(seed, config=None):
     # load the data
     data = HAMDataModule(
         csv_dir, age=wandb.config.age, batch_size=wandb.config.batch_size)
-    data.prepare_data()
+    data.prepare_data(seed=seed)
     data.set_supervised_multimodal_dataloader()
     test_dataloader = data.test_dataloader()
 
@@ -670,7 +670,6 @@ def test_tabular(seed, config):
     data.prepare_data(seed)
     data.set_supervised_multimodal_dataloader()
     test_dataloader = data.test_dataloader()
-    # val_dataloader = data.val_dataloader()
 
     accelerator = 'cpu'
     devices = None
@@ -1252,43 +1251,33 @@ if __name__ == '__main__':
         np.random.seed(seed)
         torch.use_deterministic_algorithms(True)
 
-    #     # main_film(seed, config['film_config'])
-    #     # main_supervised_multimodal(seed, config['supervised_config'])
-    #     # main_resnet(seed, config['resnet_config'])
-    #     # main_tabular(seed, config['tabular_config'])
-    #     # main_daft(seed, config['daft_config'])
+        # main_film(seed, config['film_config'])
+        # main_supervised_multimodal(seed, config['supervised_config'])
+        # main_resnet(seed, config['resnet_config'])
+        # main_tabular(seed, config['tabular_config'])
+        # main_daft(seed, config['daft_config'])
 
-    #     ##############  ABLATION  ################
+        #############################  ABLATION  ###########################
 
-        main_multiloss(seed, config['multiloss_config'])
-    #     # main_cross_modal_center(seed, config['cross_modal_center_config'])
-    #     # main_modality_center(seed, config['modality_center_config'])
-    #     # main_contrastive_pretrain(seed, config['contrastive_pretrain_config'])
-    #     # main_contrastive_center_cross_ent(
-    #     #     seed, config=config['contrastive_center_cross_config'])
+        # main_multiloss(seed, config['multiloss_config'])
+        # main_cross_modal_center(seed, config['cross_modal_center_config'])
+        # main_modality_center(seed, config['modality_center_config'])
+        # main_contrastive_pretrain(seed, config['contrastive_pretrain_config'])
+        # main_contrastive_center_cross_ent(
+        #     seed, config=config['contrastive_center_cross_config'])
 
-    # RUN TEST LOOP
+        ###########################  TEST  ##################################
+        test_resnet(seed, config=config['resnet_config'])
+        # test_tabular(seed, config=config['tabular_config'])
+        # test_supervised_multimodal(seed, config['supervised_config'])
+        # test_daft(seed, config['daft_config'])
+        # test_film(seed, config['film_config'])
+        # test_triplet_center_cross_ent(seed, cinfig['triplet_center_config']
 
-    # for seed in seed_list:
-    #     seed_everything(seed, workers=True)
-    #     torch.manual_seed(seed)
-    #     np.random.seed(seed)
-    #     torch.cuda.manual_seed(seed)
-    #     random.seed(seed)
-    #     np.random.seed(seed)
-    #     torch.use_deterministic_algorithms(True)
+        #########################  TEST - ABLATION  ##############################
 
-    #     # test_resnet(seed, config=config['resnet_config'])
-    #     # test_tabular(seed, config=config['tabular_config'])
-    #     # test_supervised_multimodal(seed, config['supervised_config'])
-    #     # test_daft(seed, config['daft_config'])
-    #     # test_film(seed, config['film_config'])
-    #     # test_triplet_center_cross_ent(seed, cinfig['triplet_center_config']
-
-    #     ################# ABLATION #####################################
-
-    #     # test_supervised_multimodal(seed, config['supervised_config']) # CORRELATION
-    #     # test_multiloss(seed, config['multiloss_config'])
-    #     # test_cross_modal_center(seed, config['cross_modal_center_config'])
-    #     # test_modality_center(seed, config['modality_center_config'])
-    #     # ADD CONTRASTIVE PRETRAIN
+        # test_supervised_multimodal(seed, config['supervised_config']) # CORRELATION
+        # test_multiloss(seed, config['multiloss_config'])
+        # test_cross_modal_center(seed, config['cross_modal_center_config'])
+        # test_modality_center(seed, config['modality_center_config'])
+        # ADD CONTRASTIVE PRETRAIN

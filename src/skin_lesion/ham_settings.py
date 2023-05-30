@@ -146,6 +146,12 @@ config = {
         'learning_rate': 1e-4,
         'weight_decay': 0,
         'correlation': False,
+        'checkpoint': {
+            '1997': CHECKPOINT_DIR + r'CENTER_CROSS_ENT/train/CONCAT/27.05.2023-23.29_HAM_SEED=1997_lr=0.0001_wd=0-epoch=014.ckpt',
+            '25': CHECKPOINT_DIR + r'CENTER_CROSS_ENT/train/CONCAT/27.05.2023-23.52_HAM_SEED=25_lr=0.0001_wd=0-epoch=014.ckpt',
+            '12': CHECKPOINT_DIR + r'CENTER_CROSS_ENT/train/CONCAT/28.05.2023-00.15_HAM_SEED=12_lr=0.0001_wd=0-epoch=014.ckpt',
+            '1966': CHECKPOINT_DIR + r'CENTER_CROSS_ENT/train/CONCAT/28.05.2023-00.37_HAM_SEED=1966_lr=0.0001_wd=0-epoch=014.ckpt',
+            '3297': CHECKPOINT_DIR + r'CENTER_CROSS_ENT/train/CONCAT/28.05.2023-01.00_HAM_SEED=3297_lr=0.0001_wd=0-epoch=014.ckpt'},
         # resnet init
         # 'contrastive_checkpoint': {
         #     '25': r'/home/guests/selen_erkan/experiments/checkpoints/contrastive_loss/seed/concat/gathered/18.04.2023-22.14_HAM_SEED=25_lr=0.0001_wd=0-epoch=099.ckpt',
@@ -183,11 +189,11 @@ config = {
         'learning_rate': 1e-4,
         'weight_decay': 0,
         'checkpoint': {
-            '1997': CHECKPOINT_DIR + r'final/resnet/min_lost/06.03.2023-19.08_FINAL_HAM_SEED=1997_lr=0.0001_wd=0-epoch=009.ckpt',
-            '25': CHECKPOINT_DIR + r'final/resnet/min_lost/06.03.2023-19.40_FINAL_HAM_SEED=25_lr=0.0001_wd=0-epoch=009.ckpt',
-            '12': CHECKPOINT_DIR + r'final/resnet/min_lost/06.03.2023-20.25_FINAL_HAM_SEED=12_lr=0.0001_wd=0-epoch=009.ckpt',
-            '1966': CHECKPOINT_DIR + r'final/resnet/min_lost/06.03.2023-21.12_FINAL_HAM_SEED=1966_lr=0.0001_wd=0-epoch=009.ckpt',
-            '3297': CHECKPOINT_DIR + r'final/resnet/min_lost/07.03.2023-16.23_FINAL_MISSING_HAM_SEED=3297_lr=0.0001_w'}
+            '1997': CHECKPOINT_DIR + r'_RESNET/train/27.05.2023-12.24_HAM_SEED=1997_lr=0.0001_wd=0-epoch=009.ckpt',
+            '25': CHECKPOINT_DIR + r'_RESNET/train/27.05.2023-12.40_HAM_SEED=25_lr=0.0001_wd=0-epoch=009.ckpt',
+            '12': CHECKPOINT_DIR + r'_RESNET/train/27.05.2023-12.55_HAM_SEED=12_lr=0.0001_wd=0-epoch=009.ckpt',
+            '1966': CHECKPOINT_DIR + r'_RESNET/train/27.05.2023-13.10_HAM_SEED=1966_lr=0.0001_wd=0-epoch=009.ckpt',
+            '3297': CHECKPOINT_DIR + r'_RESNET/train/27.05.2023-13.26_HAM_SEED=3297_lr=0.0001_wd=0-epoch=009.ckpt'}
     },
 
     'tabular_config': {
@@ -197,11 +203,11 @@ config = {
         'learning_rate': 1e-3,
         'weight_decay': 0,
         'checkpoint': {
-            '1997': CHECKPOINT_DIR + r'final/tabular/min_loss/08.03.2023-18.02_HAM_SEED=1997_lr=0.001_wd=0-epoch=035.ckpt',
-            '25': CHECKPOINT_DIR + r'final/tabular/min_loss/08.03.2023-17.30_HAM_SEED=25_lr=0.001_wd=0-epoch=035.ckpt',
-            '12': CHECKPOINT_DIR + r'final/tabular/min_loss/08.03.2023-17.43_HAM_SEED=12_lr=0.001_wd=0-epoch=035.ckpt',
-            '1966': CHECKPOINT_DIR + r'final/tabular/min_loss/08.03.2023-17.56_HAM_SEED=1966_lr=0.001_wd=0-epoch=035.ckpt',
-            '3297': CHECKPOINT_DIR + r'final/tabular/min_loss/08.03.2023-18.09_HAM_SEED=3297_lr=0.001_wd=0-epoch=035.ckpt', },
+            '1997': CHECKPOINT_DIR + r'_TABULAR/train/27.05.2023-19.05_HAM_SEED=1997_lr=0.001_wd=0-epoch=037.ckpt',
+            '25': CHECKPOINT_DIR + r'_TABULAR/train/27.05.2023-19.15_HAM_SEED=25_lr=0.001_wd=0-epoch=037.ckpt',
+            '12': CHECKPOINT_DIR + r'_TABULAR/train/27.05.2023-19.25_HAM_SEED=12_lr=0.001_wd=0-epoch=037.ckpt',
+            '1966': CHECKPOINT_DIR + r'_TABULAR/train/27.05.2023-19.35_HAM_SEED=1966_lr=0.001_wd=0-epoch=037.ckpt',
+            '3297': CHECKPOINT_DIR + r'_TABULAR/train/27.05.2023-19.45_HAM_SEED=3297_lr=0.001_wd=0-epoch=037.ckpt'}
     },
 
 
