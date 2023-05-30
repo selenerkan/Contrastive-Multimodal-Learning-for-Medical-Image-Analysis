@@ -272,12 +272,12 @@ def test_supervised_multimodal(seed, config=None):
     if config['correlation']:
         corr = 'CORRELATION'
 
-    checkpoints = wandb.config.checkpoint
-    checkpoint = checkpoints[str(seed)]
-
     wandb.init(group='TEST_SUPERVISED_'+corr,
                project="final_multimodal_training", config=config)
     wandb_logger = WandbLogger()
+
+    checkpoints = wandb.config.checkpoint
+    checkpoint = checkpoints[str(seed)]
 
     # get the model
     model = SupervisedModel(learning_rate=wandb.config.learning_rate,
@@ -519,12 +519,12 @@ def test_daft(seed, config):
     print('YOU ARE RUNNING DAFT FOR HAM DATASET')
     print(config)
 
-    checkpoints = wandb.config.checkpoint
-    checkpoint = checkpoints[str(seed)]
-
     wandb.init(group='TEST_DAFT',
                project="final_multimodal_training", config=config)
     wandb_logger = WandbLogger()
+
+    checkpoints = wandb.config.checkpoint
+    checkpoint = checkpoints[str(seed)]
 
     # get the model
     model = DaftModel(learning_rate=wandb.config.learning_rate,
@@ -741,12 +741,12 @@ def test_film(seed, config):
     print('YOU ARE RUNNING FILM FOR HAM DATASET')
     print(config)
 
-    checkpoints = wandb.config.checkpoint
-    checkpoint = checkpoints[str(seed)]
-
     wandb.init(group='TEST_FILM',
                project="final_multimodal_training", config=config)
     wandb_logger = WandbLogger()
+
+    checkpoints = wandb.config.checkpoint
+    checkpoint = checkpoints[str(seed)]
 
     # get the model
     model = FilmModel(learning_rate=wandb.config.learning_rate,
@@ -831,12 +831,12 @@ def test_modality_center(seed, config):
     print('YOU ARE RUNNING test modality center FOR HAM DATASET')
     print(config)
 
-    checkpoints = wandb.config.checkpoint
-    checkpoint = checkpoints[str(seed)]
-
     wandb.init(group='TEST_MODALITY_SPEC_CENTER',
                project="final_multimodal_training", config=config)
     wandb_logger = WandbLogger()
+
+    checkpoints = wandb.config.checkpoint
+    checkpoint = checkpoints[str(seed)]
 
     # get the model
     model = ModalityCenterModel(learning_rate=wandb.config.learning_rate, weight_decay=wandb.config.weight_decay,
@@ -1270,8 +1270,7 @@ if __name__ == '__main__':
         # test_resnet(seed, config=config['resnet_config'])
         # test_tabular(seed, config=config['tabular_config'])
         test_supervised_multimodal(seed, config['supervised_config'])  # CONCAT
-        # test_daft(seed, config['daft_config'])
-        # test_film(seed, config['film_config'])
+        # test_daft(seed, config['film_config'])
         # test_triplet_center_cross_ent(seed, cinfig['triplet_center_config']
 
         #########################  TEST - ABLATION  ##############################
