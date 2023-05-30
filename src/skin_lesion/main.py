@@ -377,8 +377,11 @@ def test_multiloss(seed, config=None):
                project="final_multimodal_training", config=config)
     wandb_logger = WandbLogger()
 
-    checkpoints = wandb.config.checkpoint
+    checkpoints = wandb.config.checkpoint_concat
+    if config['correlation']:
+        checkpoints = wandb.config.checkpoint_correlation
     checkpoint = checkpoints[str(seed)]
+
     # get the model
     # CONCAT
     model = MultiLossModel(seed=seed,
@@ -1272,7 +1275,7 @@ if __name__ == '__main__':
         #     seed, config=config['contrastive_center_cross_config'])
 
         ###########################  TEST  ##################################
-        test_resnet(seed, config=config['resnet_config'])
+        # test_resnet(seed, config=config['resnet_config'])
         # test_tabular(seed, config=config['tabular_config'])
         # test_supervised_multimodal(seed, config['supervised_config'])  # CONCAT
         # test_daft(seed, config['daft_config'])
@@ -1281,7 +1284,7 @@ if __name__ == '__main__':
 
         #########################  TEST - ABLATION  ##############################
 
-        # test_multiloss(seed, config['multiloss_config'])
+        test_multiloss(seed, config['multiloss_config'])
         # test_cross_modal_center(seed, config['cross_modal_center_config'])
         # test_modality_center(seed, config['modality_center_config'])
         # test_supervised_multimodal(seed, config['supervised_config']) # CORRELATION
