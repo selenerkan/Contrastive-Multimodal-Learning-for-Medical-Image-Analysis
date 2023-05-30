@@ -3,7 +3,7 @@ from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.callbacks import ModelCheckpoint
 import os
-from ham_settings import csv_dir, CHECKPOINT_DIR, seed_list, config
+from ham_settings import csv_dir, CHECKPOINT_DIR, seed_list, config, SEED
 from models.ham_supervised_model import SupervisedModel
 from models.image_model import BaselineModel
 from models.resnet_model import ResnetModel
@@ -375,7 +375,7 @@ def test_multiloss(seed, config=None):
     if config['correlation']:
         corr = 'CORRELATION'
 
-    wandb.init(group='TEST_CENTER_CROSS_ENT_'+corr,
+    wandb.init(group='DENEME_CENTER_CROSS_ENT_'+corr,
                project="final_multimodal_training", config=config)
     wandb_logger = WandbLogger()
 
@@ -386,14 +386,14 @@ def test_multiloss(seed, config=None):
 
     # get the model
     # CONCAT
-    model = MultiLossModel(seed=seed,
+    model = MultiLossModel(seed=SEED,
                            learning_rate=wandb.config.learning_rate, weight_decay=wandb.config.weight_decay, alpha_center=wandb.config.alpha_center, dropout_rate=wandb.config.dropout, correlation=wandb.config.correlation)
     wandb.watch(model, log="all")
 
     # load the data
     data = HAMDataModule(
         csv_dir, age=wandb.config.age, batch_size=wandb.config.batch_size)
-    data.prepare_data(seed=seed)
+    data.prepare_data(seed=SEED)
     data.set_supervised_multimodal_dataloader()
     test_dataloader = data.test_dataloader()
 
@@ -1253,12 +1253,20 @@ if __name__ == '__main__':
     # RUN MODELS FOR EVERY SEED
 
     for seed in seed_list:
-        seed_everything(seed, workers=True)
-        torch.manual_seed(seed)
-        np.random.seed(seed)
-        torch.cuda.manual_seed(seed)
-        random.seed(seed)
-        np.random.seed(seed)
+        # seed_everything(seed, workers=True)
+        # torch.manual_seed(seed)
+        # np.random.seed(seed)
+        # torch.cuda.manual_seed(seed)
+        # random.seed(seed)
+        # np.random.seed(seed)
+        # torch.use_deterministic_algorithms(True)
+
+        seed_everything(SEED, workers=True)
+        torch.manual_seed(SEED)
+        np.random.seed(SEED)
+        torch.cuda.manual_seed(SEED)
+        random.seed(SEED)
+        np.random.seed(SEED)
         torch.use_deterministic_algorithms(True)
 
         # main_film(seed, config['film_config'])
