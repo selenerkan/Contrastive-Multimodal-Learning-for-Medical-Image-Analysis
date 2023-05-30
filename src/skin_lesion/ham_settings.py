@@ -13,8 +13,9 @@ FEATURES = ['age', 'sex_numeric', 'label', 'abdomen', 'acral',	'back',	'chest', 
 
 TARGET = 'label'
 
-seed_list = [1997, 25, 12, 1966, 3297]
-SEED = 25
+# seed_list = [1997, 25, 12, 1966, 3297]
+seed_list = [1997]
+SEED = 1997
 
 image_shape = (3, 224, 224)
 

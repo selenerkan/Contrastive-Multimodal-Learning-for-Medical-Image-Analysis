@@ -24,6 +24,7 @@ from models.ham_modality_specific_center import ModalityCenterModel
 from models.ham_contrastive_pretrain_model import HamContrastiveModel
 from models.ham_triplet_center_cross_ent import TripletCenterModel
 from models.ham_contrastive_center_cross_ent_model import HamContrastiveCenterCrossModel
+from models.multiloss import deneme
 
 
 def main_baseline(config=None):
@@ -1235,6 +1236,58 @@ def test_triplet_center_cross_ent(seed, config):
     wandb.finish()
 
 
+def main_deneme(seed, config=None):
+    '''
+    main function to run the multimodal architecture
+    '''
+
+    print('YOU ARE RUNNING SEED MULTI LOSS MODEL CENTER + CROSS ENTROPY LOSSES FOR HAM DATASET')
+    print(config)
+
+    wandb.init(group='denemr_modal_spec',
+               project="final_multimodal_training",  config=config)
+    wandb_logger = WandbLogger()
+
+    model = ModalityCenterModel(learning_rate=wandb.config.learning_rate, weight_decay=wandb.config.weight_decay,
+                                alpha_center=wandb.config.alpha_center, dropout_rate=wandb.config.dropout, seed=seed)
+    wandb.watch(model, log="all")
+
+    # load the data
+    data = HAMDataModule(
+        csv_dir, age=wandb.config.age, batch_size=wandb.config.batch_size)
+    data.prepare_data(seed=seed)
+    data.set_supervised_multimodal_dataloader()
+    train_dataloader = data.train_dataloader()
+    val_dataloader = data.val_dataloader()
+
+    accelerator = 'cpu'
+    devices = None
+    if torch.cuda.is_available():
+        accelerator = 'gpu'
+        devices = 1
+
+    # save the checkpoint in a different folder
+    # use datetime value in the file name
+    date_time = datetime.now()
+    dt_string = date_time.strftime("%d.%m.%Y-%H.%M")
+    checkpoint_callback = ModelCheckpoint(
+        dirpath=os.path.join(
+            CHECKPOINT_DIR, 'multi_loss/modality_center/full'),
+        filename=dt_string+'HAM_SEED='+str(seed)+'_lr='+str(wandb.config.learning_rate)+'_wd=' +
+        str(wandb.config.weight_decay)+'-{epoch:03d}',
+        monitor='val_macro_acc',
+        save_top_k=wandb.config.max_epochs,
+        mode='max')
+
+    # Add learning rate scheduler monitoring
+    lr_monitor = LearningRateMonitor(logging_interval='epoch')
+    trainer = Trainer(accelerator=accelerator, devices=devices,
+                      max_epochs=wandb.config.max_epochs, logger=wandb_logger, callbacks=[checkpoint_callback, lr_monitor], deterministic=True)
+    trainer.fit(model, train_dataloaders=train_dataloader,
+                val_dataloaders=val_dataloader)
+    wandb.finish()
+
+
 if __name__ == '__main__':
 
     # set the seed of the environment
@@ -1269,6 +1322,7 @@ if __name__ == '__main__':
         np.random.seed(SEED)
         torch.use_deterministic_algorithms(True)
 
+        main_deneme(seed, config['modality_center_config'])
         # main_film(seed, config['film_config'])
         # main_supervised_multimodal(seed, config['supervised_config'])
         # main_resnet(seed, config['resnet_config'])
@@ -1294,7 +1348,7 @@ if __name__ == '__main__':
 
         #########################  TEST - ABLATION  ##############################
 
-        test_multiloss(seed, config['multiloss_config'])  # CONCAT + CORR
+        # test_multiloss(seed, config['multiloss_config'])  # CONCAT + CORR
         # test_cross_modal_center(seed, config['cross_modal_center_config'])
         # test_modality_center(seed, config['modality_center_config'])
         # test_supervised_multimodal(seed, config['supervised_config'])  # CORRELATION
