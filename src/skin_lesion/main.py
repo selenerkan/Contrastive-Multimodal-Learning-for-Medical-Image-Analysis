@@ -1267,17 +1267,17 @@ if __name__ == '__main__':
         #     seed, config=config['contrastive_center_cross_config'])
 
         ###########################  TEST  ##################################
-        test_resnet(seed, config=config['resnet_config'])
+        # test_resnet(seed, config=config['resnet_config'])
         # test_tabular(seed, config=config['tabular_config'])
-        # test_supervised_multimodal(seed, config['supervised_config'])
+        test_supervised_multimodal(seed, config['supervised_config'])  # CONCAT
         # test_daft(seed, config['daft_config'])
         # test_film(seed, config['film_config'])
         # test_triplet_center_cross_ent(seed, cinfig['triplet_center_config']
 
         #########################  TEST - ABLATION  ##############################
 
-        # test_supervised_multimodal(seed, config['supervised_config']) # CORRELATION
         # test_multiloss(seed, config['multiloss_config'])
         # test_cross_modal_center(seed, config['cross_modal_center_config'])
         # test_modality_center(seed, config['modality_center_config'])
+        # test_supervised_multimodal(seed, config['supervised_config']) # CORRELATION
         # ADD CONTRASTIVE PRETRAIN

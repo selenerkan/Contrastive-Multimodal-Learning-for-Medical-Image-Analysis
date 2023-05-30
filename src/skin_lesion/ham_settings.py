@@ -57,11 +57,11 @@ config = {
         'learning_rate': 1e-4,  # 3e-4
         'weight_decay': 0,  # 1e-5
         'checkpoint': {
-            '1997': CHECKPOINT_DIR + r'_FILM/train/26.05.2023-21.00_HAM_SEED=1997_lr=0.0001_wd=0-epoch=011.ckpt',
-            '25': CHECKPOINT_DIR + r'_FILM/train/26.05.2023-21.17_HAM_SEED=25_lr=0.0001_wd=0-epoch=011.ckpt',
-            '12': CHECKPOINT_DIR + r'_FILM/train/26.05.2023-21.35_HAM_SEED=12_lr=0.0001_wd=0-epoch=011.ckpt',
-            '1966': CHECKPOINT_DIR + r'_FILM/train/26.05.2023-21.53_HAM_SEED=1966_lr=0.0001_wd=0-epoch=011.ckpt',
-            '3297': CHECKPOINT_DIR + r'_FILM/train/'},
+            '1997': CHECKPOINT_DIR + r'_FILM/train/26.05.2023-21.00_HAM_SEED=1997_lr=0.0001_wd=0-epoch=012.ckpt',
+            '25': CHECKPOINT_DIR + r'_FILM/train/26.05.2023-21.17_HAM_SEED=25_lr=0.0001_wd=0-epoch=012.ckpt',
+            '12': CHECKPOINT_DIR + r'_FILM/train/26.05.2023-21.35_HAM_SEED=12_lr=0.0001_wd=0-epoch=012.ckpt',
+            '1966': CHECKPOINT_DIR + r'_FILM/train/26.05.2023-21.53_HAM_SEED=1966_lr=0.0001_wd=0-epoch=012.ckpt',
+            '3297': CHECKPOINT_DIR + r'_FILM/train/30.05.2023-10.56_HAM_SEED=3297_lr=0.0001_wd=0-epoch=012.ckpt'},
     },
 
     'multiloss_config': {
@@ -82,7 +82,7 @@ config = {
         # 'checkpoint_concat': r'/home/guests/selen_erkan/experiments/checkpoints/final/multi_loss_concat/min_loss/08.03.2023-05.22HAM_SEED=3297_lr=0.0001_wd=0-epoch=039.ckpt',
         'alpha_center': 0.01,
         'dropout': 0,
-        'correlation': True,
+        'correlation': False,
     },
 
     'contrastive_pretrain_config': {
