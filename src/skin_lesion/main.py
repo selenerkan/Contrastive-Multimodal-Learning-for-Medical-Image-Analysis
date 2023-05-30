@@ -387,7 +387,7 @@ def test_multiloss(seed, config=None):
     # get the model
     # CONCAT
     model = MultiLossModel(seed=seed,
-                           learning_rate=wandb.config.learning_rate, weight_decay=wandb.config.weight_decay, alpha_center=wandb.config.alpha_center, dropout_rate=wandb.config.dropout)
+                           learning_rate=wandb.config.learning_rate, weight_decay=wandb.config.weight_decay, alpha_center=wandb.config.alpha_center, dropout_rate=wandb.config.dropout, correlation=wandb.config.correlation)
     wandb.watch(model, log="all")
 
     # load the data
@@ -1286,8 +1286,8 @@ if __name__ == '__main__':
 
         #########################  TEST - ABLATION  ##############################
 
-        # test_multiloss(seed, config['multiloss_config']) # CONCAT + CORR
+        test_multiloss(seed, config['multiloss_config'])  # CONCAT + CORR
         # test_cross_modal_center(seed, config['cross_modal_center_config'])
-        test_modality_center(seed, config['modality_center_config'])
+        # test_modality_center(seed, config['modality_center_config'])
         # test_supervised_multimodal(seed, config['supervised_config'])  # CORRELATION
         # ADD CONTRASTIVE PRETRAIN
