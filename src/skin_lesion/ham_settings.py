@@ -70,19 +70,15 @@ config = {
         'age': None,
         'learning_rate': 1e-4,
         'weight_decay': 0,
-        # 'checkpoint': r'/home/guests/selen_erkan/experiments/checkpoints/final/multi_loss/lr_sch_23/07.03.2023-20.52HAM_PROPOSED_SEED=25_lr=0.0001_wd=0-epoch=039.ckpt',
-        # 'checkpoint': r'/home/guests/selen_erkan/experiments/checkpoints/final/multi_loss/lr_sch_23/07.03.2023-20.52HAM_PROPOSED_SEED=1997_lr=0.0001_wd=0-epoch=039.ckpt',
-        # 'checkpoint': r'/home/guests/selen_erkan/experiments/checkpoints/final/multi_loss/lr_sch_23/07.03.2023-20.53HAM_PROPOSED_SEED=12_lr=0.0001_wd=0-epoch=039.ckpt',
-        # 'checkpoint': r'/home/guests/selen_erkan/experiments/checkpoints/final/multi_loss/lr_sch_23/07.03.2023-21.14HAM_PROPOSED_SEED=1966_lr=0.0001_wd=0-epoch=039.ckpt',
-        # 'checkpoint': r'/home/guests/selen_erkan/experiments/checkpoints/final/multi_loss/lr_sch_23/07.03.2023-21.15HAM_PROPOSED_SEED=3297_lr=0.0001_wd=0-epoch=039.ckpt',
-        # 'checkpoint_concat': r'/home/guests/selen_erkan/experiments/checkpoints/final/multi_loss_concat/min_loss/08.03.2023-04.07HAM_SEED=1997_lr=0.0001_wd=0-epoch=039.ckpt',
-        # 'checkpoint_concat': r'/home/guests/selen_erkan/experiments/checkpoints/final/multi_loss_concat/min_loss/08.03.2023-04.25HAM_SEED=25_lr=0.0001_wd=0-epoch=039.ckpt',
-        # 'checkpoint_concat': r'/home/guests/selen_erkan/experiments/checkpoints/final/multi_loss_concat/min_loss/08.03.2023-04.44HAM_SEED=12_lr=0.0001_wd=0-epoch=039.ckpt',
-        # 'checkpoint_concat': r'/home/guests/selen_erkan/experiments/checkpoints/final/multi_loss_concat/min_loss/08.03.2023-05.03HAM_SEED=1966_lr=0.0001_wd=0-epoch=039.ckpt',
-        # 'checkpoint_concat': r'/home/guests/selen_erkan/experiments/checkpoints/final/multi_loss_concat/min_loss/08.03.2023-05.22HAM_SEED=3297_lr=0.0001_wd=0-epoch=039.ckpt',
         'alpha_center': 0.01,
         'dropout': 0,
         'correlation': False,
+        'checkpoint': {
+            '1997': CHECKPOINT_DIR + r'CENTER_CROSS_ENT/train/CONCAT/27.05.2023-23.29_HAM_SEED=1997_lr=0.0001_wd=0-epoch=039.ckpt',
+            '25': CHECKPOINT_DIR + r'CENTER_CROSS_ENT/train/CONCAT/27.05.2023-23.52_HAM_SEED=25_lr=0.0001_wd=0-epoch=039.ckpt',
+            '12': CHECKPOINT_DIR + r'CENTER_CROSS_ENT/train/CONCAT/28.05.2023-00.15_HAM_SEED=12_lr=0.0001_wd=0-epoch=039.ckpt',
+            '1966': CHECKPOINT_DIR + r'CENTER_CROSS_ENT/train/CONCAT/28.05.2023-00.37_HAM_SEED=1966_lr=0.0001_wd=0-epoch=039.ckpt',
+            '3297': CHECKPOINT_DIR + r'CENTER_CROSS_ENT/train/CONCAT/28.05.2023-01.00_HAM_SEED=3297_lr=0.0001_wd=0-epoch=039.ckpt'},
     },
 
     'contrastive_pretrain_config': {
@@ -147,11 +143,11 @@ config = {
         'weight_decay': 0,
         'correlation': False,
         'checkpoint': {
-            '1997': CHECKPOINT_DIR + r'CENTER_CROSS_ENT/train/CONCAT/27.05.2023-23.29_HAM_SEED=1997_lr=0.0001_wd=0-epoch=014.ckpt',
-            '25': CHECKPOINT_DIR + r'CENTER_CROSS_ENT/train/CONCAT/27.05.2023-23.52_HAM_SEED=25_lr=0.0001_wd=0-epoch=014.ckpt',
-            '12': CHECKPOINT_DIR + r'CENTER_CROSS_ENT/train/CONCAT/28.05.2023-00.15_HAM_SEED=12_lr=0.0001_wd=0-epoch=014.ckpt',
-            '1966': CHECKPOINT_DIR + r'CENTER_CROSS_ENT/train/CONCAT/28.05.2023-00.37_HAM_SEED=1966_lr=0.0001_wd=0-epoch=014.ckpt',
-            '3297': CHECKPOINT_DIR + r'CENTER_CROSS_ENT/train/CONCAT/28.05.2023-01.00_HAM_SEED=3297_lr=0.0001_wd=0-epoch=014.ckpt'},
+            '1997': CHECKPOINT_DIR + r'_SUPERVISED/train/27.05.2023-03.44_HAM_SEED=1997_lr=0.0001_wd=0-epoch=014.ckpt',
+            '25': CHECKPOINT_DIR + r'_SUPERVISED/train/27.05.2023-03.59_HAM_SEED=25_lr=0.0001_wd=0-epoch=014.ckpt',
+            '12': CHECKPOINT_DIR + r'_SUPERVISED/train/27.05.2023-04.15_HAM_SEED=12_lr=0.0001_wd=0-epoch=014.ckpt',
+            '1966': CHECKPOINT_DIR + r'_SUPERVISED/train/27.05.2023-04.30_HAM_SEED=1966_lr=0.0001_wd=0-epoch=014.ckpt',
+            '3297': CHECKPOINT_DIR + r'_SUPERVISED/train/27.05.2023-04.46_HAM_SEED=3297_lr=0.0001_wd=0-epoch=014.ckpt'},
         # resnet init
         # 'contrastive_checkpoint': {
         #     '25': r'/home/guests/selen_erkan/experiments/checkpoints/contrastive_loss/seed/concat/gathered/18.04.2023-22.14_HAM_SEED=25_lr=0.0001_wd=0-epoch=099.ckpt',

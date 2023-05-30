@@ -1270,7 +1270,8 @@ if __name__ == '__main__':
         # test_resnet(seed, config=config['resnet_config'])
         # test_tabular(seed, config=config['tabular_config'])
         test_supervised_multimodal(seed, config['supervised_config'])  # CONCAT
-        # test_daft(seed, config['film_config'])
+        # test_daft(seed, config['daft_config'])
+        # test_film(seed, config['film_config'])
         # test_triplet_center_cross_ent(seed, cinfig['triplet_center_config']
 
         #########################  TEST - ABLATION  ##############################
