@@ -153,6 +153,7 @@ def test_resnet(seed, config=None):
                       max_epochs=wandb.config.max_epochs, logger=wandb_logger, callbacks=[lr_monitor], deterministic=True)
     trainer.test(model, dataloaders=test_dataloader,
                  ckpt_path=checkpoint)
+    wandb.finish()
 
 
 def main_tabular(seed, config=None):
@@ -303,6 +304,7 @@ def test_supervised_multimodal(seed, config=None):
                       max_epochs=wandb.config.max_epochs, logger=wandb_logger, callbacks=[lr_monitor], deterministic=True)
     trainer.test(model, dataloaders=test_dataloader,
                  ckpt_path=checkpoint)
+    wandb.finish()
 
 
 def main_multiloss(seed, config=None):
@@ -402,6 +404,7 @@ def test_multiloss(seed, config=None):
                       max_epochs=wandb.config.max_epochs, logger=wandb_logger, callbacks=[lr_monitor], deterministic=True)
     trainer.test(model, dataloaders=test_dataloader,
                  ckpt_path=checkpoint)
+    wandb.finish()
 
 
 def run_grid_search(network):
@@ -645,6 +648,7 @@ def test_cross_modal_center(seed, config=None):
     #              ckpt_path=wandb.config.checkpoint)
     trainer.test(model, dataloaders=test_dataloader,
                  ckpt_path=checkpoint)
+    wandb.finish()
 
 
 def test_tabular(seed, config):
@@ -683,6 +687,7 @@ def test_tabular(seed, config):
                       max_epochs=wandb.config.max_epochs, logger=wandb_logger, callbacks=[lr_monitor], deterministic=True)
     trainer.test(model, dataloaders=test_dataloader,
                  ckpt_path=checkpoint)
+    wandb.finish()
 
 
 def main_film(seed, config):
@@ -1267,9 +1272,9 @@ if __name__ == '__main__':
         #     seed, config=config['contrastive_center_cross_config'])
 
         ###########################  TEST  ##################################
-        # test_resnet(seed, config=config['resnet_config'])
+        test_resnet(seed, config=config['resnet_config'])
         # test_tabular(seed, config=config['tabular_config'])
-        test_supervised_multimodal(seed, config['supervised_config'])  # CONCAT
+        # test_supervised_multimodal(seed, config['supervised_config'])  # CONCAT
         # test_daft(seed, config['daft_config'])
         # test_film(seed, config['film_config'])
         # test_triplet_center_cross_ent(seed, cinfig['triplet_center_config']
