@@ -81,11 +81,11 @@ config = {
             '3297': CHECKPOINT_DIR + r'CENTER_CROSS_ENT/train/CONCAT/28.05.2023-01.00_HAM_SEED=3297_lr=0.0001_wd=0-epoch=039.ckpt'},
 
         'checkpoint_correlation': {
-            '1997': CHECKPOINT_DIR + r'CENTER_CROSS_ENT/train/CORRELATION/',
-            '25': CHECKPOINT_DIR + r'CENTER_CROSS_ENT/train/CORRELATION/',
-            '12': CHECKPOINT_DIR + r'CENTER_CROSS_ENT/train/CORRELATION/',
-            '1966': CHECKPOINT_DIR + r'CENTER_CROSS_ENT/train/CORRELATION/',
-            '3297': CHECKPOINT_DIR + r'CENTER_CROSS_ENT/train/CORRELATION/'},
+            '1997': CHECKPOINT_DIR + r'CENTER_CROSS_ENT/train/CORRELATION/30.05.2023-01.50_HAM_SEED=1997_lr=0.0001_wd=0-epoch=039.ckpt',
+            '25': CHECKPOINT_DIR + r'CENTER_CROSS_ENT/train/CORRELATION/30.05.2023-02.06_HAM_SEED=25_lr=0.0001_wd=0-epoch=039.ckpt',
+            '12': CHECKPOINT_DIR + r'CENTER_CROSS_ENT/train/CORRELATION/30.05.2023-02.21_HAM_SEED=12_lr=0.0001_wd=0-epoch=039.ckpt',
+            '1966': CHECKPOINT_DIR + r'CENTER_CROSS_ENT/train/CORRELATION/30.05.2023-02.37_HAM_SEED=1966_lr=0.0001_wd=0-epoch=039.ckpt',
+            '3297': CHECKPOINT_DIR + r'CENTER_CROSS_ENT/train/CORRELATION/30.05.2023-02.52_HAM_SEED=3297_lr=0.0001_wd=0-epoch=039.ckpt'},
     },
 
     'contrastive_pretrain_config': {
