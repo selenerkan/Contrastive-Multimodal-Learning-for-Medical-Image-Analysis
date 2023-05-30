@@ -278,6 +278,8 @@ def test_supervised_multimodal(seed, config=None):
     wandb_logger = WandbLogger()
 
     checkpoints = wandb.config.checkpoint
+    if config['correlation']:
+        checkpoints = wandb.config.checkpoint_correlation
     checkpoint = checkpoints[str(seed)]
 
     # get the model
@@ -1284,8 +1286,8 @@ if __name__ == '__main__':
 
         #########################  TEST - ABLATION  ##############################
 
-        test_multiloss(seed, config['multiloss_config'])
+        # test_multiloss(seed, config['multiloss_config']) # CONCAT + CORR
         # test_cross_modal_center(seed, config['cross_modal_center_config'])
-        # test_modality_center(seed, config['modality_center_config'])
-        # test_supervised_multimodal(seed, config['supervised_config']) # CORRELATION
+        test_modality_center(seed, config['modality_center_config'])
+        # test_supervised_multimodal(seed, config['supervised_config'])  # CORRELATION
         # ADD CONTRASTIVE PRETRAIN
