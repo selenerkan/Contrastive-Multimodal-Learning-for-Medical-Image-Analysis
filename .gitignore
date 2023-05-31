@@ -14,3 +14,6 @@ notebooks
 slurm
 intalled_modules.txt
 checkpoints
+.vscode
+src/thesis
+skin lesion.png
