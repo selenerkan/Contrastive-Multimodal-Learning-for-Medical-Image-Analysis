@@ -19,7 +19,7 @@ from models.multi_loss_model import MultiLossModel
 
 from pytorch_lightning.callbacks import LearningRateMonitor
 import torch
-from settings import CSV_FILE, SEED, CHECKPOINT_DIR, resnet_config, supervised_config, contrastive_config, tabular_config, triplet_config, knn_config, daft_config
+from settings import CSV_FILE, CHECKPOINT_DIR, SEED, resnet_config, supervised_config, contrastive_config, tabular_config, triplet_config, knn_config, daft_config
 import torch.multiprocessing
 from datetime import datetime
 from sklearn.metrics import roc_curve, roc_auc_score, precision_score, recall_score, f1_score
@@ -142,7 +142,7 @@ def main_supervised_multimodal(config=None):
     print('YOU ARE RUNNING SUPERVISED MULTIMODAL')
     print(config)
 
-    wandb.init(group='supervised_multimodal',project="multimodal_training",
+    wandb.init(group='supervised_multimodal', project="multimodal_training",
                entity="multimodal_network", config=config)
     wandb_logger = WandbLogger()
 
@@ -198,7 +198,7 @@ def main_supervised_multimodal(config=None):
                 val_dataloaders=val_dataloader)
 
 
-# WILL BE UPDATED 
+# WILL BE UPDATED
 def main_kfold_multimodal(wandb, wandb_logger, fold_number=2, learning_rate=1e-3, batch_size=8, max_epochs=60, age=None):
     '''
     main function to run the multimodal architecture with cross validation
@@ -372,7 +372,7 @@ def main_multiloss(config=None):
     print('YOU ARE RUNNING MULTI LOSS MODEL WITH CENTER + CROSS ENTROPY LOSSES')
     print(config)
 
-    wandb.init(group='multiLoss-adni',project="multimodal_training",
+    wandb.init(group='multiLoss-adni', project="multimodal_training",
                entity="multimodal_network", config=config)
     wandb_logger = WandbLogger()
 
