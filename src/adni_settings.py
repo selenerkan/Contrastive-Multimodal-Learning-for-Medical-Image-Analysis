@@ -24,8 +24,12 @@ config = {
         'spatial_size': (64, 64, 64),
         'learning_rate': 0.001,  # 0.013,
         'weight_decay': 0,  # 0.0001,
-        'checkpoint': None,
-        'checkpoint_flag': False
+        'checkpoint': {
+            '1997': CHECKPOINT_DIR + r'',
+            '25': CHECKPOINT_DIR + r'',
+            '12': CHECKPOINT_DIR + r'',
+            '1966': CHECKPOINT_DIR + r'',
+            '3297': CHECKPOINT_DIR + r''},
     },
 
     'resnet_config': {
@@ -35,8 +39,12 @@ config = {
         'spatial_size': (64, 64, 64),
         'learning_rate': 0.01,  # 0.03,
         'weight_decay': 0,  # 0.0001,
-        'checkpoint': None,
-        'checkpoint_flag': False
+        'checkpoint': {
+            '1997': CHECKPOINT_DIR + r'',
+            '25': CHECKPOINT_DIR + r'',
+            '12': CHECKPOINT_DIR + r'',
+            '1966': CHECKPOINT_DIR + r'',
+            '3297': CHECKPOINT_DIR + r''},
     },
 
 
@@ -49,10 +57,14 @@ config = {
         'weight_decay': 0.01,
         'checkpoint': None,
         # 'contrastive_checkpoint': r'/home/guests/selen_erkan/experiments/checkpoints/contrastive/lr=0.001_wd=0_27.01.2023-17.49-epoch=079.ckpt',
-        'contrastive_checkpoint': r'/home/guests/selen_erkan/experiments/checkpoints/triplet/lr=0.013_wd=0.01_01.02.2023-17.19-epoch=020.ckpt',
-        'checkpoint_flag': False,
-        'contrastive_checkpoint_flag': False,
-        'correlation': False
+        # 'contrastive_checkpoint': r'/home/guests/selen_erkan/experiments/checkpoints/triplet/lr=0.013_wd=0.01_01.02.2023-17.19-epoch=020.ckpt',
+        'correlation': False,
+        'checkpoint': {
+            '1997': CHECKPOINT_DIR + r'',
+            '25': CHECKPOINT_DIR + r'',
+            '12': CHECKPOINT_DIR + r'',
+            '1966': CHECKPOINT_DIR + r'',
+            '3297': CHECKPOINT_DIR + r''},
     },
 
     'daft_config': {
@@ -62,12 +74,14 @@ config = {
         'spatial_size': (64, 64, 64),
         'learning_rate': 0.013,
         'weight_decay': 0.01,
-        'checkpoint': r'/home/guests/selen_erkan/experiments/checkpoints/supervised/25.01.2023-18.49-epoch=029.ckpt',
-        'contrastive_checkpoint': r'/home/guests/selen_erkan/experiments/checkpoints/contrastive/25.01.2023-17.14-epoch=029.ckpt',
-        'checkpoint_flag': False,
-        'contrastive_checkpoint_flag': False
+        'checkpoint': {
+            '1997': CHECKPOINT_DIR + r'',
+            '25': CHECKPOINT_DIR + r'',
+            '12': CHECKPOINT_DIR + r'',
+            '1966': CHECKPOINT_DIR + r'',
+            '3297': CHECKPOINT_DIR + r''},
     },
-    
+
     'film_config': {
         'batch_size': 512,
         'max_epochs': 40,
@@ -75,11 +89,14 @@ config = {
         'spatial_size': (64, 64, 64),
         'learning_rate': 0.013,
         'weight_decay': 0,
-        'checkpoint': r'/home/guests/selen_erkan/experiments/checkpoints/supervised/25.01.2023-18.49-epoch=029.ckpt',
-        'contrastive_checkpoint': r'/home/guests/selen_erkan/experiments/checkpoints/contrastive/25.01.2023-17.14-epoch=029.ckpt',
-        'checkpoint_flag': False,
-        'contrastive_checkpoint_flag': False
+        'checkpoint': {
+            '1997': CHECKPOINT_DIR + r'',
+            '25': CHECKPOINT_DIR + r'',
+            '12': CHECKPOINT_DIR + r'',
+            '1966': CHECKPOINT_DIR + r'',
+            '3297': CHECKPOINT_DIR + r''},
     },
+
     'triplet_center_config': {
         'batch_size': 512,  # 512
         'max_epochs': 40,  # 40
@@ -88,7 +105,12 @@ config = {
         'weight_decay': 0,
         'alpha_center': 0.01,
         'alpha_triplet': 0.2,
-        'checkpoint': {}
+        'checkpoint': {
+            '1997': CHECKPOINT_DIR + r'',
+            '25': CHECKPOINT_DIR + r'',
+            '12': CHECKPOINT_DIR + r'',
+            '1966': CHECKPOINT_DIR + r'',
+            '3297': CHECKPOINT_DIR + r''},
     },
 
     'contrastive_config': {
@@ -98,8 +120,12 @@ config = {
         'spatial_size': (64, 64, 64),
         'learning_rate': 0.001,
         'weight_decay': 0,
-        'checkpoint': None,
-        'checkpoint_flag': False
+        'checkpoint': {
+            '1997': CHECKPOINT_DIR + r'',
+            '25': CHECKPOINT_DIR + r'',
+            '12': CHECKPOINT_DIR + r'',
+            '1966': CHECKPOINT_DIR + r'',
+            '3297': CHECKPOINT_DIR + r''},
     },
 
     'triplet_config': {
@@ -109,7 +135,11 @@ config = {
         'spatial_size': (64, 64, 64),
         'learning_rate': 0.001,
         'weight_decay': 0,
-        'checkpoint': None,
-        'checkpoint_flag': False
-    }
+        'checkpoint': {
+            '1997': CHECKPOINT_DIR + r'',
+            '25': CHECKPOINT_DIR + r'',
+            '12': CHECKPOINT_DIR + r'',
+            '1966': CHECKPOINT_DIR + r'',
+            '3297': CHECKPOINT_DIR + r''},
+    },
 }

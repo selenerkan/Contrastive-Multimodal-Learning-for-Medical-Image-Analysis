@@ -37,6 +37,7 @@ class TripletModel(LightningModule):
         self.alpha_triplet = alpha_triplet
         self.alpha_cross_ent = (1-alpha_center-alpha_triplet)
         self.embedding_dimension = 32
+        self.num_classes=3
 
         # IMAGE DATA
         # output dimension is adapted from simCLR

@@ -101,6 +101,46 @@ def main_tabular(seed, config=None):
     wandb.finish()
 
 
+def test_tabular(seed, config=None):
+    '''
+    main function to run the test loop for resnet architecture
+    '''
+
+    print('YOU ARE RUNNING TEST LOOP FOR RESNET MODEL FOR HAM DATASET')
+
+    wandb.init(group='TEST_TABULAR',
+               project="adni_multimodal", config=config)
+    wandb_logger = WandbLogger()
+
+    checkpoints = wandb.config.checkpoint
+    checkpoint = checkpoints[str(seed)]
+
+    # get the model
+    model = TabularModel(learning_rate=wandb.config.learning_rate,
+                         weight_decay=wandb.config.weight_decay)
+    wandb.watch(model, log="all")
+
+    # load the data
+    data = AdniDataModule(batch_size=wandb.config.batch_size)
+    data.prepare_data(seed=seed)
+    data.set_supervised_multimodal_dataloader()
+    test_dataloader = data.test_dataloader()
+
+    accelerator = 'cpu'
+    devices = None
+    if torch.cuda.is_available():
+        accelerator = 'gpu'
+        devices = 1
+
+    # Add learning rate scheduler monitoring
+    lr_monitor = LearningRateMonitor(logging_interval='epoch')
+    trainer = Trainer(accelerator=accelerator, devices=devices,
+                      max_epochs=wandb.config.max_epochs, logger=wandb_logger, callbacks=[lr_monitor], deterministic=True)
+    trainer.test(model, dataloaders=test_dataloader,
+                 ckpt_path=checkpoint)
+    wandb.finish()
+
+
 def main_resnet(seed, config=None):
     '''
     main function to run the resnet architecture
@@ -148,6 +188,46 @@ def main_resnet(seed, config=None):
                       max_epochs=wandb.config.max_epochs, logger=wandb_logger, callbacks=[checkpoint_callback, lr_monitor], deterministic=True)
     trainer.fit(model, train_dataloaders=train_dataloader,
                 val_dataloaders=val_dataloader)
+    wandb.finish()
+
+
+def test_resnet(seed, config=None):
+    '''
+    main function to run the test loop for resnet architecture
+    '''
+
+    print('YOU ARE RUNNING TEST LOOP FOR RESNET MODEL FOR HAM DATASET')
+
+    wandb.init(group='TEST_RESNET',
+               project="adni_multimodal", config=config)
+    wandb_logger = WandbLogger()
+
+    checkpoints = wandb.config.checkpoint
+    checkpoint = checkpoints[str(seed)]
+
+    # get the model
+    model = ResNetModel(learning_rate=wandb.config.learning_rate,
+                        weight_decay=wandb.config.weight_decay)
+    wandb.watch(model, log="all")
+
+    # load the data
+    data = AdniDataModule(batch_size=wandb.config.batch_size)
+    data.prepare_data(seed=seed)
+    data.set_supervised_multimodal_dataloader()
+    test_dataloader = data.test_dataloader()
+
+    accelerator = 'cpu'
+    devices = None
+    if torch.cuda.is_available():
+        accelerator = 'gpu'
+        devices = 1
+
+    # Add learning rate scheduler monitoring
+    lr_monitor = LearningRateMonitor(logging_interval='epoch')
+    trainer = Trainer(accelerator=accelerator, devices=devices,
+                      max_epochs=wandb.config.max_epochs, logger=wandb_logger, callbacks=[lr_monitor], deterministic=True)
+    trainer.test(model, dataloaders=test_dataloader,
+                 ckpt_path=checkpoint)
     wandb.finish()
 
 
@@ -207,6 +287,47 @@ def main_supervised_multimodal(seed, config=None):
                 val_dataloaders=val_dataloader)
 
     wandb.finish()
+
+
+def test_supervised_multimodal(seed, config=None):
+    '''
+    main function to run the test loop for resnet architecture
+    '''
+
+    print('YOU ARE RUNNING TEST LOOP FOR RESNET MODEL FOR HAM DATASET')
+
+    wandb.init(group='TEST_SUPERVISED',
+               project="adni_multimodal", config=config)
+    wandb_logger = WandbLogger()
+
+    checkpoints = wandb.config.checkpoint
+    checkpoint = checkpoints[str(seed)]
+
+    # get the model
+    model = MultiModModel(learning_rate=wandb.config.learning_rate,
+                          weight_decay=wandb.config.weight_decay, correlation=wandb.config.correlation)
+    wandb.watch(model, log="all")
+
+    # load the data
+    data = AdniDataModule(batch_size=wandb.config.batch_size)
+    data.prepare_data(seed=seed)
+    data.set_supervised_multimodal_dataloader()
+    test_dataloader = data.test_dataloader()
+
+    accelerator = 'cpu'
+    devices = None
+    if torch.cuda.is_available():
+        accelerator = 'gpu'
+        devices = 1
+
+    # Add learning rate scheduler monitoring
+    lr_monitor = LearningRateMonitor(logging_interval='epoch')
+    trainer = Trainer(accelerator=accelerator, devices=devices,
+                      max_epochs=wandb.config.max_epochs, logger=wandb_logger, callbacks=[lr_monitor], deterministic=True)
+    trainer.test(model, dataloaders=test_dataloader,
+                 ckpt_path=checkpoint)
+    wandb.finish()
+
 
 # def main_kfold_multimodal(wandb, wandb_logger, fold_number=2, learning_rate=1e-3, batch_size=8, max_epochs=60, age=None):
 #     '''
@@ -375,6 +496,46 @@ def main_triplet(seed, config=None):
     wandb.finish()
 
 
+def test_triplet(seed, config=None):
+    '''
+    main function to run the test loop for resnet architecture
+    '''
+
+    print('YOU ARE RUNNING TEST LOOP FOR RESNET MODEL FOR HAM DATASET')
+
+    wandb.init(group='TEST_TRIPLET',
+               project="adni_multimodal", config=config)
+    wandb_logger = WandbLogger()
+
+    checkpoints = wandb.config.checkpoint
+    checkpoint = checkpoints[str(seed)]
+
+    # get the model
+    model = TripletModel(
+        learning_rate=wandb.config.learning_rate, weight_decay=wandb.config.weight_decay, seed=seed, alpha_center=wandb.config.alpha_center, alpha_triplet=wandb.config.alpha_triplet)
+    wandb.watch(model, log="all")
+
+    # load the data
+    data = AdniDataModule(batch_size=wandb.config.batch_size)
+    data.prepare_data(seed=seed)
+    data.set_supervised_multimodal_dataloader()
+    test_dataloader = data.test_dataloader()
+
+    accelerator = 'cpu'
+    devices = None
+    if torch.cuda.is_available():
+        accelerator = 'gpu'
+        devices = 1
+
+    # Add learning rate scheduler monitoring
+    lr_monitor = LearningRateMonitor(logging_interval='epoch')
+    trainer = Trainer(accelerator=accelerator, devices=devices,
+                      max_epochs=wandb.config.max_epochs, logger=wandb_logger, callbacks=[lr_monitor], deterministic=True)
+    trainer.test(model, dataloaders=test_dataloader,
+                 ckpt_path=checkpoint)
+    wandb.finish()
+
+
 def main_multiloss(config=None):
     '''
     main function to run the multimodal architecture
@@ -472,6 +633,46 @@ def main_daft(seed, config=None):
     wandb.finish()
 
 
+def test_daft(seed, config=None):
+    '''
+    main function to run the test loop for resnet architecture
+    '''
+
+    print('YOU ARE RUNNING TEST LOOP FOR RESNET MODEL FOR HAM DATASET')
+
+    wandb.init(group='TEST_DAFT',
+               project="adni_multimodal", config=config)
+    wandb_logger = WandbLogger()
+
+    checkpoints = wandb.config.checkpoint
+    checkpoint = checkpoints[str(seed)]
+
+    # get the model
+    model = DaftModel(
+        learning_rate=wandb.config.learning_rate, weight_decay=wandb.config.weight_decay)
+    wandb.watch(model, log="all")
+
+    # load the data
+    data = AdniDataModule(batch_size=wandb.config.batch_size)
+    data.prepare_data(seed=seed)
+    data.set_supervised_multimodal_dataloader()
+    test_dataloader = data.test_dataloader()
+
+    accelerator = 'cpu'
+    devices = None
+    if torch.cuda.is_available():
+        accelerator = 'gpu'
+        devices = 1
+
+    # Add learning rate scheduler monitoring
+    lr_monitor = LearningRateMonitor(logging_interval='epoch')
+    trainer = Trainer(accelerator=accelerator, devices=devices,
+                      max_epochs=wandb.config.max_epochs, logger=wandb_logger, callbacks=[lr_monitor], deterministic=True)
+    trainer.test(model, dataloaders=test_dataloader,
+                 ckpt_path=checkpoint)
+    wandb.finish()
+
+
 def main_film(seed, config=None):
     '''
     main function to run the multimodal architecture
@@ -520,6 +721,46 @@ def main_film(seed, config=None):
                       max_epochs=wandb.config.max_epochs, logger=wandb_logger, callbacks=[checkpoint_callback, lr_monitor], deterministic=True)
     trainer.fit(model, train_dataloaders=train_dataloader,
                 val_dataloaders=val_dataloader)
+    wandb.finish()
+
+
+def test_film(seed, config=None):
+    '''
+    main function to run the test loop for resnet architecture
+    '''
+
+    print('YOU ARE RUNNING TEST LOOP FOR FILM')
+
+    wandb.init(group='TEST_FILM',
+               project="adni_multimodal", config=config)
+    wandb_logger = WandbLogger()
+
+    checkpoints = wandb.config.checkpoint
+    checkpoint = checkpoints[str(seed)]
+
+    # get the model
+    model = FilmModel(
+        learning_rate=wandb.config.learning_rate, weight_decay=wandb.config.weight_decay)
+    wandb.watch(model, log="all")
+
+    # load the data
+    data = AdniDataModule(batch_size=wandb.config.batch_size)
+    data.prepare_data(seed=seed)
+    data.set_supervised_multimodal_dataloader()
+    test_dataloader = data.test_dataloader()
+
+    accelerator = 'cpu'
+    devices = None
+    if torch.cuda.is_available():
+        accelerator = 'gpu'
+        devices = 1
+
+    # Add learning rate scheduler monitoring
+    lr_monitor = LearningRateMonitor(logging_interval='epoch')
+    trainer = Trainer(accelerator=accelerator, devices=devices,
+                      max_epochs=wandb.config.max_epochs, logger=wandb_logger, callbacks=[lr_monitor], deterministic=True)
+    trainer.test(model, dataloaders=test_dataloader,
+                 ckpt_path=checkpoint)
     wandb.finish()
 
 
@@ -780,8 +1021,17 @@ if __name__ == '__main__':
         # main_tabular(seed, config['tabular_config'])
         # main_supervised_multimodal(seed, config['supervised_config'])
         # main_daft(seed, config['daft_config'])
-        main_film(seed, config['film_config'])
-        # main_triplet(seed, config['triplet_center_config'])
+        # main_film(seed, config['film_config'])
+        main_triplet(seed, config['triplet_center_config'])
+
+        ########################## TEST ###############################
+
+        # test_resnet(seed, config['resnet_config'])
+        # test_tabular(seed, config['tabular_config'])
+        # test_supervised_multimodal(seed, config['supervised_config'])
+        # test_daft(seed, config['daft_config'])
+        # test_film(seed, config['film_config'])
+        # test_triplet(seed, config['triplet_center_config'])
 
 
 ##############################################################################
