@@ -2,72 +2,35 @@ import torch
 from torch import nn
 from pytorch_lightning.core.module import LightningModule
 from torch.nn import functional as F
-# from monai.networks.nets.resnet_group import resnet10, resnet18, resnet34, resnet50
-from models.model_blocks.resnet_block import ResNet
-from torch.optim.lr_scheduler import StepLR, MultiStepLR
-from pytorch_metric_learning import losses
+# from monai.networks.nets.resnet import resnet10, resnet18, resnet34, resnet50
+from models.model_blocks.daft_block import Film
 import torchmetrics
-
-from skin_lesion.center_loss import CenterLoss
+from torch.nn import Softmax
+from torch.optim.lr_scheduler import StepLR, MultiStepLR, MultiplicativeLR
 from torchmetrics.classification import MulticlassPrecision
 from torchmetrics.classification import MulticlassRecall
 from torchmetrics.classification import MulticlassF1Score
 import wandb
-from torch.nn import Softmax
 from skin_lesion.roc_curve import roc_curve
 
 
-class TripletModel(LightningModule):
+class FilmModel(LightningModule):
     '''
-    Uses ResNet for the image data, concatenates image and tabular data at the end
+    Resnet Model Class including the training, validation and testing steps
     '''
 
-    def __init__(self, seed, learning_rate=0.013, weight_decay=0.01, alpha_center=0.01, alpha_triplet=0):
+    def __init__(self, learning_rate=0.013, weight_decay=0.01):
 
         super().__init__()
-        self.use_gpu = False
-        if torch.cuda.is_available():
-            self.use_gpu = True
-
         self.save_hyperparameters()
 
         self.lr = learning_rate
         self.wd = weight_decay
-        self.alpha_center = alpha_center
-        self.alpha_triplet = alpha_triplet
-        self.alpha_cross_ent = (1-alpha_center-alpha_triplet)
-        self.embedding_dimension = 32
+        self.num_classes = 3
 
-        # IMAGE DATA
-        # output dimension is adapted from simCLR
-        self.resnet = ResNet()  # output features are 128
-        self.resnet.fc = nn.Linear(
-            self.embedding_dimension, self.embedding_dimension)
-
-        # TABULAR DATA
-        # fc layer for tabular data
-        self.fc1 = nn.Linear(11, 32)
-        self.fc2 = nn.Linear(32, 32)
-        self.fc3 = nn.Linear(32, 32)
-        self.fc4 = nn.Linear(32, self.embedding_dimension)
-
-        # shared FC layer
-        self.fc5 = nn.Linear(self.embedding_dimension,
-                             self.embedding_dimension)
-
-        # TABULAR + IMAGE DATA
-        # mlp projection head which takes concatenated input
-        concatenation_dimension = (self.embedding_dimension * 2) - 1
-
-        # outputs will be used in triplet loss
-        self.fc6 = nn.Linear(concatenation_dimension, 32)
-        self.fc7 = nn.Linear(32, self.num_classes)  # classification head
-
-        # initiate losses
-        self.center_loss = CenterLoss(
-            num_classes=self.num_classes, feat_dim=self.embedding_dimension, use_gpu=self.use_gpu, seed=seed)
-        self.cross_ent_loss_function = nn.CrossEntropyLoss()
-        self.triplet_loss = nn.TripletMarginLoss(margin=1.0, p=2)
+        # IMAGE
+        # resnet module for image data
+        self.film = Film(in_channels=1, n_outputs=self.num_classes)
 
         # TRACK METRICS
 
@@ -144,90 +107,32 @@ class TripletModel(LightningModule):
 
     def forward(self, img, tab):
         """
-
-        img is the input image data ()
+        img is the input image data
         tab is th einput tabular data
-
         """
-        # run the model for the image
-        img = self.resnet(img)
-        img = self.fc5(F.relu(img))
 
-        # forward pass for tabular data
         tab = tab.to(torch.float32)
-        tab = F.relu(self.fc1(tab))
-        tab = F.relu(self.fc2(tab))
-        tab = F.relu(self.fc3(tab))
-        tab = F.relu(self.fc4(tab))
-        tab = self.fc5(tab)
+        # run the model for the image
+        out = self.film(img, tab)
 
-        # concat image and tabular data
-        img = img.unsqueeze(0)
-        tab = tab.unsqueeze(1)
-        x = F.conv1d(img, tab, padding=self.embedding_dimension -
-                     1, groups=img.size(1))
-        x = x.squeeze()
-
-        # get the final concatenated embedding
-        out1 = self.fc6(x)
-        # calculate the output of classification head
-        out2 = self.fc7(F.relu(x))
-
-        return out1, out2
+        return out
 
     def configure_optimizers(self):
-        my_list = ['center_loss.centers']
-        center_params = list(
-            filter(lambda kv: kv[0] in my_list, self.named_parameters()))
-        model_params = list(
-            filter(lambda kv: kv[0] not in my_list, self.named_parameters()))
 
-        optimizer = torch.optim.Adam([
-            {'params': [temp[1] for temp in model_params]},
-            {'params': center_params[0][1], 'lr': 1e-4}
-        ], lr=self.lr, weight_decay=self.wd)
+        optimizer = torch.optim.Adam(
+            self.parameters(), lr=self.lr, weight_decay=self.wd)
 
-        # UNCOMMENT FOR LR SCHEDULER
-        # scheduler = MultiStepLR(optimizer,
-        #                         # List of epoch indices
-        #                         milestones=[23, 33],
-        #                         gamma=0.5)  # Multiplicative factor of learning rate decay
-
-        # return [optimizer], [scheduler]
         return optimizer
 
     def training_step(self, batch, batch_idx):
 
-        # get tabular and image data from the batch
-        img, pos_img, neg_img, tab, pos_tab, neg_tab, y = batch[
-            0], batch[1], batch[2], batch[3], batch[4], batch[5], batch[6]
+        img, tab, y = batch
 
-        anchor_emb, y_pred = self(img, tab)
-        pos_emb, _ = self(pos_img, pos_tab)
-        neg_emb, _ = self(neg_img, neg_tab)
+        y_pred = self(img, tab)
 
-        cross_ent_loss = self.cross_ent_loss_function(y_pred, y.squeeze())
-        center_loss = self.center_loss(anchor_emb, y.squeeze())
-        triplet_loss = self.triplet_loss(anchor_emb, pos_emb, neg_emb)
-        # weighted sum of the losses
-        loss = self.alpha_cross_ent*cross_ent_loss + \
-            self.alpha_center * center_loss + self.alpha_triplet * triplet_loss
-
-        # Log loss on every epoch
+        loss_func = nn.CrossEntropyLoss()
+        loss = loss_func(y_pred, y)
         self.log('train_epoch_loss', loss, on_epoch=True, on_step=False)
-        self.log('train_center_loss', center_loss,
-                 on_epoch=True, on_step=False)
-        self.log('train_cross_ent_loss', cross_ent_loss,
-                 on_epoch=True, on_step=False)
-        self.log('train_triplet_loss', triplet_loss,
-                 on_epoch=True, on_step=False)
-        # log weights
-        self.log('cross_ent_weight', self.alpha_cross_ent,
-                 on_epoch=True, on_step=False)
-        self.log('center_weight', self.alpha_center,
-                 on_epoch=True, on_step=False)
-        self.log('triplet_weight', self.alpha_triplet,
-                 on_epoch=True, on_step=False)
 
         # calculate acc
         # take softmax
@@ -284,36 +189,19 @@ class TripletModel(LightningModule):
 
     def validation_step(self, batch, batch_idx):
 
-        # get tabular and image data from the batch
-        img, pos_img, neg_img, tab, pos_tab, neg_tab, y = batch[
-            0], batch[1], batch[2], batch[3], batch[4], batch[5], batch[6]
+        img, tab, y = batch
 
-        anchor_emb, y_pred = self(img, tab)
-        pos_emb, _ = self(pos_img, pos_tab)
-        neg_emb, _ = self(neg_img, neg_tab)
+        y_pred = self(img, tab)
 
-        cross_ent_loss = self.cross_ent_loss_function(y_pred, y.squeeze())
-        center_loss = self.center_loss(anchor_emb, y.squeeze())
-        triplet_loss = self.triplet_loss(anchor_emb, pos_emb, neg_emb)
-        # weighted sum of the losses
-        loss = self.alpha_cross_ent*cross_ent_loss + \
-            self.alpha_center * center_loss + self.alpha_triplet * triplet_loss
-
-        # Log loss on every epoch
+        loss_func = nn.CrossEntropyLoss()
+        loss = loss_func(y_pred, y)
         self.log('val_epoch_loss', loss, on_epoch=True, on_step=False)
-        self.log('val_center_loss', center_loss,
-                 on_epoch=True, on_step=False)
-        self.log('val_cross_ent_loss', cross_ent_loss,
-                 on_epoch=True, on_step=False)
-        self.log('val_triplet_loss', triplet_loss,
-                 on_epoch=True, on_step=False)
 
         # calculate acc
         # take softmax
         if len(y_pred.shape) == 1:
             y_pred = y_pred.unsqueeze(0)
         y_pred_softmax = self.softmax(y_pred)
-        # y_pred_softmax = torch.sigmoid(y_pred)
 
         # get the index of max value
         pred_label = torch.argmax(y_pred_softmax, dim=1)
@@ -344,7 +232,6 @@ class TripletModel(LightningModule):
                  on_epoch=True, on_step=False)
         self.log('val_macro_recall', self.val_macro_recall,
                  on_epoch=True, on_step=False)
-
         return loss
 
     def on_validation_epoch_end(self):
@@ -376,29 +263,14 @@ class TripletModel(LightningModule):
 
     def test_step(self, batch, batch_idx):
 
-        # get tabular and image data from the batch
-        img, pos_img, neg_img, tab, pos_tab, neg_tab, y = batch[
-            0], batch[1], batch[2], batch[3], batch[4], batch[5], batch[6]
+        img, tab, y = batch
 
-        anchor_emb, y_pred = self(img, tab)
-        pos_emb, _ = self(pos_img, pos_tab)
-        neg_emb, _ = self(neg_img, neg_tab)
+        y_pred = self(img, tab)
 
-        cross_ent_loss = self.cross_ent_loss_function(y_pred, y.squeeze())
-        center_loss = self.center_loss(anchor_emb, y.squeeze())
-        triplet_loss = self.triplet_loss(anchor_emb, pos_emb, neg_emb)
-        # weighted sum of the losses
-        loss = self.alpha_cross_ent*cross_ent_loss + \
-            self.alpha_center * center_loss + self.alpha_triplet * triplet_loss
+        loss_func = nn.CrossEntropyLoss(weight=self.class_weights)
+        loss = loss_func(y_pred, y)
 
-        # Log loss on every epoch
-        self.log('test_epoch_loss', loss, on_epoch=True, on_step=False)
-        self.log('test_center_loss', center_loss,
-                 on_epoch=True, on_step=False)
-        self.log('test_cross_ent_loss', cross_ent_loss,
-                 on_epoch=True, on_step=False)
-        self.log('test_triplet_loss', triplet_loss,
-                 on_epoch=True, on_step=False)
+        self.log("test_epoch_loss", loss)
 
         # calculate acc
         # take softmax

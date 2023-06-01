@@ -23,7 +23,7 @@ config = {
         'age': None,
         'spatial_size': (64, 64, 64),
         'learning_rate': 0.001,  # 0.013,
-        'weight_decay': 0.01,  # 0.0001,
+        'weight_decay': 0,  # 0.0001,
         'checkpoint': None,
         'checkpoint_flag': False
     },
@@ -33,7 +33,7 @@ config = {
         'max_epochs': 40,
         'age': None,
         'spatial_size': (64, 64, 64),
-        'learning_rate': 0.03,  # 0.03,
+        'learning_rate': 0.01,  # 0.03,
         'weight_decay': 0,  # 0.0001,
         'checkpoint': None,
         'checkpoint_flag': False
@@ -67,6 +67,29 @@ config = {
         'checkpoint_flag': False,
         'contrastive_checkpoint_flag': False
     },
+    
+    'film_config': {
+        'batch_size': 512,
+        'max_epochs': 40,
+        'age': None,
+        'spatial_size': (64, 64, 64),
+        'learning_rate': 0.013,
+        'weight_decay': 0,
+        'checkpoint': r'/home/guests/selen_erkan/experiments/checkpoints/supervised/25.01.2023-18.49-epoch=029.ckpt',
+        'contrastive_checkpoint': r'/home/guests/selen_erkan/experiments/checkpoints/contrastive/25.01.2023-17.14-epoch=029.ckpt',
+        'checkpoint_flag': False,
+        'contrastive_checkpoint_flag': False
+    },
+    'triplet_center_config': {
+        'batch_size': 512,  # 512
+        'max_epochs': 40,  # 40
+        'age': None,
+        'learning_rate': 0.001,
+        'weight_decay': 0,
+        'alpha_center': 0.01,
+        'alpha_triplet': 0.2,
+        'checkpoint': {}
+    },
 
     'contrastive_config': {
         'batch_size': 512,
@@ -84,23 +107,9 @@ config = {
         'max_epochs': 40,
         'age': None,
         'spatial_size': (64, 64, 64),
-        'learning_rate': 0.013,
+        'learning_rate': 0.001,
         'weight_decay': 0,
         'checkpoint': None,
         'checkpoint_flag': False
-    },
-
-    'knn_config': {
-        'batch_size': 512,
-        'model': 'contrastive',
-        'age': None,
-        'spatial_size': (64, 64, 64),
-        'learning_rate': 0.013,
-        'weight_decay': 0.01,
-        'n_neighbors': 5,
-        # 'checkpoint': r'/home/guests/selen_erkan/experiments/checkpoints/contrastive/lr=0.001_wd=0_27.01.2023-17.49-epoch=079.ckpt',
-        'checkpoint': r'/home/guests/selen_erkan/experiments/checkpoints/triplet/lr=0.013_wd=0.01_01.02.2023-17.19-epoch=020.ckpt',
-
     }
-
 }
