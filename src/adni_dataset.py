@@ -251,7 +251,7 @@ class AdniDataModule(pl.LightningDataModule):
         ])
         return {'train': transform_train, 'val': transform_val}
 
-    def prepare_data(self, seed):
+    def prepare_data(self, seed=1997):
 
         # read .csv to load the data
         self.train_data = pd.read_csv(root_dir + train_dir)

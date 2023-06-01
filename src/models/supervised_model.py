@@ -6,7 +6,7 @@ from torch.nn import functional as F
 from models.model_blocks.resnet_block import ResNet
 import torchmetrics
 from torch.nn import Softmax
-from torch.optim.lr_scheduler import StepLR
+from torch.optim.lr_scheduler import StepLR, MultiStepLR
 from torchmetrics.classification import MulticlassPrecision
 from torchmetrics.classification import MulticlassRecall
 from torchmetrics.classification import MulticlassF1Score
@@ -14,12 +14,12 @@ import wandb
 from skin_lesion.roc_curve import roc_curve
 
 
-class TabularModel(LightningModule):
+class MultiModModel(LightningModule):
     '''
     Resnet Model Class including the training, validation and testing steps
     '''
 
-    def __init__(self, learning_rate, weight_decay=1e-5):
+    def __init__(self, learning_rate=0.013, weight_decay=0.01, correlation=False):
 
         super().__init__()
         self.save_hyperparameters()
@@ -27,14 +27,36 @@ class TabularModel(LightningModule):
         self.lr = learning_rate
         self.wd = weight_decay
         self.num_classes = 3
+        self.embedding_dimension = 32
+        self.correlation = correlation
 
-        # TABULAR
+        # IMAGE DATA
+        # output dimension is adapted from simCLR
+        self.resnet = ResNet()  # output features are 128
+        self.resnet.fc = nn.Linear(
+            self.embedding_dimension, self.embedding_dimension)
+
+        # TABULAR DATA
         # fc layer for tabular data
         self.fc1 = nn.Linear(11, 32)
         self.fc2 = nn.Linear(32, 32)
         self.fc3 = nn.Linear(32, 32)
-        self.fc4 = nn.Linear(32, 32)
-        self.fc5 = nn.Linear(32, 3)
+        self.fc4 = nn.Linear(32, self.embedding_dimension)
+
+        # shared FC layer
+        self.fc5 = nn.Linear(self.embedding_dimension,
+                             self.embedding_dimension)
+
+        # TABULAR + IMAGE DATA
+        # mlp projection head which takes concatenated input
+        if self.correlation:
+            concatenation_dimension = (self.embedding_dimension * 2) - 1
+        else:
+            concatenation_dimension = 64
+
+        # outputs will be used in triplet loss
+        self.fc6 = nn.Linear(concatenation_dimension, 32)
+        self.fc7 = nn.Linear(32, self.num_classes)  # classification head
 
         self.cross_ent_loss_function = nn.CrossEntropyLoss()
 
@@ -111,11 +133,15 @@ class TabularModel(LightningModule):
 
         self.softmax = Softmax(dim=1)
 
-    def forward(self, tab):
+    def forward(self, img, tab):
         """
         img is the input image data
         tab is th einput tabular data
         """
+
+        # run the model for the image
+        img = self.resnet(img)
+        img = self.fc5(F.relu(img))
 
         # forward pass for tabular data
         tab = tab.to(torch.float32)
@@ -123,7 +149,22 @@ class TabularModel(LightningModule):
         tab = F.relu(self.fc2(tab))
         tab = F.relu(self.fc3(tab))
         tab = F.relu(self.fc4(tab))
-        out = self.fc5(tab)
+        tab = self.fc5(tab)
+
+        # concat image and tabular data
+        if self.correlation:
+            img = img.unsqueeze(0)
+            tab = tab.unsqueeze(1)
+            x = F.conv1d(img, tab, padding=self.embedding_dimension -
+                         1, groups=img.size(1))
+            x = x.squeeze()
+        else:
+            x = torch.cat((img, tab), dim=1)
+
+        # get the final concatenated embedding
+        x = F.relu(self.fc6(x))
+        # calculate the output of classification head
+        out = self.fc7(x)
 
         return out
 
@@ -131,17 +172,21 @@ class TabularModel(LightningModule):
 
         optimizer = torch.optim.Adam(
             self.parameters(), lr=self.lr, weight_decay=self.wd)
+        # scheduler = MultiStepLR(optimizer,
+        #                         # List of epoch indices
+        #                         milestones=[30, 60],
+        #                         gamma=0.1)  # Multiplicative factor of learning rate decay
 
+        # return [optimizer], [scheduler]
         return optimizer
 
     def training_step(self, batch, batch_idx):
 
         img, tab, y = batch
 
-        y_pred = self(tab)
+        y_pred = self(img, tab)
 
         loss = self.cross_ent_loss_function(y_pred, y)
-        # Log loss on every epoch
         self.log('train_epoch_loss', loss, on_epoch=True, on_step=False)
 
         # calculate acc
@@ -201,11 +246,8 @@ class TabularModel(LightningModule):
 
         img, tab, y = batch
 
-        y_pred = self(tab)
-
+        y_pred = self(img, tab)
         loss = self.cross_ent_loss_function(y_pred, y)
-
-        # Log loss
         self.log('val_epoch_loss', loss, on_epoch=True, on_step=False)
 
         # calculate acc
@@ -216,6 +258,7 @@ class TabularModel(LightningModule):
 
         # get the index of max value
         pred_label = torch.argmax(y_pred_softmax, dim=1)
+
         # save the predictions and targets
         self.val_predictions.append(y_pred.detach())
         self.val_targets.append(y.detach())
@@ -267,7 +310,7 @@ class TabularModel(LightningModule):
         preds = torch.nn.functional.softmax(preds, dim=1)
         targets = torch.cat(self.val_targets)
         wandb.log({f"validation_roc_curve_epoch_{self.current_epoch}": roc_curve(targets.unsqueeze(1), preds,
-                                                                                 labels=["akiec", "bcc", 'bkl', 'df', 'mel', 'nv', 'vasc'], title='Val ROC Epoch:{self.current_epoch}')})
+                                                                                 labels=['CN', 'AD', 'LMCI'], title='Val ROC Epoch:{self.current_epoch}')})
 
         self.val_predictions = []
         self.val_targets = []
@@ -275,12 +318,10 @@ class TabularModel(LightningModule):
     def test_step(self, batch, batch_idx):
 
         img, tab, y = batch
-
-        y_pred = self(tab)
+        y_pred = self(img, tab)
 
         loss = self.cross_ent_loss_function(y_pred, y)
-
-        self.log("test_epoch_loss", loss)
+        self.log('test_epoch_loss', loss, on_epoch=True, on_step=False)
 
         # calculate acc
         # take softmax

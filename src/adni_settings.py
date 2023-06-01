@@ -18,7 +18,7 @@ SEED = 473
 
 config = {
     'tabular_config': {
-        'batch_size': 32,
+        'batch_size': 512,
         'max_epochs': 40,
         'age': None,
         'spatial_size': (64, 64, 64),
@@ -29,19 +29,19 @@ config = {
     },
 
     'resnet_config': {
-        'batch_size': 32,
+        'batch_size': 512,
         'max_epochs': 40,
         'age': None,
         'spatial_size': (64, 64, 64),
-        'learning_rate': 0.001,  # 0.03,
-        'weight_decay': 0.01,  # 0.0001,
+        'learning_rate': 0.03,  # 0.03,
+        'weight_decay': 0,  # 0.0001,
         'checkpoint': None,
         'checkpoint_flag': False
     },
 
 
     'supervised_config': {
-        'batch_size': 32,
+        'batch_size': 512,
         'max_epochs': 40,
         'age': None,
         'spatial_size': (64, 64, 64),
@@ -52,11 +52,11 @@ config = {
         'contrastive_checkpoint': r'/home/guests/selen_erkan/experiments/checkpoints/triplet/lr=0.013_wd=0.01_01.02.2023-17.19-epoch=020.ckpt',
         'checkpoint_flag': False,
         'contrastive_checkpoint_flag': False,
-        'correlation':False
+        'correlation': False
     },
 
     'daft_config': {
-        'batch_size': 32,
+        'batch_size': 512,
         'max_epochs': 40,
         'age': None,
         'spatial_size': (64, 64, 64),
@@ -69,7 +69,7 @@ config = {
     },
 
     'contrastive_config': {
-        'batch_size': 32,
+        'batch_size': 512,
         'max_epochs': 40,
         'age': None,
         'spatial_size': (64, 64, 64),
@@ -80,7 +80,7 @@ config = {
     },
 
     'triplet_config': {
-        'batch_size': 32,
+        'batch_size': 512,
         'max_epochs': 40,
         'age': None,
         'spatial_size': (64, 64, 64),
@@ -91,7 +91,7 @@ config = {
     },
 
     'knn_config': {
-        'batch_size': 32,
+        'batch_size': 512,
         'model': 'contrastive',
         'age': None,
         'spatial_size': (64, 64, 64),

@@ -74,7 +74,7 @@ class ResNet(LightningModule):
 
         self.conv1 = ConvBnReLU(
             in_channels, n_basefilters, bn_momentum=bn_momentum)
-        self.pool1 = nn.MaxPool3d(2, stride=2)  # 32
+        # self.pool1 = nn.MaxPool3d(2, stride=2)  # 32
         self.block1 = ResBlock(
             n_basefilters, n_basefilters, bn_momentum=bn_momentum)
         self.block2 = ResBlock(
@@ -88,7 +88,7 @@ class ResNet(LightningModule):
 
     def forward(self, image):
         out = self.conv1(image)
-        out = self.pool1(out)
+        # out = self.pool1(out)
         out = self.block1(out)
         out = self.block2(out)
         out = self.block3(out)
