@@ -36,8 +36,7 @@ class ResNetModel(LightningModule):
         # self.fc = nn.Linear(resnet_out_dim, 3)
 
         # initialize loss functions
-        self.cross_ent_loss_function = nn.CrossEntropyLoss(
-            weight=self.class_weights)
+        self.cross_ent_loss_function = nn.CrossEntropyLoss()
 
         # TRACK METRICS
 
@@ -131,7 +130,7 @@ class ResNetModel(LightningModule):
 
     def training_step(self, batch, batch_idx):
 
-        img, y = batch
+        img, tab, y = batch
 
         y_pred = self(img)
 
@@ -194,7 +193,7 @@ class ResNetModel(LightningModule):
 
     def validation_step(self, batch, batch_idx):
 
-        img, y = batch
+        img, tab, y = batch
 
         y_pred = self(img)
 
@@ -262,14 +261,14 @@ class ResNetModel(LightningModule):
         preds = torch.nn.functional.softmax(preds, dim=1)
         targets = torch.cat(self.val_targets)
         wandb.log({f"validation_roc_curve_epoch_{self.current_epoch}": roc_curve(targets.unsqueeze(1), preds,
-                                                                                 labels=["akiec", "bcc", 'bkl', 'df', 'mel', 'nv', 'vasc'], title='Val ROC Epoch:{self.current_epoch}')})
+                                                                                 labels=['CN', 'AD', 'LMCI'], title='Val ROC Epoch:{self.current_epoch}')})
 
         self.val_predictions = []
         self.val_targets = []
 
     def test_step(self, batch, batch_idx):
 
-        img, y = batch
+        img, tab, y = batch
 
         y_pred = self(img)
 
@@ -339,6 +338,6 @@ class ResNetModel(LightningModule):
         preds = torch.cat(self.test_predictions)
         targets = torch.cat(self.test_targets)
         wandb.log({"ROC_Test": roc_curve(targets.unsqueeze(1), preds,
-                                         labels=["akiec", "bcc", 'bkl', 'df', 'mel', 'nv', 'vasc'], title='ROC_Test')})
+                                         labels=['CN', 'AD', 'LMCI'], title='ROC_Test')})
         self.test_predictions = []
         self.test_targets = []
