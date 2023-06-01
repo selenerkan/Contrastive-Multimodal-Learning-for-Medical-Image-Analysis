@@ -1020,9 +1020,9 @@ if __name__ == '__main__':
         # main_resnet(seed, config['resnet_config'])
         # main_tabular(seed, config['tabular_config'])
         # main_supervised_multimodal(seed, config['supervised_config'])
-        # main_daft(seed, config['daft_config'])
+        main_daft(seed, config['daft_config'])
         # main_film(seed, config['film_config'])
-        main_triplet(seed, config['triplet_center_config'])
+        # main_triplet(seed, config['triplet_center_config'])
 
         ########################## TEST ###############################
 

@@ -37,7 +37,7 @@ class TripletModel(LightningModule):
         self.alpha_triplet = alpha_triplet
         self.alpha_cross_ent = (1-alpha_center-alpha_triplet)
         self.embedding_dimension = 32
-        self.num_classes=3
+        self.num_classes = 3
 
         # IMAGE DATA
         # output dimension is adapted from simCLR
@@ -172,7 +172,7 @@ class TripletModel(LightningModule):
         # get the final concatenated embedding
         out1 = self.fc6(x)
         # calculate the output of classification head
-        out2 = self.fc7(F.relu(x))
+        out2 = self.fc7(F.relu(out1))
 
         return out1, out2
 

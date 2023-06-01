@@ -402,7 +402,7 @@ class DAFT(BaseModel):
         out = self.conv1(image)
         # Disable determinism for the specific operation
         # with cudnn.flags(enabled=False):
-        #     out = self.pool1(out)
+        out = self.pool1(out)
         out = self.block1(out)
         out = self.block2(out)
         out = self.block3(out)
