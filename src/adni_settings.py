@@ -1,22 +1,19 @@
-CHECKPOINT_DIR = r'/home/guests/selen_erkan/experiments/checkpoints'
-IMAGE_PATH = r"/home/guests/selen_erkan/datasets/ADNI/images/preprocessed"
-CSV_FILE = r"/home/guests/selen_erkan/datasets/ADNI/tabular/adni_final.csv"
+CHECKPOINT_DIR = r'/vol/aimspace/users/erks/experiments/adni_checkpoints'
+image_dir = r"/vol/aimspace/users/erks/datasets/adni_full/adni_selen/images"
+root_dir = r"/vol/aimspace/users/erks/datasets/adni_full/adni_selen/"
+train_dir = r'/train_data.csv'
+test_dir = r'/test_data.csv'
+CSV_DIR = r"/vol/aimspace/users/erks/datasets/adni_full/adni_selen/adni_final.csv"
 
 FEATURES = ['age', 'gender_numeric', 'education', 'APOE4',
-            'FDG', 'AV45', 'TAU', 'PTAU', 'MMSE', 'label_numeric',
-            'FDG_missing', 'TAU_missing', 'PTAU_missing', 'AV45_missing']
+            'FDG', 'TAU', 'PTAU', 'MMSE', 'label_numeric',
+            'FDG_missing', 'TAU_missing', 'PTAU_missing']
 
 TARGET = 'label_numeric'
-# use below code for run gender prediction
-# TARGET = 'gender_numeric'
 
-IMAGE_SIZE = (182, 218, 182)
+IMAGE_SIZE = (64, 64, 64)
 
 SEED = 473
-
-TRAIN_SIZE = 1
-VAL_SIZE = 1
-TEST_SIZE = 1
 
 tabular_config = {
     'batch_size': 32,
@@ -100,5 +97,5 @@ knn_config = {
     'n_neighbors': 5,
     # 'checkpoint': r'/home/guests/selen_erkan/experiments/checkpoints/contrastive/lr=0.001_wd=0_27.01.2023-17.49-epoch=079.ckpt',
     'checkpoint': r'/home/guests/selen_erkan/experiments/checkpoints/triplet/lr=0.013_wd=0.01_01.02.2023-17.19-epoch=020.ckpt',
-    
+
 }
