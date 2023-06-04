@@ -8,15 +8,15 @@ from torch.optim.lr_scheduler import StepLR, MultiStepLR
 from pytorch_metric_learning import losses
 import torchmetrics
 from torch.nn import Softmax
-from center_loss import CenterLoss
 import torchvision
 from torchmetrics.classification import MulticlassPrecision
 from torchmetrics.classification import MulticlassRecall
 from torchmetrics.classification import MulticlassPrecision
 from torchmetrics.classification import MulticlassRecall
 from torchmetrics.classification import MulticlassF1Score
+from skin_lesion.center_loss import CenterLoss
 import wandb
-from roc_curve import roc_curve
+from skin_lesion.roc_curve import roc_curve
 
 
 class CenterLossModel(LightningModule):
@@ -63,7 +63,7 @@ class CenterLossModel(LightningModule):
         if self.correlation:
             concatenation_dimension = (self.embedding_dimension * 2) - 1
         else:
-            concatenation_dimension = 128
+            concatenation_dimension = self.embedding_dimension * 2
 
         # outputs will be used in triplet loss
         self.fc6 = nn.Linear(concatenation_dimension, 32)

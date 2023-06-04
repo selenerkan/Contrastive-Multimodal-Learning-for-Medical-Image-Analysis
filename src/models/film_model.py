@@ -267,7 +267,7 @@ class FilmModel(LightningModule):
 
         y_pred = self(img, tab)
 
-        loss_func = nn.CrossEntropyLoss(weight=self.class_weights)
+        loss_func = nn.CrossEntropyLoss()
         loss = loss_func(y_pred, y)
 
         self.log("test_epoch_loss", loss)

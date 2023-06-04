@@ -110,7 +110,7 @@ def test_tabular(seed, config=None):
 
     print('YOU ARE RUNNING TEST LOOP FOR RESNET MODEL FOR HAM DATASET')
 
-    wandb.init(group='TEST_TABULAR',
+    wandb.init(group='TEST_TABULAR_FINAL',
                project="adni_multimodal", config=config)
     wandb_logger = WandbLogger()
 
@@ -202,7 +202,7 @@ def test_resnet(seed, config=None):
 
     print('YOU ARE RUNNING TEST LOOP FOR RESNET MODEL FOR HAM DATASET')
 
-    wandb.init(group='TEST_RESNET',
+    wandb.init(group='TEST_RESNET_FINAL',
                project="adni_multimodal", config=config)
     wandb_logger = WandbLogger()
 
@@ -296,16 +296,23 @@ def main_supervised_multimodal(seed, config=None):
 
 def test_supervised_multimodal(seed, config=None):
     '''
-    main function to run the test loop for resnet architecture
+    main function to run the test loop for CROSS ENTROPY architecture
     '''
 
-    print('YOU ARE RUNNING TEST LOOP FOR RESNET MODEL FOR HAM DATASET')
+    print('YOU ARE RUNNING TEST LOOP FOR CROSS ENTROPY MODEL')
+    print(config)
 
-    wandb.init(group='TEST_SUPERVISED',
+    corr = 'CONCAT'
+    if config['correlation']:
+        corr = 'CORRELATION'
+
+    wandb.init(group='TEST_SUPERVISED_'+corr+'_FINAL',
                project="adni_multimodal", config=config)
     wandb_logger = WandbLogger()
 
-    checkpoints = wandb.config.checkpoint
+    checkpoints = wandb.config.checkpoint_concat
+    if config['correlation']:
+        checkpoints = wandb.config.checkpoint_corr
     checkpoint = checkpoints[str(seed)]
 
     # get the model
@@ -502,6 +509,46 @@ def main_modality_specific_center(seed, config=None):
     wandb.finish()
 
 
+def test_modality_specific_center(seed, config=None):
+    '''
+    main function to run the test loop for modality specific center loss architecture
+    '''
+
+    print('YOU ARE RUNNING TEST LOOP FOR MODALITY SPECIFIC CENTER LOSS')
+
+    wandb.init(group='TEST_MODALITY_SPECIFIC',
+               project="adni_multimodal", config=config)
+    wandb_logger = WandbLogger()
+
+    checkpoints = wandb.config.checkpoint
+    checkpoint = checkpoints[str(seed)]
+
+    # get the model
+    model = ModalitySpecificCenterModel(
+        learning_rate=wandb.config.learning_rate, weight_decay=wandb.config.weight_decay, seed=seed, alpha_center=wandb.config.alpha_center)
+    wandb.watch(model, log="all")
+
+    # load the data
+    data = AdniDataModule(batch_size=wandb.config.batch_size)
+    data.prepare_data(seed=seed)
+    data.set_supervised_multimodal_dataloader()
+    test_dataloader = data.test_dataloader()
+
+    accelerator = 'cpu'
+    devices = None
+    if torch.cuda.is_available():
+        accelerator = 'gpu'
+        devices = 1
+
+    # Add learning rate scheduler monitoring
+    lr_monitor = LearningRateMonitor(logging_interval='epoch')
+    trainer = Trainer(accelerator=accelerator, devices=devices,
+                      max_epochs=wandb.config.max_epochs, logger=wandb_logger, callbacks=[lr_monitor], deterministic=True)
+    trainer.test(model, dataloaders=test_dataloader,
+                 ckpt_path=checkpoint)
+    wandb.finish()
+
+
 def main_cross_modal_center(seed, config=None):
     '''
     main function to run the multimodal architecture
@@ -553,6 +600,46 @@ def main_cross_modal_center(seed, config=None):
                       max_epochs=wandb.config.max_epochs, logger=wandb_logger, callbacks=[checkpoint_callback, lr_monitor], deterministic=False)
     trainer.fit(model, train_dataloaders=train_dataloader,
                 val_dataloaders=val_dataloader)
+    wandb.finish()
+
+
+def test_cross_modal_center(seed, config=None):
+    '''
+    main function to run the test loop for CROSS MODAL center architecture
+    '''
+
+    print('YOU ARE RUNNING TEST LOOP FOR CROSS MODAL CENTER LOSS')
+
+    wandb.init(group='TEST_CROSS_MODAL',
+               project="adni_multimodal", config=config)
+    wandb_logger = WandbLogger()
+
+    checkpoints = wandb.config.checkpoint
+    checkpoint = checkpoints[str(seed)]
+
+    # get the model
+    model = CrossModalCenterModel(
+        learning_rate=wandb.config.learning_rate, weight_decay=wandb.config.weight_decay, seed=seed, alpha_center=wandb.config.alpha_center)
+    wandb.watch(model, log="all")
+
+    # load the data
+    data = AdniDataModule(batch_size=wandb.config.batch_size)
+    data.prepare_data(seed=seed)
+    data.set_supervised_multimodal_dataloader()
+    test_dataloader = data.test_dataloader()
+
+    accelerator = 'cpu'
+    devices = None
+    if torch.cuda.is_available():
+        accelerator = 'gpu'
+        devices = 1
+
+    # Add learning rate scheduler monitoring
+    lr_monitor = LearningRateMonitor(logging_interval='epoch')
+    trainer = Trainer(accelerator=accelerator, devices=devices,
+                      max_epochs=wandb.config.max_epochs, logger=wandb_logger, callbacks=[lr_monitor], deterministic=True)
+    trainer.test(model, dataloaders=test_dataloader,
+                 ckpt_path=checkpoint)
     wandb.finish()
 
 
@@ -611,6 +698,53 @@ def main_center_loss(seed, config=None):
                       max_epochs=wandb.config.max_epochs, logger=wandb_logger, callbacks=[checkpoint_callback, lr_monitor], deterministic=False)
     trainer.fit(model, train_dataloaders=train_dataloader,
                 val_dataloaders=val_dataloader)
+    wandb.finish()
+
+
+def test_center_loss(seed, config=None):
+    '''
+    main function to run the test loop for CENTER LOSS architecture
+    '''
+
+    print('YOU ARE RUNNING TEST LOOP FOR CENTER LOSS')
+    print(config)
+
+    corr = 'CONCAT'
+    if config['correlation']:
+        corr = 'CORRELATION'
+
+    wandb.init(group='TEST_CENTER_LOSS_'+corr,
+               project="adni_multimodal", config=config)
+    wandb_logger = WandbLogger()
+
+    checkpoints = wandb.config.checkpoint_concat
+    if config['correlation']:
+        checkpoints = wandb.config.checkpoint_corr
+    checkpoint = checkpoints[str(seed)]
+
+  # get the model
+    model = CenterLossModel(
+        learning_rate=wandb.config.learning_rate, weight_decay=wandb.config.weight_decay, seed=seed, alpha_center=wandb.config.alpha_center, correlation=wandb.config.correlation)
+    wandb.watch(model, log="all")
+
+    # load the data
+    data = AdniDataModule(batch_size=wandb.config.batch_size)
+    data.prepare_data(seed=seed)
+    data.set_supervised_multimodal_dataloader()
+    test_dataloader = data.test_dataloader()
+
+    accelerator = 'cpu'
+    devices = None
+    if torch.cuda.is_available():
+        accelerator = 'gpu'
+        devices = 1
+
+    # Add learning rate scheduler monitoring
+    lr_monitor = LearningRateMonitor(logging_interval='epoch')
+    trainer = Trainer(accelerator=accelerator, devices=devices,
+                      max_epochs=wandb.config.max_epochs, logger=wandb_logger, callbacks=[lr_monitor], deterministic=True)
+    trainer.test(model, dataloaders=test_dataloader,
+                 ckpt_path=checkpoint)
     wandb.finish()
 
 
@@ -673,21 +807,28 @@ def main_triplet(seed, config=None):
 
 def test_triplet(seed, config=None):
     '''
-    main function to run the test loop for resnet architecture
+    main function to run the test loop for TRIPLET MODEL 
     '''
 
-    print('YOU ARE RUNNING TEST LOOP FOR RESNET MODEL FOR HAM DATASET')
+    print('YOU ARE RUNNING TEST LOOP FOR TRIPLET MODEL ')
+    print(config)
 
-    wandb.init(group='TEST_TRIPLET',
+    corr = 'CONCAT'
+    if config['correlation']:
+        corr = 'CORRELATION'
+
+    wandb.init(group='TEST_TRIPLET_'+corr,
                project="adni_multimodal", config=config)
     wandb_logger = WandbLogger()
 
-    checkpoints = wandb.config.checkpoint
+    checkpoints = wandb.config.checkpoint_concat
+    if config['correlation']:
+        checkpoints = wandb.config.checkpoint_corr
     checkpoint = checkpoints[str(seed)]
 
     # get the model
     model = TripletModel(
-        learning_rate=wandb.config.learning_rate, weight_decay=wandb.config.weight_decay, seed=seed, alpha_center=wandb.config.alpha_center, alpha_triplet=wandb.config.alpha_triplet)
+        learning_rate=wandb.config.learning_rate, weight_decay=wandb.config.weight_decay, seed=seed, alpha_center=wandb.config.alpha_center, alpha_triplet=wandb.config.alpha_triplet, correlation=wandb.config.correlation)
     wandb.watch(model, log="all")
 
     # load the data
@@ -771,7 +912,7 @@ def test_daft(seed, config=None):
 
     print('YOU ARE RUNNING TEST LOOP FOR RESNET MODEL FOR HAM DATASET')
 
-    wandb.init(group='TEST_DAFT',
+    wandb.init(group='TEST_DAFT_FINAL',
                project="adni_multimodal", config=config)
     wandb_logger = WandbLogger()
 
@@ -864,7 +1005,7 @@ def test_film(seed, config=None):
 
     print('YOU ARE RUNNING TEST LOOP FOR FILM')
 
-    wandb.init(group='TEST_FILM',
+    wandb.init(group='TEST_FILM_FINAL',
                project="adni_multimodal", config=config)
     wandb_logger = WandbLogger()
 
@@ -1148,23 +1289,34 @@ if __name__ == '__main__':
         # main_supervised_multimodal(seed, config['supervised_config'])
         # main_daft(seed, config['daft_config'])
         # main_film(seed, config['film_config'])
-        # main_triplet(seed, config['triplet_center_config'])  # 1
+        # main_triplet(seed, config['triplet_center_config'])
 
         ######################### ABLATION ###########################
         # main_modality_specific_center(
         #     seed, config['modality_specific_center_config'])
-        main_cross_modal_center(
-            seed, config['cross_modal_center_config'])  # 1
-        # main_center_loss(seed, config['center_loss_config'])  # 2 (concat) # 3 (corr)
+        # main_cross_modal_center(
+        #     seed, config['cross_modal_center_config'])
+        # main_center_loss(seed, config['center_loss_config'])
 
-    ########################## TEST ###############################
+        ########################## TEST ###############################
 
-    # test_resnet(seed, config['resnet_config'])
-    # test_tabular(seed, config['tabular_config'])
-    # test_supervised_multimodal(seed, config['supervised_config'])
-    # test_daft(seed, config['daft_config'])
-    # test_film(seed, config['film_config'])
-    # test_triplet(seed, config['triplet_center_config'])
+        # test_resnet(seed, config['resnet_config'])
+        # test_tabular(seed, config['tabular_config'])
+        # 1) corr 2) concat
+        # test_supervised_multimodal(seed, config['supervised_config'])
+        # test_daft(seed, config['daft_config'])
+        # test_film(seed, config['film_config'])
+        # 1) corr 2) concat
+        # test_triplet(seed, config['triplet_center_config'])
+
+        ########################## TEST ABLATION ###############################
+
+        # test_modality_specific_center(
+        #     seed, config['modality_specific_center_config'])
+        # test_cross_modal_center(
+        #     seed, config['cross_modal_center_config'])
+        # 1 (concat) # 2 (corr)
+        test_center_loss(seed, config['center_loss_config'])
 
 
 ##############################################################################
