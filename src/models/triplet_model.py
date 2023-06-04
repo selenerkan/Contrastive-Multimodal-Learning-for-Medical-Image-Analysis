@@ -22,7 +22,7 @@ class TripletModel(LightningModule):
     Uses ResNet for the image data, concatenates image and tabular data at the end
     '''
 
-    def __init__(self, seed, learning_rate=0.013, weight_decay=0.01, alpha_center=0.01, alpha_triplet=0):
+    def __init__(self, seed, learning_rate=0.013, weight_decay=0.01, alpha_center=0.01, alpha_triplet=0, correlation=False):
 
         super().__init__()
         self.use_gpu = False
@@ -38,6 +38,7 @@ class TripletModel(LightningModule):
         self.alpha_cross_ent = (1-alpha_center-alpha_triplet)
         self.embedding_dimension = 32
         self.num_classes = 3
+        self.correlation = correlation
 
         # IMAGE DATA
         # output dimension is adapted from simCLR
@@ -58,7 +59,10 @@ class TripletModel(LightningModule):
 
         # TABULAR + IMAGE DATA
         # mlp projection head which takes concatenated input
-        concatenation_dimension = (self.embedding_dimension * 2) - 1
+        if self.correlation:
+            concatenation_dimension = (self.embedding_dimension * 2) - 1
+        else:
+            concatenation_dimension = 64
 
         # outputs will be used in triplet loss
         self.fc6 = nn.Linear(concatenation_dimension, 32)
@@ -163,11 +167,14 @@ class TripletModel(LightningModule):
         tab = self.fc5(tab)
 
         # concat image and tabular data
-        img = img.unsqueeze(0)
-        tab = tab.unsqueeze(1)
-        x = F.conv1d(img, tab, padding=self.embedding_dimension -
-                     1, groups=img.size(1))
-        x = x.squeeze()
+        if self.correlation:
+            img = img.unsqueeze(0)
+            tab = tab.unsqueeze(1)
+            x = F.conv1d(img, tab, padding=self.embedding_dimension -
+                         1, groups=img.size(1))
+            x = x.squeeze()
+        else:
+            x = torch.cat((img, tab), dim=1)
 
         # get the final concatenated embedding
         out1 = self.fc6(x)

@@ -13,7 +13,7 @@ TARGET = 'label_numeric'
 
 IMAGE_SIZE = (64, 64, 64)
 
-seed_list = [1997,25, 12, 1966, 3297]
+seed_list = [1997, 25, 12, 1966, 3297]
 SEED = 473
 
 config = {
@@ -22,7 +22,7 @@ config = {
         'max_epochs': 40,
         'age': None,
         'spatial_size': (64, 64, 64),
-        'learning_rate': 0.001,  # 0.013,
+        'learning_rate': 0.013,  # 0.013,
         'weight_decay': 0,  # 0.0001,
         'checkpoint': {
             '1997': CHECKPOINT_DIR + r'/TABULAR/train/01.06.2023-12.50_ADNI_SEED=1997_lr=0.001_wd=0-epoch=039.ckpt',
@@ -37,7 +37,7 @@ config = {
         'max_epochs': 40,
         'age': None,
         'spatial_size': (64, 64, 64),
-        'learning_rate': 0.01,  # 0.03,
+        'learning_rate': 0.013,  # 0.03,
         'weight_decay': 0,  # 0.0001,
         'checkpoint': {
             '1997': CHECKPOINT_DIR + r'/RESNET/train/01.06.2023-12.16_ADNI_SEED=1997_lr=0.03_wd=0-epoch=039.ckpt',
@@ -53,12 +53,12 @@ config = {
         'max_epochs': 40,
         'age': None,
         'spatial_size': (64, 64, 64),
-        'learning_rate': 0.001,
-        'weight_decay': 0.01,
+        'learning_rate': 0.013,
+        'weight_decay': 0,
         'checkpoint': None,
         # 'contrastive_checkpoint': r'/home/guests/selen_erkan/experiments/checkpoints/contrastive/lr=0.001_wd=0_27.01.2023-17.49-epoch=079.ckpt',
         # 'contrastive_checkpoint': r'/home/guests/selen_erkan/experiments/checkpoints/triplet/lr=0.013_wd=0.01_01.02.2023-17.19-epoch=020.ckpt',
-        'correlation': False,
+        'correlation': True,
         'checkpoint': {
             '1997': CHECKPOINT_DIR + r'/_SUPERVISED/CONCAT/train/01.06.2023-12.47_ADNI_SEED=1997_lr=0.001_wd=0.01-epoch=039.ckpt',
             '25': CHECKPOINT_DIR + r'/_SUPERVISED/CONCAT/train/01.06.2023-13.05_ADNI_SEED=25_lr=0.001_wd=0.01-epoch=039.ckpt',
@@ -101,17 +101,67 @@ config = {
         'batch_size': 512,  # 512
         'max_epochs': 40,  # 40
         'age': None,
-        'learning_rate': 0.001,
+        'learning_rate': 0.01,
         'weight_decay': 0,
         'spatial_size': (64, 64, 64),
         'alpha_center': 0.01,
         'alpha_triplet': 0.2,
+        'correlation': False,
         'checkpoint': {
             '1997': CHECKPOINT_DIR + r'',
             '25': CHECKPOINT_DIR + r'',
             '12': CHECKPOINT_DIR + r'',
             '1966': CHECKPOINT_DIR + r'',
             '3297': CHECKPOINT_DIR + r''},
+    },
+
+    'modality_specific_center_config': {
+        'batch_size': 512,  # 512
+        'max_epochs': 40,  # 40
+        'age': None,
+        'spatial_size': (64, 64, 64),
+        'learning_rate': 0.01,
+        'weight_decay': 0,
+        'checkpoint': {
+            '1997': CHECKPOINT_DIR + r'',
+            '25': CHECKPOINT_DIR + r'',
+            '12': CHECKPOINT_DIR + r'',
+            '1966': CHECKPOINT_DIR + r'',
+            '3297': CHECKPOINT_DIR + r'', },
+        'alpha_center': 0.01,
+    },
+
+    'cross_modal_center_config': {
+        'batch_size': 512,  # 512
+        'max_epochs': 40,  # 40
+        'age': None,
+        'spatial_size': (64, 64, 64),
+        'learning_rate': 0.01,
+        'weight_decay': 0,
+        'checkpoint': {
+            '1997': CHECKPOINT_DIR + r'',
+            '25': CHECKPOINT_DIR + r'',
+            '12': CHECKPOINT_DIR + r'',
+            '1966': CHECKPOINT_DIR + r'',
+            '3297': CHECKPOINT_DIR + r'', },
+        'alpha_center': 0.01,
+    },
+
+    'center_loss_config': {
+        'batch_size': 512,  # 512
+        'max_epochs': 40,  # 40
+        'age': None,
+        'spatial_size': (64, 64, 64),
+        'learning_rate': 0.01,
+        'weight_decay': 0,
+        'correlation': False,
+        'checkpoint': {
+            '1997': CHECKPOINT_DIR + r'',
+            '25': CHECKPOINT_DIR + r'',
+            '12': CHECKPOINT_DIR + r'',
+            '1966': CHECKPOINT_DIR + r'',
+            '3297': CHECKPOINT_DIR + r'', },
+        'alpha_center': 0.01,
     },
 
     'contrastive_config': {
@@ -129,18 +179,4 @@ config = {
             '3297': CHECKPOINT_DIR + r''},
     },
 
-    'triplet_config': {
-        'batch_size': 512,
-        'max_epochs': 40,
-        'age': None,
-        'spatial_size': (64, 64, 64),
-        'learning_rate': 0.001,
-        'weight_decay': 0,
-        'checkpoint': {
-            '1997': CHECKPOINT_DIR + r'',
-            '25': CHECKPOINT_DIR + r'',
-            '12': CHECKPOINT_DIR + r'',
-            '1966': CHECKPOINT_DIR + r'',
-            '3297': CHECKPOINT_DIR + r''},
-    },
 }

@@ -31,10 +31,10 @@ class ResBlock(nn.Module):
     def __init__(self, in_channels, out_channels, bn_momentum=0.05, stride=1):
         super().__init__()
         self.conv1 = conv3d(in_channels, out_channels, stride=stride)
-        # self.bn1 = nn.BatchNorm3d(out_channels, momentum=1.0)
+        self.bn1 = nn.BatchNorm3d(out_channels, momentum=1.0)
         # self.bn1 = nn.GroupNorm(4, out_channels)
         self.conv2 = conv3d(out_channels, out_channels)
-        # self.bn2 = nn.BatchNorm3d(out_channels, momentum=1.0)
+        self.bn2 = nn.BatchNorm3d(out_channels, momentum=1.0)
         # self.bn2 = nn.GroupNorm(4, out_channels)
         self.relu = nn.ReLU(inplace=True)
 
@@ -52,12 +52,12 @@ class ResBlock(nn.Module):
         residual = x
 
         out = self.conv1(x)
-        # out = self.bn1(out)
+        out = self.bn1(out)
 
         out = self.relu(out)
 
         out = self.conv2(out)
-        # out = self.bn2(out)
+        out = self.bn2(out)
 
         if self.downsample is not None:
             residual = self.downsample(x)
@@ -74,7 +74,7 @@ class ResNet(LightningModule):
 
         self.conv1 = ConvBnReLU(
             in_channels, n_basefilters, bn_momentum=bn_momentum)
-        # self.pool1 = nn.MaxPool3d(2, stride=2)  # 32
+        self.pool1 = nn.MaxPool3d(2, stride=2)  # 32
         self.block1 = ResBlock(
             n_basefilters, n_basefilters, bn_momentum=bn_momentum)
         self.block2 = ResBlock(
@@ -88,7 +88,7 @@ class ResNet(LightningModule):
 
     def forward(self, image):
         out = self.conv1(image)
-        # out = self.pool1(out)
+        out = self.pool1(out)
         out = self.block1(out)
         out = self.block2(out)
         out = self.block3(out)

@@ -5,7 +5,6 @@ from abc import ABCMeta, abstractmethod
 from torch.nn import Module
 from models.model_blocks.resnet_block import conv3d, ConvBnReLU, ResBlock
 import torch.nn as nn
-import torch.backends.cudnn as cudnn
 
 
 def check_is_unique(values: Sequence[Any]) -> bool:
@@ -261,7 +260,7 @@ class Film(BaseModel):
 
     def forward(self, image, tabular):
         out = self.conv1(image)
-        # out = self.pool1(out)
+        out = self.pool1(out)
         out = self.block1(out)
         out = self.block2(out)
         out = self.block3(out)
@@ -400,8 +399,6 @@ class DAFT(BaseModel):
 
     def forward(self, image, tabular):
         out = self.conv1(image)
-        # Disable determinism for the specific operation
-        # with cudnn.flags(enabled=False):
         out = self.pool1(out)
         out = self.block1(out)
         out = self.block2(out)

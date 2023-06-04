@@ -2,41 +2,36 @@ import torch
 from torch import nn
 from pytorch_lightning.core.module import LightningModule
 from torch.nn import functional as F
-# from monai.networks.nets.resnet_group import resnet10, resnet18, resnet34, resnet50
+# from monai.networks.nets.resnet import resnet10, resnet18, resnet34, resnet50
 from models.model_blocks.resnet_block import ResNet
-from torch.optim.lr_scheduler import StepLR, MultiStepLR
-from pytorch_metric_learning import losses
 import torchmetrics
 from torch.nn import Softmax
-from center_loss import CenterLoss
-import torchvision
-from torchmetrics.classification import MulticlassPrecision
-from torchmetrics.classification import MulticlassRecall
 from torchmetrics.classification import MulticlassPrecision
 from torchmetrics.classification import MulticlassRecall
 from torchmetrics.classification import MulticlassF1Score
 import wandb
-from roc_curve import roc_curve
+from skin_lesion.roc_curve import roc_curve
+from skin_lesion.center_loss import CenterLoss
 
 
-class CenterLossModel(LightningModule):
+class CrossModalCenterModel(LightningModule):
     '''
-    Uses ResNet for the image data, concatenates image and tabular data at the end
+    Resnet Model Class including the training, validation and testing steps
     '''
 
-    def __init__(self, seed, learning_rate=0.013, weight_decay=0.01, alpha_center=0.01, correlation=False):
+    def __init__(self, seed, learning_rate=0.013, weight_decay=0.01, alpha_center=0.01):
 
         super().__init__()
         self.use_gpu = False
         if torch.cuda.is_available():
             self.use_gpu = True
+
         self.save_hyperparameters()
 
         self.lr = learning_rate
         self.wd = weight_decay
         self.num_classes = 3
         self.embedding_dimension = 32
-        self.correlation = correlation
         # weights of the losses
         self.alpha_center = alpha_center
         self.alpha_cross_ent = (1-alpha_center)
@@ -60,10 +55,7 @@ class CenterLossModel(LightningModule):
 
         # TABULAR + IMAGE DATA
         # mlp projection head which takes concatenated input
-        if self.correlation:
-            concatenation_dimension = (self.embedding_dimension * 2) - 1
-        else:
-            concatenation_dimension = 128
+        concatenation_dimension = 64
 
         # outputs will be used in triplet loss
         self.fc6 = nn.Linear(concatenation_dimension, 32)
@@ -149,8 +141,9 @@ class CenterLossModel(LightningModule):
     def forward(self, img, tab):
         """
         img is the input image data
-        tab is the input tabular data
+        tab is th einput tabular data
         """
+
         # run the model for the image
         img = self.resnet(img)
         img = self.fc5(F.relu(img))
@@ -164,21 +157,14 @@ class CenterLossModel(LightningModule):
         tab = self.fc5(tab)
 
         # concat image and tabular data
-        if self.correlation:
-            img = img.unsqueeze(0)
-            tab = tab.unsqueeze(1)
-            x = F.conv1d(img, tab, padding=self.embedding_dimension -
-                         1, groups=img.size(1))
-            x = x.squeeze()
-        else:
-            x = torch.cat((img, tab), dim=1)
+        x = torch.cat((img, tab), dim=1)
 
         # get the final concatenated embedding
-        out1 = self.fc6(x)
+        x = F.relu(self.fc6(x))
         # calculate the output of classification head
-        out2 = self.fc7(F.relu(out1))
+        out = self.fc7(x)
 
-        return out1, out2
+        return img, tab, out
 
     def configure_optimizers(self):
         my_list = ['center_loss.centers']
@@ -192,23 +178,17 @@ class CenterLossModel(LightningModule):
             {'params': center_params[0][1], 'lr': 1e-4}
         ], lr=self.lr, weight_decay=self.wd)
 
-        # # UNCOMMENT FOR LR SCHEDULER
-        # scheduler = MultiStepLR(optimizer,
-        #                         # List of epoch indices
-        #                         milestones=[23, 33],
-        #                         gamma=0.5)  # Multiplicative factor of learning rate decay
-
-        # return [optimizer], [scheduler]
         return optimizer
 
     def training_step(self, batch, batch_idx):
 
         img, tab, y = batch
 
-        embeddings, y_pred = self(img, tab)
+        embed_img, embed_tab, y_pred = self(img, tab)
 
         cross_ent_loss = self.cross_ent_loss_function(y_pred, y)
-        center_loss = self.center_loss(embeddings, y)
+        center_loss = self.center_loss(
+            torch.cat((embed_img, embed_tab), dim=0), torch.cat((y, y), dim=0))
         # sum the losses
         loss = self.alpha_cross_ent*cross_ent_loss + \
             self.alpha_center * center_loss
@@ -282,10 +262,11 @@ class CenterLossModel(LightningModule):
 
         img, tab, y = batch
 
-        embeddings, y_pred = self(img, tab)
+        embed_img, embed_tab, y_pred = self(img, tab)
 
         cross_ent_loss = self.cross_ent_loss_function(y_pred, y)
-        center_loss = self.center_loss(embeddings, y)
+        center_loss = self.center_loss(
+            torch.cat((embed_img, embed_tab), dim=0), torch.cat((y, y), dim=0))
         # sum the losses
         loss = self.alpha_cross_ent*cross_ent_loss + \
             self.alpha_center * center_loss
@@ -366,10 +347,11 @@ class CenterLossModel(LightningModule):
 
         img, tab, y = batch
 
-        embeddings, y_pred = self(img, tab)
+        embed_img, embed_tab, y_pred = self(img, tab)
 
         cross_ent_loss = self.cross_ent_loss_function(y_pred, y)
-        center_loss = self.center_loss(embeddings, y)
+        center_loss = self.center_loss(
+            torch.cat((embed_img, embed_tab), dim=0), torch.cat((y, y), dim=0))
         # sum the losses
         loss = self.alpha_cross_ent*cross_ent_loss + \
             self.alpha_center * center_loss

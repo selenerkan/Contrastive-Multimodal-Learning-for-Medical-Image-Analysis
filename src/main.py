@@ -9,14 +9,16 @@ import random
 from adni_dataset import AdniDataModule
 
 from conv3D.model import AdniModel
+from models.previous.contrastive_learning_model import ContrastiveModel
 from models.resnet_model import ResNetModel
 from models.supervised_model import MultiModModel
 from models.tabular_model import TabularModel
-from models.contrastive_learning_model import ContrastiveModel
 from models.triplet_model import TripletModel
 from models.daft_model import DaftModel
-from models.multi_loss_model import MultiLossModel
 from models.film_model import FilmModel
+from models.modality_specific_model import ModalitySpecificCenterModel
+from models.cross_modal_center_loss import CrossModalCenterModel
+from models.center_loss_model import CenterLossModel
 
 from pytorch_lightning.callbacks import LearningRateMonitor
 import torch
@@ -85,7 +87,7 @@ def main_tabular(seed, config=None):
     date_time = datetime.now()
     dt_string = date_time.strftime("%d.%m.%Y-%H.%M")
     checkpoint_callback = ModelCheckpoint(
-        dirpath=os.path.join(CHECKPOINT_DIR, 'TABULAR/train'),
+        dirpath=os.path.join(CHECKPOINT_DIR, 'TABULAR', dt_string, 'train'),
         filename=dt_string+'_ADNI_SEED='+str(seed)+'_lr='+str(wandb.config.learning_rate)+'_wd=' +
         str(wandb.config.weight_decay)+'-{epoch:03d}',
         monitor='val_macro_acc',
@@ -151,6 +153,8 @@ def main_resnet(seed, config=None):
     wandb.init(group='RESNET', project='adni_multimodal', config=config)
     wandb_logger = WandbLogger()
 
+    wandb.log({"seed": seed})
+
     # get the model
     model = ResNetModel(learning_rate=wandb.config.learning_rate,
                         weight_decay=wandb.config.weight_decay)
@@ -175,7 +179,7 @@ def main_resnet(seed, config=None):
     date_time = datetime.now()
     dt_string = date_time.strftime("%d.%m.%Y-%H.%M")
     checkpoint_callback = ModelCheckpoint(
-        dirpath=os.path.join(CHECKPOINT_DIR, 'RESNET/train'),
+        dirpath=os.path.join(CHECKPOINT_DIR, 'RESNET', dt_string, 'train'),
         filename=dt_string+'_ADNI_SEED='+str(seed)+'_lr='+str(wandb.config.learning_rate)+'_wd=' +
         str(wandb.config.weight_decay)+'-{epoch:03d}',
         monitor='val_macro_acc',
@@ -185,7 +189,7 @@ def main_resnet(seed, config=None):
 # Add learning rate scheduler monitoring
     lr_monitor = LearningRateMonitor(logging_interval='epoch')
     trainer = Trainer(accelerator=accelerator, devices=devices,
-                      max_epochs=wandb.config.max_epochs, logger=wandb_logger, callbacks=[checkpoint_callback, lr_monitor], deterministic=True)
+                      max_epochs=wandb.config.max_epochs, logger=wandb_logger, callbacks=[checkpoint_callback, lr_monitor], deterministic=False)
     trainer.fit(model, train_dataloaders=train_dataloader,
                 val_dataloaders=val_dataloader)
     wandb.finish()
@@ -247,6 +251,7 @@ def main_supervised_multimodal(seed, config=None):
                project='adni_multimodal', config=config)
     wandb_logger = WandbLogger()
 
+    wandb.log({"seed": seed})
     # get the model
     model = MultiModModel(learning_rate=wandb.config.learning_rate,
                           weight_decay=wandb.config.weight_decay, correlation=wandb.config.correlation)
@@ -272,7 +277,7 @@ def main_supervised_multimodal(seed, config=None):
     dt_string = date_time.strftime("%d.%m.%Y-%H.%M")
     checkpoint_callback = ModelCheckpoint(
         dirpath=os.path.join(
-            CHECKPOINT_DIR, '_SUPERVISED/' + corr + '/train/'),
+            CHECKPOINT_DIR, '_SUPERVISED', corr, dt_string, 'train'),
         filename=dt_string+'_ADNI_SEED='+str(seed)+'_lr='+str(wandb.config.learning_rate)+'_wd=' +
         str(wandb.config.weight_decay)+'-{epoch:03d}',
         monitor='val_macro_acc',
@@ -282,7 +287,7 @@ def main_supervised_multimodal(seed, config=None):
     # Add learning rate scheduler monitoring
     lr_monitor = LearningRateMonitor(logging_interval='epoch')
     trainer = Trainer(accelerator=accelerator, devices=devices,
-                      max_epochs=wandb.config.max_epochs, logger=wandb_logger, callbacks=[checkpoint_callback, lr_monitor], deterministic=True)
+                      max_epochs=wandb.config.max_epochs, logger=wandb_logger, callbacks=[checkpoint_callback, lr_monitor], deterministic=False)
     trainer.fit(model, train_dataloaders=train_dataloader,
                 val_dataloaders=val_dataloader)
 
@@ -443,6 +448,171 @@ def test_supervised_multimodal(seed, config=None):
 #     trainer.fit(model, train_dataloaders=train_dataloader,
 #                 val_dataloaders=val_dataloader)
 
+def main_modality_specific_center(seed, config=None):
+    '''
+    main function to run the multimodal architecture
+    '''
+
+    print('YOU ARE RUNNING MODALITY SPECIFIC CENTER MODEL')
+    print(config)
+
+    wandb.init(group='MODALITY SPECIFIC',
+               project='adni_multimodal', config=config)
+    wandb_logger = WandbLogger()
+
+    wandb.log({"seed": seed})
+    # get the model
+    model = ModalitySpecificCenterModel(
+        learning_rate=wandb.config.learning_rate, weight_decay=wandb.config.weight_decay, seed=seed, alpha_center=wandb.config.alpha_center)
+    wandb.watch(model, log="all")
+
+    # load the data
+    data = AdniDataModule(batch_size=wandb.config.batch_size,
+                          spatial_size=wandb.config.spatial_size)
+    data.prepare_data(seed)
+    data.set_supervised_multimodal_dataloader()
+    train_dataloader = data.train_dataloader()
+    val_dataloader = data.val_dataloader()
+
+    accelerator = 'cpu'
+    devices = None
+    if torch.cuda.is_available():
+        accelerator = 'gpu'
+        devices = 1
+
+    # save the checkpoint in a different folder
+    # use datetime value in the file name
+    date_time = datetime.now()
+    dt_string = date_time.strftime("%d.%m.%Y-%H.%M")
+    checkpoint_callback = ModelCheckpoint(
+        dirpath=os.path.join(
+            CHECKPOINT_DIR, 'MODALITY_SPECIFIC', dt_string, 'train'),
+        filename=dt_string+'_ADNI_SEED='+str(seed)+'_lr='+str(wandb.config.learning_rate)+'_wd=' +
+        str(wandb.config.weight_decay)+'-{epoch:03d}',
+        monitor='val_macro_acc',
+        save_top_k=wandb.config.max_epochs,
+        mode='max')
+
+    # Add learning rate scheduler monitoring
+    lr_monitor = LearningRateMonitor(logging_interval='epoch')
+    trainer = Trainer(accelerator=accelerator, devices=devices,
+                      max_epochs=wandb.config.max_epochs, logger=wandb_logger, callbacks=[checkpoint_callback, lr_monitor], deterministic=False)
+    trainer.fit(model, train_dataloaders=train_dataloader,
+                val_dataloaders=val_dataloader)
+    wandb.finish()
+
+
+def main_cross_modal_center(seed, config=None):
+    '''
+    main function to run the multimodal architecture
+    '''
+
+    print('YOU ARE RUNNING CROSS MODAL CENTER MODEL')
+    print(config)
+
+    wandb.init(group='CROSS MODAL',
+               project='adni_multimodal', config=config)
+    wandb_logger = WandbLogger()
+
+    wandb.log({"seed": seed})
+    # get the model
+    model = CrossModalCenterModel(
+        learning_rate=wandb.config.learning_rate, weight_decay=wandb.config.weight_decay, seed=seed, alpha_center=wandb.config.alpha_center)
+    wandb.watch(model, log="all")
+
+    # load the data
+    data = AdniDataModule(batch_size=wandb.config.batch_size,
+                          spatial_size=wandb.config.spatial_size)
+    data.prepare_data(seed)
+    data.set_supervised_multimodal_dataloader()
+    train_dataloader = data.train_dataloader()
+    val_dataloader = data.val_dataloader()
+
+    accelerator = 'cpu'
+    devices = None
+    if torch.cuda.is_available():
+        accelerator = 'gpu'
+        devices = 1
+
+    # save the checkpoint in a different folder
+    # use datetime value in the file name
+    date_time = datetime.now()
+    dt_string = date_time.strftime("%d.%m.%Y-%H.%M")
+    checkpoint_callback = ModelCheckpoint(
+        dirpath=os.path.join(
+            CHECKPOINT_DIR, 'CROSS_MODAL', dt_string, 'train'),
+        filename=dt_string+'_ADNI_SEED='+str(seed)+'_lr='+str(wandb.config.learning_rate)+'_wd=' +
+        str(wandb.config.weight_decay)+'-{epoch:03d}',
+        monitor='val_macro_acc',
+        save_top_k=wandb.config.max_epochs,
+        mode='max')
+
+    # Add learning rate scheduler monitoring
+    lr_monitor = LearningRateMonitor(logging_interval='epoch')
+    trainer = Trainer(accelerator=accelerator, devices=devices,
+                      max_epochs=wandb.config.max_epochs, logger=wandb_logger, callbacks=[checkpoint_callback, lr_monitor], deterministic=False)
+    trainer.fit(model, train_dataloaders=train_dataloader,
+                val_dataloaders=val_dataloader)
+    wandb.finish()
+
+
+def main_center_loss(seed, config=None):
+    '''
+    main function to run the multimodal architecture
+    '''
+
+    print('YOU ARE RUNNING CENTER LOSS MODEL')
+    print(config)
+
+    corr = 'CONCAT'
+    if config['correlation']:
+        corr = 'CORRELATION'
+
+    wandb.init(group='CETNER LOSS_'+corr,
+               project='adni_multimodal', config=config)
+    wandb_logger = WandbLogger()
+
+    wandb.log({"seed": seed})
+    # get the model
+    model = CenterLossModel(
+        learning_rate=wandb.config.learning_rate, weight_decay=wandb.config.weight_decay, seed=seed, alpha_center=wandb.config.alpha_center, correlation=wandb.config.correlation)
+    wandb.watch(model, log="all")
+
+    # load the data
+    data = AdniDataModule(batch_size=wandb.config.batch_size,
+                          spatial_size=wandb.config.spatial_size)
+    data.prepare_data(seed)
+    data.set_supervised_multimodal_dataloader()
+    train_dataloader = data.train_dataloader()
+    val_dataloader = data.val_dataloader()
+
+    accelerator = 'cpu'
+    devices = None
+    if torch.cuda.is_available():
+        accelerator = 'gpu'
+        devices = 1
+
+    # save the checkpoint in a different folder
+    # use datetime value in the file name
+    date_time = datetime.now()
+    dt_string = date_time.strftime("%d.%m.%Y-%H.%M")
+    checkpoint_callback = ModelCheckpoint(
+        dirpath=os.path.join(
+            CHECKPOINT_DIR, 'CENTER_LOSS', corr, dt_string, 'train'),
+        filename=dt_string+'_ADNI_SEED='+str(seed)+'_lr='+str(wandb.config.learning_rate)+'_wd=' +
+        str(wandb.config.weight_decay)+'-{epoch:03d}',
+        monitor='val_macro_acc',
+        save_top_k=wandb.config.max_epochs,
+        mode='max')
+
+    # Add learning rate scheduler monitoring
+    lr_monitor = LearningRateMonitor(logging_interval='epoch')
+    trainer = Trainer(accelerator=accelerator, devices=devices,
+                      max_epochs=wandb.config.max_epochs, logger=wandb_logger, callbacks=[checkpoint_callback, lr_monitor], deterministic=False)
+    trainer.fit(model, train_dataloaders=train_dataloader,
+                val_dataloaders=val_dataloader)
+    wandb.finish()
+
 
 def main_triplet(seed, config=None):
     '''
@@ -452,12 +622,17 @@ def main_triplet(seed, config=None):
     print('YOU ARE RUNNING TRIPLET LOSS MODEL')
     print(config)
 
-    wandb.init(group='TRIPLET', project='adni_multimodal', config=config)
+    corr = 'CONCAT'
+    if config['correlation']:
+        corr = 'CORRELATION'
+
+    wandb.init(group='TRIPLET_'+corr, project='adni_multimodal', config=config)
     wandb_logger = WandbLogger()
 
+    wandb.log({"seed": seed})
     # get the model
     model = TripletModel(
-        learning_rate=wandb.config.learning_rate, weight_decay=wandb.config.weight_decay, seed=seed, alpha_center=wandb.config.alpha_center, alpha_triplet=wandb.config.alpha_triplet)
+        learning_rate=wandb.config.learning_rate, weight_decay=wandb.config.weight_decay, seed=seed, alpha_center=wandb.config.alpha_center, alpha_triplet=wandb.config.alpha_triplet, correlation=wandb.config.correlation)
     wandb.watch(model, log="all")
 
     # load the data
@@ -480,7 +655,7 @@ def main_triplet(seed, config=None):
     dt_string = date_time.strftime("%d.%m.%Y-%H.%M")
     checkpoint_callback = ModelCheckpoint(
         dirpath=os.path.join(
-            CHECKPOINT_DIR, 'TRIPLET/train'),
+            CHECKPOINT_DIR, 'TRIPLET', corr, dt_string, 'train'),
         filename=dt_string+'_ADNI_SEED='+str(seed)+'_lr='+str(wandb.config.learning_rate)+'_wd=' +
         str(wandb.config.weight_decay)+'-{epoch:03d}',
         monitor='val_macro_acc',
@@ -490,7 +665,7 @@ def main_triplet(seed, config=None):
     # Add learning rate scheduler monitoring
     lr_monitor = LearningRateMonitor(logging_interval='epoch')
     trainer = Trainer(accelerator=accelerator, devices=devices,
-                      max_epochs=wandb.config.max_epochs, logger=wandb_logger, callbacks=[checkpoint_callback, lr_monitor], deterministic=True)
+                      max_epochs=wandb.config.max_epochs, logger=wandb_logger, callbacks=[checkpoint_callback, lr_monitor], deterministic=False)
     trainer.fit(model, train_dataloaders=train_dataloader,
                 val_dataloaders=val_dataloader)
     wandb.finish()
@@ -518,7 +693,7 @@ def test_triplet(seed, config=None):
     # load the data
     data = AdniDataModule(batch_size=wandb.config.batch_size)
     data.prepare_data(seed=seed)
-    data.set_supervised_multimodal_dataloader()
+    data.set_triplet_loss_dataloader()
     test_dataloader = data.test_dataloader()
 
     accelerator = 'cpu'
@@ -536,52 +711,6 @@ def test_triplet(seed, config=None):
     wandb.finish()
 
 
-def main_multiloss(config=None):
-    '''
-    main function to run the multimodal architecture
-    '''
-
-    print('YOU ARE RUNNING MULTI LOSS MODEL WITH CENTER + CROSS ENTROPY LOSSES')
-    print(config)
-
-    wandb.init(group='multiLoss-adni',
-               project='adni_multimodal', config=config)
-    wandb_logger = WandbLogger()
-
-    # get the modela
-    model = MultiLossModel(
-        learning_rate=wandb.config.learning_rate, weight_decay=wandb.config.weight_decay)
-    wandb.watch(model, log="all")
-
-    # load the data
-    data = AdniDataModule(batch_size=wandb.config.batch_size,
-                          spatial_size=wandb.config.spatial_size)
-    data.prepare_data()
-    data.set_triplet_loss_dataloader()
-    train_dataloader = data.train_dataloader()
-    val_dataloader = data.val_dataloader()
-
-    accelerator = 'cpu'
-    devices = None
-    if torch.cuda.is_available():
-        accelerator = 'gpu'
-        devices = 1
-
-    # save the checkpoint in a different folder
-    # use datetime value in the file name
-    date_time = datetime.now()
-    dt_string = date_time.strftime("%d.%m.%Y-%H.%M")
-    checkpoint_callback = ModelCheckpoint(
-        dirpath=os.path.join(CHECKPOINT_DIR, 'multi_loss'), filename='lr='+str(wandb.config.learning_rate)+'_wd='+str(wandb.config.weight_decay)+'_'+dt_string+'-{epoch:03d}')
-
-    # Add learning rate scheduler monitoring
-    lr_monitor = LearningRateMonitor(logging_interval='epoch')
-    trainer = Trainer(accelerator=accelerator, devices=devices,
-                      max_epochs=wandb.config.max_epochs, logger=wandb_logger, callbacks=[checkpoint_callback, lr_monitor], log_every_n_steps=10)
-    trainer.fit(model, train_dataloaders=train_dataloader,
-                val_dataloaders=val_dataloader)
-
-
 def main_daft(seed, config=None):
     '''
     main function to run the multimodal architecture
@@ -592,6 +721,8 @@ def main_daft(seed, config=None):
 
     wandb.init(group='DAFT', project='adni_multimodal', config=config)
     wandb_logger = WandbLogger()
+
+    wandb.log({"seed": seed})
 
     # get the model
     model = DaftModel(
@@ -617,7 +748,7 @@ def main_daft(seed, config=None):
     date_time = datetime.now()
     dt_string = date_time.strftime("%d.%m.%Y-%H.%M")
     checkpoint_callback = ModelCheckpoint(
-        dirpath=os.path.join(CHECKPOINT_DIR, 'DAFT/train'),
+        dirpath=os.path.join(CHECKPOINT_DIR, 'DAFT', dt_string, 'train'),
         filename=dt_string+'_ADNI_SEED='+str(seed)+'_lr='+str(wandb.config.learning_rate)+'_wd=' +
         str(wandb.config.weight_decay)+'-{epoch:03d}',
         monitor='val_macro_acc',
@@ -627,7 +758,7 @@ def main_daft(seed, config=None):
     # Add learning rate scheduler monitoring
     lr_monitor = LearningRateMonitor(logging_interval='epoch')
     trainer = Trainer(accelerator=accelerator, devices=devices,
-                      max_epochs=wandb.config.max_epochs, logger=wandb_logger, callbacks=[checkpoint_callback, lr_monitor], deterministic=True)
+                      max_epochs=wandb.config.max_epochs, logger=wandb_logger, callbacks=[checkpoint_callback, lr_monitor], deterministic=False)
     trainer.fit(model, train_dataloaders=train_dataloader,
                 val_dataloaders=val_dataloader)
     wandb.finish()
@@ -684,6 +815,8 @@ def main_film(seed, config=None):
     wandb.init(group='FILM', project='adni_multimodal', config=config)
     wandb_logger = WandbLogger()
 
+    wandb.log({"seed": seed})
+
     # get the model
     model = FilmModel(
         learning_rate=wandb.config.learning_rate, weight_decay=wandb.config.weight_decay)
@@ -708,7 +841,7 @@ def main_film(seed, config=None):
     date_time = datetime.now()
     dt_string = date_time.strftime("%d.%m.%Y-%H.%M")
     checkpoint_callback = ModelCheckpoint(
-        dirpath=os.path.join(CHECKPOINT_DIR, 'FILM/train'),
+        dirpath=os.path.join(CHECKPOINT_DIR, 'FILM', dt_string, 'train'),
         filename=dt_string+'_ADNI_SEED='+str(seed)+'_lr='+str(wandb.config.learning_rate)+'_wd=' +
         str(wandb.config.weight_decay)+'-{epoch:03d}',
         monitor='val_macro_acc',
@@ -718,7 +851,7 @@ def main_film(seed, config=None):
     # Add learning rate scheduler monitoring
     lr_monitor = LearningRateMonitor(logging_interval='epoch')
     trainer = Trainer(accelerator=accelerator, devices=devices,
-                      max_epochs=wandb.config.max_epochs, logger=wandb_logger, callbacks=[checkpoint_callback, lr_monitor], deterministic=True)
+                      max_epochs=wandb.config.max_epochs, logger=wandb_logger, callbacks=[checkpoint_callback, lr_monitor], deterministic=False)
     trainer.fit(model, train_dataloaders=train_dataloader,
                 val_dataloaders=val_dataloader)
     wandb.finish()
@@ -844,13 +977,6 @@ def grid_search(config=None):
                               weight_decay=config.weight_decay)
             # load the data
             data.set_supervised_multimodal_dataloader()
-
-        elif config.network == 'multi_loss':
-            # get the model
-            model = MultiLossModel(
-                learning_rate=wandb.config.learning_rate, weight_decay=wandb.config.weight_decay)
-            # load the data
-            data.set_triplet_loss_dataloader()
 
         # get dataloaders
         train_dataloader = data.train_dataloader()
@@ -1015,58 +1141,30 @@ if __name__ == '__main__':
         torch.cuda.manual_seed(seed)
         random.seed(seed)
         np.random.seed(seed)
-        torch.use_deterministic_algorithms(mode=True)
+        torch.use_deterministic_algorithms(True)
 
         # main_resnet(seed, config['resnet_config'])
         # main_tabular(seed, config['tabular_config'])
         # main_supervised_multimodal(seed, config['supervised_config'])
-        main_daft(seed, config['daft_config'])
+        # main_daft(seed, config['daft_config'])
         # main_film(seed, config['film_config'])
-        # main_triplet(seed, config['triplet_center_config'])
+        # main_triplet(seed, config['triplet_center_config'])  # 1
 
-        ########################## TEST ###############################
+        ######################### ABLATION ###########################
+        # main_modality_specific_center(
+        #     seed, config['modality_specific_center_config'])
+        main_cross_modal_center(
+            seed, config['cross_modal_center_config'])  # 1
+        # main_center_loss(seed, config['center_loss_config'])  # 2 (concat) # 3 (corr)
 
-        # test_resnet(seed, config['resnet_config'])
-        # test_tabular(seed, config['tabular_config'])
-        # test_supervised_multimodal(seed, config['supervised_config'])
-        # test_daft(seed, config['daft_config'])
-        # test_film(seed, config['film_config'])
-        # test_triplet(seed, config['triplet_center_config'])
+    ########################## TEST ###############################
+
+    # test_resnet(seed, config['resnet_config'])
+    # test_tabular(seed, config['tabular_config'])
+    # test_supervised_multimodal(seed, config['supervised_config'])
+    # test_daft(seed, config['daft_config'])
+    # test_film(seed, config['film_config'])
+    # test_triplet(seed, config['triplet_center_config'])
 
 
 ##############################################################################
-    # run tabular
-    # main_tabular(tabular_config)
-
-    # run resnet
-    # main_resnet(resnet_config)
-
-    # run multimodal
-    # main_supervised_multimodal(supervised_config)
-
-    # run daft
-    # main_daft(daft_config)
-
-    # run contrastive learning
-    # main_contrastive_learning(contrastive_config)
-
-    # run kfold multimodal (will be tested)
-    # main_kfold_multimodal(wandb, wandb_logger, fold_number = 5, learning_rate=1e-3, batch_size=8, max_epochs=100, age=None)
-
-    # run triplet loss model
-    # main_triplet(triplet_config)
-
-    # run multiloss model (triplet + cross entropy)
-    # main_multiloss(config['supervised_config'])
-
-    # run knn (this can be run after the models for triplet or contrastive loss)
-    # knn(knn_config)
-
-    # generate embedding visualizations
-    # used the visualize the embeddings gathered from an encoder model (visualized in wandb)
-    # wandb.init(project="adni_multimodal"odal', config=knn_config)
-    # wandb_logger = WandbLogger()
-    # get_embeddings(wandb, wandb_logger)
-
-    # run grid search
-    # run_grid_search('multi_loss')
