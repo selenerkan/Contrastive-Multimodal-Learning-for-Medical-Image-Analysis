@@ -19,7 +19,7 @@ class TripletCenterModel(LightningModule):
     Uses ResNet for the image data, concatenates image and tabular data at the end
     '''
 
-    def __init__(self, seed, learning_rate=0.013, weight_decay=0.01, alpha_center=0.01, alpha_triplet=0):
+    def __init__(self, seed, learning_rate=0.013, weight_decay=0.01, alpha_center=0.01, alpha_triplet=0, correlation=False):
 
         super().__init__()
         self.use_gpu = False
@@ -38,6 +38,7 @@ class TripletCenterModel(LightningModule):
 
         self.lr = learning_rate
         self.wd = weight_decay
+        self.correlation = correlation
         # weights of the losses
         self.alpha_center = alpha_center
         self.alpha_triplet = alpha_triplet
@@ -67,10 +68,14 @@ class TripletCenterModel(LightningModule):
 
         # TABULAR + IMAGE DATA
         # mlp projection head which takes concatenated input
-        concatanation_dimension = (self.embedding_dimension * 2) - 1
+        if self.correlation:
+            concatenation_dimension = (self.embedding_dimension * 2) - 1
+        else:
+            concatenation_dimension = 128
+
         # concatanation_dimension = 128
         # outputs will be used in triplet/center loss
-        self.fc7 = nn.Linear(concatanation_dimension, self.feature_dim)
+        self.fc7 = nn.Linear(concatenation_dimension, self.feature_dim)
         self.fc8 = nn.Linear(32, 7)  # classification head
 
         # initiate losses
@@ -174,12 +179,14 @@ class TripletCenterModel(LightningModule):
         tab = self.fc6(tab)
 
         # concat image and tabular data
-        # x = torch.cat((img, tab), dim=1)
-        img = img.unsqueeze(0)
-        tab = tab.unsqueeze(1)
-        x = F.conv1d(img, tab, padding=self.embedding_dimension -
-                     1, groups=img.size(1))
-        x = x.squeeze()
+        if self.correlation:
+            img = img.unsqueeze(0)
+            tab = tab.unsqueeze(1)
+            x = F.conv1d(img, tab, padding=self.embedding_dimension -
+                         1, groups=img.size(1))
+            x = x.squeeze()
+        else:
+            x = torch.cat((img, tab), dim=1)
 
         # get the final concatenated embedding
         out1 = self.fc7(x)
