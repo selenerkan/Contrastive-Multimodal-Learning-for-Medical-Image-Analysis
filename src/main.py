@@ -860,7 +860,7 @@ def main_daft(seed, config=None):
     print('YOU ARE RUNNING DAFT MODEL')
     print(config)
 
-    wandb.init(group='DAFT', project='adni_multimodal', config=config)
+    run = wandb.init(group='DAFT', project='adni_multimodal', config=config)
     wandb_logger = WandbLogger()
 
     wandb.log({"seed": seed})
@@ -888,13 +888,16 @@ def main_daft(seed, config=None):
     # use datetime value in the file name
     date_time = datetime.now()
     dt_string = date_time.strftime("%d.%m.%Y-%H.%M")
+    filename_prefix = dt_string + '_ADNI_SEED=' + str(seed) + '_lr=' + str(
+        wandb.config.learning_rate) + '_wd=' + str(wandb.config.weight_decay)
+    dirpath = os.path.join(CHECKPOINT_DIR, 'DAFT', dt_string, 'train')
     checkpoint_callback = ModelCheckpoint(
-        dirpath=os.path.join(CHECKPOINT_DIR, 'DAFT', dt_string, 'train'),
-        filename=dt_string+'_ADNI_SEED='+str(seed)+'_lr='+str(wandb.config.learning_rate)+'_wd=' +
-        str(wandb.config.weight_decay)+'-{epoch:03d}',
+        dirpath=dirpath,
+        filename=filename_prefix + '-{epoch:03d}',
         monitor='val_macro_acc',
         save_top_k=wandb.config.max_epochs,
-        mode='max')
+        mode='max'
+    )
 
     # Add learning rate scheduler monitoring
     lr_monitor = LearningRateMonitor(logging_interval='epoch')
@@ -902,7 +905,17 @@ def main_daft(seed, config=None):
                       max_epochs=wandb.config.max_epochs, logger=wandb_logger, callbacks=[checkpoint_callback, lr_monitor], deterministic=False)
     trainer.fit(model, train_dataloaders=train_dataloader,
                 val_dataloaders=val_dataloader)
+
+    api_run = wandb.Api().run(run.entity + "/" + run.project + "/" + run.id)
+    import time
+    time.sleep(5)
+    loss_history_by_epoch = list(api_run.history()["val_epoch_loss"])
+    # Filters out NaN values, because NaN != NaN
+    loss_history_by_epoch = [x for x in loss_history_by_epoch if x == x]
+
     wandb.finish()
+
+    return os.path.join(dirpath, filename_prefix), loss_history_by_epoch
 
 
 def test_daft(seed, config=None):
@@ -1270,10 +1283,33 @@ def get_embeddings(wandb, wandb_logger):
 #     print('F1 score macro: %f' % f1)
 #     wandb.log({"KNN F1 Score macro": f1})
 
+def find_best_epoch(results):
+    filenames, loss_histories = list(zip(*results))
 
-if __name__ == '__main__':
+    # Check if all five seeds produced loss_histories with equal length
+    n_epochs = len(loss_histories[0])
+    assert all([len(x) == n_epochs for x in loss_histories])
 
+    avg_loss = [sum([l[i] for l in loss_histories]) /
+                len(loss_histories) for i in range(n_epochs)]
+    min_loss = min(avg_loss)
+    min_loss_epoch_index = avg_loss.index(min_loss)
+    avg_best_epoch_filenames = [
+        name + f'-epoch={min_loss_epoch_index:03d}.ckpt'
+        for name
+        in filenames
+    ]
+    print(avg_best_epoch_filenames)
+    with open("best_epoch_checkpoints.json", "a") as f:
+        import json
+        json.dump(avg_best_epoch_filenames, f)
+
+    return avg_best_epoch_filenames
+
+
+def main(model_name="OTHER", run_test_epoch=False):
     # RUN MODELS FOR EVERY SEED
+    results = []
 
     for seed in seed_list:
         seed_everything(seed, workers=True)
@@ -1284,39 +1320,64 @@ if __name__ == '__main__':
         np.random.seed(seed)
         torch.use_deterministic_algorithms(True)
 
-        # main_resnet(seed, config['resnet_config'])
-        # main_tabular(seed, config['tabular_config'])
-        # main_supervised_multimodal(seed, config['supervised_config'])
-        # main_daft(seed, config['daft_config'])
-        # main_film(seed, config['film_config'])
-        # main_triplet(seed, config['triplet_center_config'])
+        if model_name == "DAFT":
+            result = main_daft(seed, config['daft_config'])
 
-        ######################### ABLATION ###########################
-        # main_modality_specific_center(
-        #     seed, config['modality_specific_center_config'])
-        # main_cross_modal_center(
-        #     seed, config['cross_modal_center_config'])
-        # main_center_loss(seed, config['center_loss_config'])
+            results.append(result)
 
-        ########################## TEST ###############################
+        elif model_name == "DAFT_TEST":
+            test_daft(seed, config['daft_config'])
 
-        # test_resnet(seed, config['resnet_config'])
-        # test_tabular(seed, config['tabular_config'])
-        # 1) corr 2) concat
-        # test_supervised_multimodal(seed, config['supervised_config'])
-        # test_daft(seed, config['daft_config'])
-        # test_film(seed, config['film_config'])
-        # 1) corr 2) concat
-        # test_triplet(seed, config['triplet_center_config'])
+        else:
+            pass
+            # main_resnet(seed, config['resnet_config'])
+            # main_tabular(seed, config['tabular_config'])
+            # main_daft(seed, config['daft_config'])
+            # main_supervised_multimodal(seed, config['supervised_config'])
+            # main_film(seed, config['film_config'])
+            # main_triplet(seed, config['triplet_center_config'])
 
-        ########################## TEST ABLATION ###############################
+            ######################### ABLATION ###########################
+            # main_modality_specific_center(
+            #     seed, config['modality_specific_center_config'])
+            # main_cross_modal_center(
+            #     seed, config['cross_modal_center_config'])
+            # main_center_loss(seed, config['center_loss_config'])
 
-        # test_modality_specific_center(
-        #     seed, config['modality_specific_center_config'])
-        # test_cross_modal_center(
-        #     seed, config['cross_modal_center_config'])
-        # 1 (concat) # 2 (corr)
-        test_center_loss(seed, config['center_loss_config'])
+            ########################## TEST ###############################
+
+            # test_resnet(seed, config['resnet_config'])
+            # test_tabular(seed, config['tabular_config'])
+            # 1) corr 2) concat
+            # test_supervised_multimodal(seed, config['supervised_config'])
+            # test_daft(seed, config['daft_config'])
+            # test_film(seed, config['film_config'])
+            # 1) corr 2) concat
+            # test_triplet(seed, config['triplet_center_config'])
+
+            ########################## TEST ABLATION ###############################
+
+            # test_modality_specific_center(
+            #     seed, config['modality_specific_center_config'])
+            # test_cross_modal_center(
+            #     seed, config['cross_modal_center_config'])
+            # 1 (concat) # 2 (corr)
+            # test_center_loss(seed, config['center_loss_config'])
+
+    if run_test_epoch:
+        avg_best_epoch_filenames = find_best_epoch(results)
+
+        config["daft_config"]["checkpoint"] = {
+            seed: file for seed, file in zip(seed_list, avg_best_epoch_filenames)
+        }
+
+        main(model_name=model_name + "_TEST", run_test_epoch=False)
+
+
+if __name__ == '__main__':
+    model_name = "DAFT"
+
+    main(model_name, run_test_epoch=True)
 
 
 ##############################################################################
