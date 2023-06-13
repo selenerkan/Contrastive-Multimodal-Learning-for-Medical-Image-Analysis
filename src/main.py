@@ -29,7 +29,7 @@ from datetime import datetime
 import pandas as pd
 import numpy as np
 from lightning.pytorch.tuner import Tuner
-
+import time
 # THIS FUNCTION IS NOT BEING USED
 # IT WILL BE DELETED LATER
 
@@ -60,9 +60,11 @@ def main_tabular(seed, config=None):
     print('YOU ARE RUNNING ADNI TABULAR')
     print(config)
 
-    wandb.init(group='TABULAR', project='adni_multimodal', config=config)
+    run = wandb.init(
+        group='MMSE_TABULAR', project='adni_final_results', config=config)
     wandb_logger = WandbLogger()
 
+    wandb.log({"seed": seed})
     # get the model
     model = TabularModel(learning_rate=wandb.config.learning_rate,
                          weight_decay=wandb.config.weight_decay)
@@ -86,13 +88,16 @@ def main_tabular(seed, config=None):
     # use datetime value in the file name
     date_time = datetime.now()
     dt_string = date_time.strftime("%d.%m.%Y-%H.%M")
+    filename_prefix = dt_string + '_ADNI_SEED=' + str(seed) + '_lr=' + str(
+        wandb.config.learning_rate) + '_wd=' + str(wandb.config.weight_decay)
+    dirpath = os.path.join(CHECKPOINT_DIR, 'TABULAR', dt_string, 'train')
     checkpoint_callback = ModelCheckpoint(
-        dirpath=os.path.join(CHECKPOINT_DIR, 'TABULAR', dt_string, 'train'),
-        filename=dt_string+'_ADNI_SEED='+str(seed)+'_lr='+str(wandb.config.learning_rate)+'_wd=' +
-        str(wandb.config.weight_decay)+'-{epoch:03d}',
+        dirpath=dirpath,
+        filename=filename_prefix + '-{epoch:03d}',
         monitor='val_macro_acc',
         save_top_k=wandb.config.max_epochs,
-        mode='max')
+        mode='max'
+    )
 
 # Add learning rate scheduler monitoring
     lr_monitor = LearningRateMonitor(logging_interval='epoch')
@@ -100,7 +105,12 @@ def main_tabular(seed, config=None):
                       max_epochs=wandb.config.max_epochs, logger=wandb_logger, callbacks=[checkpoint_callback, lr_monitor], deterministic=True)
     trainer.fit(model, train_dataloaders=train_dataloader,
                 val_dataloaders=val_dataloader)
+
+    loss_history_by_epoch = get_loss_history_from_wandb(run)
+
     wandb.finish()
+
+    return os.path.join(dirpath, filename_prefix), loss_history_by_epoch
 
 
 def test_tabular(seed, config=None):
@@ -110,11 +120,12 @@ def test_tabular(seed, config=None):
 
     print('YOU ARE RUNNING TEST LOOP FOR RESNET MODEL FOR HAM DATASET')
 
-    wandb.init(group='TEST_TABULAR_FINAL',
-               project="adni_multimodal", config=config)
+    wandb.init(group='MMSE_TEST_TABULAR_FINAL',
+               project="adni_final_results", config=config)
     wandb_logger = WandbLogger()
 
     checkpoints = wandb.config.checkpoint
+    wandb.log({'checkpoints': checkpoints})
     checkpoint = checkpoints[str(seed)]
 
     # get the model
@@ -150,7 +161,8 @@ def main_resnet(seed, config=None):
     print('YOU ARE RUNNING RESNET')
     print(config)
 
-    wandb.init(group='RESNET', project='adni_multimodal', config=config)
+    run = wandb.init(
+        group='RESNET', project='adni_final_results', config=config)
     wandb_logger = WandbLogger()
 
     wandb.log({"seed": seed})
@@ -178,13 +190,17 @@ def main_resnet(seed, config=None):
     # use datetime value in the file name
     date_time = datetime.now()
     dt_string = date_time.strftime("%d.%m.%Y-%H.%M")
+    filename_prefix = dt_string + '_ADNI_SEED=' + str(seed) + '_lr=' + str(
+        wandb.config.learning_rate) + '_wd=' + str(wandb.config.weight_decay)
+    dirpath = os.path.join(CHECKPOINT_DIR, 'RESNET', dt_string, 'train')
     checkpoint_callback = ModelCheckpoint(
-        dirpath=os.path.join(CHECKPOINT_DIR, 'RESNET', dt_string, 'train'),
-        filename=dt_string+'_ADNI_SEED='+str(seed)+'_lr='+str(wandb.config.learning_rate)+'_wd=' +
-        str(wandb.config.weight_decay)+'-{epoch:03d}',
+        dirpath=dirpath,
+        filename=filename_prefix + '-{epoch:03d}',
         monitor='val_macro_acc',
         save_top_k=wandb.config.max_epochs,
-        mode='max')
+        mode='max'
+    )
+
 
 # Add learning rate scheduler monitoring
     lr_monitor = LearningRateMonitor(logging_interval='epoch')
@@ -192,7 +208,12 @@ def main_resnet(seed, config=None):
                       max_epochs=wandb.config.max_epochs, logger=wandb_logger, callbacks=[checkpoint_callback, lr_monitor], deterministic=False)
     trainer.fit(model, train_dataloaders=train_dataloader,
                 val_dataloaders=val_dataloader)
+
+    loss_history_by_epoch = get_loss_history_from_wandb(run)
+
     wandb.finish()
+
+    return os.path.join(dirpath, filename_prefix), loss_history_by_epoch
 
 
 def test_resnet(seed, config=None):
@@ -203,10 +224,11 @@ def test_resnet(seed, config=None):
     print('YOU ARE RUNNING TEST LOOP FOR RESNET MODEL FOR HAM DATASET')
 
     wandb.init(group='TEST_RESNET_FINAL',
-               project="adni_multimodal", config=config)
+               project="adni_final_results", config=config)
     wandb_logger = WandbLogger()
 
     checkpoints = wandb.config.checkpoint
+    wandb.log({'checkpoints': checkpoints})
     checkpoint = checkpoints[str(seed)]
 
     # get the model
@@ -247,8 +269,8 @@ def main_supervised_multimodal(seed, config=None):
     if config['correlation']:
         corr = 'CORRELATION'
 
-    wandb.init(group='SUPERVISED_'+corr,
-               project='adni_multimodal', config=config)
+    run = wandb.init(group='MMSE_SUPERVISED_'+corr,
+                     project='adni_final_results', config=config)
     wandb_logger = WandbLogger()
 
     wandb.log({"seed": seed})
@@ -275,14 +297,17 @@ def main_supervised_multimodal(seed, config=None):
     # use datetime value in the file name
     date_time = datetime.now()
     dt_string = date_time.strftime("%d.%m.%Y-%H.%M")
+    filename_prefix = dt_string + '_ADNI_SEED=' + str(seed) + '_lr=' + str(
+        wandb.config.learning_rate) + '_wd=' + str(wandb.config.weight_decay)
+    dirpath = os.path.join(CHECKPOINT_DIR, '_SUPERVISED',
+                           corr, dt_string, 'train')
     checkpoint_callback = ModelCheckpoint(
-        dirpath=os.path.join(
-            CHECKPOINT_DIR, '_SUPERVISED', corr, dt_string, 'train'),
-        filename=dt_string+'_ADNI_SEED='+str(seed)+'_lr='+str(wandb.config.learning_rate)+'_wd=' +
-        str(wandb.config.weight_decay)+'-{epoch:03d}',
+        dirpath=dirpath,
+        filename=filename_prefix + '-{epoch:03d}',
         monitor='val_macro_acc',
         save_top_k=wandb.config.max_epochs,
-        mode='max')
+        mode='max'
+    )
 
     # Add learning rate scheduler monitoring
     lr_monitor = LearningRateMonitor(logging_interval='epoch')
@@ -291,7 +316,11 @@ def main_supervised_multimodal(seed, config=None):
     trainer.fit(model, train_dataloaders=train_dataloader,
                 val_dataloaders=val_dataloader)
 
+    loss_history_by_epoch = get_loss_history_from_wandb(run)
+
     wandb.finish()
+
+    return os.path.join(dirpath, filename_prefix), loss_history_by_epoch
 
 
 def test_supervised_multimodal(seed, config=None):
@@ -306,13 +335,15 @@ def test_supervised_multimodal(seed, config=None):
     if config['correlation']:
         corr = 'CORRELATION'
 
-    wandb.init(group='TEST_SUPERVISED_'+corr+'_FINAL',
-               project="adni_multimodal", config=config)
+    wandb.init(group='TEST_MMSE_SUPERVISED_'+corr+'_FINAL',
+               project="adni_final_results", config=config)
     wandb_logger = WandbLogger()
 
-    checkpoints = wandb.config.checkpoint_concat
-    if config['correlation']:
-        checkpoints = wandb.config.checkpoint_corr
+    # checkpoints = wandb.config.checkpoint_concat
+    # if config['correlation']:
+    #     checkpoints = wandb.config.checkpoint_corr
+    checkpoints = wandb.config.checkpoint
+    wandb.log({'checkpoints': checkpoints})
     checkpoint = checkpoints[str(seed)]
 
     # get the model
@@ -419,7 +450,7 @@ def test_supervised_multimodal(seed, config=None):
 #     print('YOU ARE RUNNING CONTRASTIVE MODEL')
 #     print(config)
 
-#     wandb.init(group='CONTRASTIVE', project='adni_multimodal', config=config)
+#     wandb.init(group='CONTRASTIVE', project='adni_final_results', config=config)
 #     wandb_logger = WandbLogger()
 
 #     # get the model
@@ -463,8 +494,8 @@ def main_modality_specific_center(seed, config=None):
     print('YOU ARE RUNNING MODALITY SPECIFIC CENTER MODEL')
     print(config)
 
-    wandb.init(group='MODALITY SPECIFIC',
-               project='adni_multimodal', config=config)
+    run = wandb.init(group='MODALITY SPECIFIC',
+                     project='adni_final_results', config=config)
     wandb_logger = WandbLogger()
 
     wandb.log({"seed": seed})
@@ -491,14 +522,17 @@ def main_modality_specific_center(seed, config=None):
     # use datetime value in the file name
     date_time = datetime.now()
     dt_string = date_time.strftime("%d.%m.%Y-%H.%M")
+    filename_prefix = dt_string + '_ADNI_SEED=' + str(seed) + '_lr=' + str(
+        wandb.config.learning_rate) + '_wd=' + str(wandb.config.weight_decay)
+    dirpath = os.path.join(
+        CHECKPOINT_DIR, 'MODALITY_SPECIFIC', dt_string, 'train')
     checkpoint_callback = ModelCheckpoint(
-        dirpath=os.path.join(
-            CHECKPOINT_DIR, 'MODALITY_SPECIFIC', dt_string, 'train'),
-        filename=dt_string+'_ADNI_SEED='+str(seed)+'_lr='+str(wandb.config.learning_rate)+'_wd=' +
-        str(wandb.config.weight_decay)+'-{epoch:03d}',
+        dirpath=dirpath,
+        filename=filename_prefix + '-{epoch:03d}',
         monitor='val_macro_acc',
         save_top_k=wandb.config.max_epochs,
-        mode='max')
+        mode='max'
+    )
 
     # Add learning rate scheduler monitoring
     lr_monitor = LearningRateMonitor(logging_interval='epoch')
@@ -506,7 +540,12 @@ def main_modality_specific_center(seed, config=None):
                       max_epochs=wandb.config.max_epochs, logger=wandb_logger, callbacks=[checkpoint_callback, lr_monitor], deterministic=False)
     trainer.fit(model, train_dataloaders=train_dataloader,
                 val_dataloaders=val_dataloader)
+
+    loss_history_by_epoch = get_loss_history_from_wandb(run)
+
     wandb.finish()
+
+    return os.path.join(dirpath, filename_prefix), loss_history_by_epoch
 
 
 def test_modality_specific_center(seed, config=None):
@@ -517,10 +556,11 @@ def test_modality_specific_center(seed, config=None):
     print('YOU ARE RUNNING TEST LOOP FOR MODALITY SPECIFIC CENTER LOSS')
 
     wandb.init(group='TEST_MODALITY_SPECIFIC',
-               project="adni_multimodal", config=config)
+               project="adni_final_results", config=config)
     wandb_logger = WandbLogger()
 
     checkpoints = wandb.config.checkpoint
+    wandb.log({'checkpoints': checkpoints})
     checkpoint = checkpoints[str(seed)]
 
     # get the model
@@ -557,8 +597,8 @@ def main_cross_modal_center(seed, config=None):
     print('YOU ARE RUNNING CROSS MODAL CENTER MODEL')
     print(config)
 
-    wandb.init(group='CROSS MODAL',
-               project='adni_multimodal', config=config)
+    run = wandb.init(group='CROSS MODAL',
+                     project='adni_final_results', config=config)
     wandb_logger = WandbLogger()
 
     wandb.log({"seed": seed})
@@ -585,14 +625,16 @@ def main_cross_modal_center(seed, config=None):
     # use datetime value in the file name
     date_time = datetime.now()
     dt_string = date_time.strftime("%d.%m.%Y-%H.%M")
+    filename_prefix = dt_string + '_ADNI_SEED=' + str(seed) + '_lr=' + str(
+        wandb.config.learning_rate) + '_wd=' + str(wandb.config.weight_decay)
+    dirpath = os.path.join(CHECKPOINT_DIR, 'CROSS_MODAL', dt_string, 'train')
     checkpoint_callback = ModelCheckpoint(
-        dirpath=os.path.join(
-            CHECKPOINT_DIR, 'CROSS_MODAL', dt_string, 'train'),
-        filename=dt_string+'_ADNI_SEED='+str(seed)+'_lr='+str(wandb.config.learning_rate)+'_wd=' +
-        str(wandb.config.weight_decay)+'-{epoch:03d}',
+        dirpath=dirpath,
+        filename=filename_prefix + '-{epoch:03d}',
         monitor='val_macro_acc',
         save_top_k=wandb.config.max_epochs,
-        mode='max')
+        mode='max'
+    )
 
     # Add learning rate scheduler monitoring
     lr_monitor = LearningRateMonitor(logging_interval='epoch')
@@ -600,7 +642,12 @@ def main_cross_modal_center(seed, config=None):
                       max_epochs=wandb.config.max_epochs, logger=wandb_logger, callbacks=[checkpoint_callback, lr_monitor], deterministic=False)
     trainer.fit(model, train_dataloaders=train_dataloader,
                 val_dataloaders=val_dataloader)
+
+    loss_history_by_epoch = get_loss_history_from_wandb(run)
+
     wandb.finish()
+
+    return os.path.join(dirpath, filename_prefix), loss_history_by_epoch
 
 
 def test_cross_modal_center(seed, config=None):
@@ -611,10 +658,11 @@ def test_cross_modal_center(seed, config=None):
     print('YOU ARE RUNNING TEST LOOP FOR CROSS MODAL CENTER LOSS')
 
     wandb.init(group='TEST_CROSS_MODAL',
-               project="adni_multimodal", config=config)
+               project="adni_final_results", config=config)
     wandb_logger = WandbLogger()
 
     checkpoints = wandb.config.checkpoint
+    wandb.log({'checkpoints': checkpoints})
     checkpoint = checkpoints[str(seed)]
 
     # get the model
@@ -655,8 +703,8 @@ def main_center_loss(seed, config=None):
     if config['correlation']:
         corr = 'CORRELATION'
 
-    wandb.init(group='CETNER LOSS_'+corr,
-               project='adni_multimodal', config=config)
+    run = wandb.init(group='CETNER LOSS_'+corr,
+                     project='adni_final_results', config=config)
     wandb_logger = WandbLogger()
 
     wandb.log({"seed": seed})
@@ -683,14 +731,17 @@ def main_center_loss(seed, config=None):
     # use datetime value in the file name
     date_time = datetime.now()
     dt_string = date_time.strftime("%d.%m.%Y-%H.%M")
+    filename_prefix = dt_string + '_ADNI_SEED=' + str(seed) + '_lr=' + str(
+        wandb.config.learning_rate) + '_wd=' + str(wandb.config.weight_decay)
+    dirpath = os.path.join(CHECKPOINT_DIR, 'CENTER_LOSS',
+                           corr, dt_string, 'train')
     checkpoint_callback = ModelCheckpoint(
-        dirpath=os.path.join(
-            CHECKPOINT_DIR, 'CENTER_LOSS', corr, dt_string, 'train'),
-        filename=dt_string+'_ADNI_SEED='+str(seed)+'_lr='+str(wandb.config.learning_rate)+'_wd=' +
-        str(wandb.config.weight_decay)+'-{epoch:03d}',
+        dirpath=dirpath,
+        filename=filename_prefix + '-{epoch:03d}',
         monitor='val_macro_acc',
         save_top_k=wandb.config.max_epochs,
-        mode='max')
+        mode='max'
+    )
 
     # Add learning rate scheduler monitoring
     lr_monitor = LearningRateMonitor(logging_interval='epoch')
@@ -698,7 +749,12 @@ def main_center_loss(seed, config=None):
                       max_epochs=wandb.config.max_epochs, logger=wandb_logger, callbacks=[checkpoint_callback, lr_monitor], deterministic=False)
     trainer.fit(model, train_dataloaders=train_dataloader,
                 val_dataloaders=val_dataloader)
+
+    loss_history_by_epoch = get_loss_history_from_wandb(run)
+
     wandb.finish()
+
+    return os.path.join(dirpath, filename_prefix), loss_history_by_epoch
 
 
 def test_center_loss(seed, config=None):
@@ -714,12 +770,14 @@ def test_center_loss(seed, config=None):
         corr = 'CORRELATION'
 
     wandb.init(group='TEST_CENTER_LOSS_'+corr,
-               project="adni_multimodal", config=config)
+               project="adni_final_results", config=config)
     wandb_logger = WandbLogger()
 
-    checkpoints = wandb.config.checkpoint_concat
-    if config['correlation']:
-        checkpoints = wandb.config.checkpoint_corr
+    # checkpoints = wandb.config.checkpoint_concat
+    # if config['correlation']:
+    #     checkpoints = wandb.config.checkpoint_corr
+    checkpoints = wandb.config.checkpoint
+    wandb.log({'checkpoints': checkpoints})
     checkpoint = checkpoints[str(seed)]
 
   # get the model
@@ -760,7 +818,8 @@ def main_triplet(seed, config=None):
     if config['correlation']:
         corr = 'CORRELATION'
 
-    wandb.init(group='TRIPLET_'+corr, project='adni_multimodal', config=config)
+    run = wandb.init(group='TRIPLET_'+corr,
+                     project='adni_final_results', config=config)
     wandb_logger = WandbLogger()
 
     wandb.log({"seed": seed})
@@ -787,14 +846,17 @@ def main_triplet(seed, config=None):
     # use datetime value in the file name
     date_time = datetime.now()
     dt_string = date_time.strftime("%d.%m.%Y-%H.%M")
+    filename_prefix = dt_string + '_ADNI_SEED=' + str(seed) + '_lr=' + str(
+        wandb.config.learning_rate) + '_wd=' + str(wandb.config.weight_decay)
+    dirpath = os.path.join(CHECKPOINT_DIR,  'TRIPLET',
+                           corr, dt_string, 'train')
     checkpoint_callback = ModelCheckpoint(
-        dirpath=os.path.join(
-            CHECKPOINT_DIR, 'TRIPLET', corr, dt_string, 'train'),
-        filename=dt_string+'_ADNI_SEED='+str(seed)+'_lr='+str(wandb.config.learning_rate)+'_wd=' +
-        str(wandb.config.weight_decay)+'-{epoch:03d}',
+        dirpath=dirpath,
+        filename=filename_prefix + '-{epoch:03d}',
         monitor='val_macro_acc',
         save_top_k=wandb.config.max_epochs,
-        mode='max')
+        mode='max'
+    )
 
     # Add learning rate scheduler monitoring
     lr_monitor = LearningRateMonitor(logging_interval='epoch')
@@ -802,7 +864,12 @@ def main_triplet(seed, config=None):
                       max_epochs=wandb.config.max_epochs, logger=wandb_logger, callbacks=[checkpoint_callback, lr_monitor], deterministic=False)
     trainer.fit(model, train_dataloaders=train_dataloader,
                 val_dataloaders=val_dataloader)
+
+    loss_history_by_epoch = get_loss_history_from_wandb(run)
+
     wandb.finish()
+
+    return os.path.join(dirpath, filename_prefix), loss_history_by_epoch
 
 
 def test_triplet(seed, config=None):
@@ -818,12 +885,14 @@ def test_triplet(seed, config=None):
         corr = 'CORRELATION'
 
     wandb.init(group='TEST_TRIPLET_'+corr,
-               project="adni_multimodal", config=config)
+               project="adni_final_results", config=config)
     wandb_logger = WandbLogger()
 
-    checkpoints = wandb.config.checkpoint_concat
-    if config['correlation']:
-        checkpoints = wandb.config.checkpoint_corr
+    # checkpoints = wandb.config.checkpoint_concat
+    # if config['correlation']:
+    #     checkpoints = wandb.config.checkpoint_corr
+    checkpoints = wandb.config.checkpoint
+    wandb.log({'checkpoints': checkpoints})
     checkpoint = checkpoints[str(seed)]
 
     # get the model
@@ -860,7 +929,7 @@ def main_daft(seed, config=None):
     print('YOU ARE RUNNING DAFT MODEL')
     print(config)
 
-    run = wandb.init(group='DAFT', project='adni_multimodal', config=config)
+    run = wandb.init(group='DAFT', project='adni_final_results', config=config)
     wandb_logger = WandbLogger()
 
     wandb.log({"seed": seed})
@@ -906,12 +975,7 @@ def main_daft(seed, config=None):
     trainer.fit(model, train_dataloaders=train_dataloader,
                 val_dataloaders=val_dataloader)
 
-    api_run = wandb.Api().run(run.entity + "/" + run.project + "/" + run.id)
-    import time
-    time.sleep(5)
-    loss_history_by_epoch = list(api_run.history()["val_epoch_loss"])
-    # Filters out NaN values, because NaN != NaN
-    loss_history_by_epoch = [x for x in loss_history_by_epoch if x == x]
+    loss_history_by_epoch = get_loss_history_from_wandb(run)
 
     wandb.finish()
 
@@ -926,10 +990,11 @@ def test_daft(seed, config=None):
     print('YOU ARE RUNNING TEST LOOP FOR RESNET MODEL FOR HAM DATASET')
 
     wandb.init(group='TEST_DAFT_FINAL',
-               project="adni_multimodal", config=config)
+               project="adni_final_results", config=config)
     wandb_logger = WandbLogger()
 
     checkpoints = wandb.config.checkpoint
+    wandb.log({'checkpoints': checkpoints})
     checkpoint = checkpoints[str(seed)]
 
     # get the model
@@ -952,7 +1017,7 @@ def test_daft(seed, config=None):
     # Add learning rate scheduler monitoring
     lr_monitor = LearningRateMonitor(logging_interval='epoch')
     trainer = Trainer(accelerator=accelerator, devices=devices,
-                      max_epochs=wandb.config.max_epochs, logger=wandb_logger, callbacks=[lr_monitor], deterministic=True)
+                      max_epochs=wandb.config.max_epochs, logger=wandb_logger, callbacks=[lr_monitor], deterministic=False)
     trainer.test(model, dataloaders=test_dataloader,
                  ckpt_path=checkpoint)
     wandb.finish()
@@ -966,7 +1031,7 @@ def main_film(seed, config=None):
     print('YOU ARE RUNNING FILM MODEL')
     print(config)
 
-    wandb.init(group='FILM', project='adni_multimodal', config=config)
+    run = wandb.init(group='FILM', project='adni_final_results', config=config)
     wandb_logger = WandbLogger()
 
     wandb.log({"seed": seed})
@@ -994,13 +1059,16 @@ def main_film(seed, config=None):
     # use datetime value in the file name
     date_time = datetime.now()
     dt_string = date_time.strftime("%d.%m.%Y-%H.%M")
+    filename_prefix = dt_string + '_ADNI_SEED=' + str(seed) + '_lr=' + str(
+        wandb.config.learning_rate) + '_wd=' + str(wandb.config.weight_decay)
+    dirpath = os.path.join(CHECKPOINT_DIR, 'FILM', dt_string, 'train')
     checkpoint_callback = ModelCheckpoint(
-        dirpath=os.path.join(CHECKPOINT_DIR, 'FILM', dt_string, 'train'),
-        filename=dt_string+'_ADNI_SEED='+str(seed)+'_lr='+str(wandb.config.learning_rate)+'_wd=' +
-        str(wandb.config.weight_decay)+'-{epoch:03d}',
+        dirpath=dirpath,
+        filename=filename_prefix + '-{epoch:03d}',
         monitor='val_macro_acc',
         save_top_k=wandb.config.max_epochs,
-        mode='max')
+        mode='max'
+    )
 
     # Add learning rate scheduler monitoring
     lr_monitor = LearningRateMonitor(logging_interval='epoch')
@@ -1008,7 +1076,12 @@ def main_film(seed, config=None):
                       max_epochs=wandb.config.max_epochs, logger=wandb_logger, callbacks=[checkpoint_callback, lr_monitor], deterministic=False)
     trainer.fit(model, train_dataloaders=train_dataloader,
                 val_dataloaders=val_dataloader)
+
+    loss_history_by_epoch = get_loss_history_from_wandb(run)
+
     wandb.finish()
+
+    return os.path.join(dirpath, filename_prefix), loss_history_by_epoch
 
 
 def test_film(seed, config=None):
@@ -1019,10 +1092,11 @@ def test_film(seed, config=None):
     print('YOU ARE RUNNING TEST LOOP FOR FILM')
 
     wandb.init(group='TEST_FILM_FINAL',
-               project="adni_multimodal", config=config)
+               project="adni_final_results", config=config)
     wandb_logger = WandbLogger()
 
     checkpoints = wandb.config.checkpoint
+    wandb.log({'checkpoints': checkpoints})
     checkpoint = checkpoints[str(seed)]
 
     # get the model
@@ -1074,7 +1148,7 @@ def run_grid_search(network):
 
     # sweep
     sweep_id = wandb.sweep(
-        sweep_config, project="adni_multimodal", entity="multimodal_network")
+        sweep_config, project="adni_final_results", entity="multimodal_network")
     wandb.agent(sweep_id, function=grid_search, count=count)
     wandb.finish()
 
@@ -1240,7 +1314,7 @@ def get_embeddings(wandb, wandb_logger):
 #           config['model'])
 #     print(config)
 
-#     wandb.init(project='adni_multimodal', config=config)
+#     wandb.init(project='adni_final_results', config=config)
 #     wandb_logger = WandbLogger()
 
 #     # get the embeddings of the model
@@ -1283,11 +1357,37 @@ def get_embeddings(wandb, wandb_logger):
 #     print('F1 score macro: %f' % f1)
 #     wandb.log({"KNN F1 Score macro": f1})
 
+def get_loss_history_from_wandb(run, expected_size=40):
+    api = wandb.Api()
+
+    for i in range(12):
+        time.sleep(5)
+        api.flush()
+        api_run = api.run(run.entity + "/" + run.project + "/" + run.id)
+
+        loss_history_by_epoch = list(api_run.history()["val_epoch_loss"])
+        # Filters out NaN values, because NaN != NaN
+        loss_history_by_epoch = [x for x in loss_history_by_epoch if x == x]
+
+        if len(loss_history_by_epoch) == expected_size:
+            return loss_history_by_epoch
+
+    raise Exception(
+        f"could not retrieve the loss history with correct size within 60 seconds... Excepted size {expected_size}, but got run of size {len(loss_history_by_epoch)}!")
+
+
 def find_best_epoch(results):
+    print(results)
     filenames, loss_histories = list(zip(*results))
 
     # Check if all five seeds produced loss_histories with equal length
     n_epochs = len(loss_histories[0])
+    print('N EPOCHS', n_epochs)
+    print('LOSS HISTORIES', loss_histories)
+    print('LENGTH OF LOSS HISTORIES 1', loss_histories[1])
+    print('LENGTH OF LOSS HISTORIES 2', loss_histories[2])
+    print('LENGTH OF LOSS HISTORIES 3', loss_histories[3])
+    print('LENGTH OF LOSS HISTORIES 4', loss_histories[4])
     assert all([len(x) == n_epochs for x in loss_histories])
 
     avg_loss = [sum([l[i] for l in loss_histories]) /
@@ -1320,7 +1420,10 @@ def main(model_name="OTHER", run_test_epoch=False):
         np.random.seed(seed)
         torch.use_deterministic_algorithms(True)
 
+        config_name = ''
+
         if model_name == "DAFT":
+            config_name = 'daft_config'
             result = main_daft(seed, config['daft_config'])
 
             results.append(result)
@@ -1328,46 +1431,130 @@ def main(model_name="OTHER", run_test_epoch=False):
         elif model_name == "DAFT_TEST":
             test_daft(seed, config['daft_config'])
 
-        else:
-            pass
-            # main_resnet(seed, config['resnet_config'])
-            # main_tabular(seed, config['tabular_config'])
-            # main_daft(seed, config['daft_config'])
-            # main_supervised_multimodal(seed, config['supervised_config'])
-            # main_film(seed, config['film_config'])
-            # main_triplet(seed, config['triplet_center_config'])
+        elif model_name == "FILM":
+            config_name = 'film_config'
+            result = main_film(seed, config['film_config'])
 
-            ######################### ABLATION ###########################
-            # main_modality_specific_center(
-            #     seed, config['modality_specific_center_config'])
-            # main_cross_modal_center(
-            #     seed, config['cross_modal_center_config'])
-            # main_center_loss(seed, config['center_loss_config'])
+            results.append(result)
 
-            ########################## TEST ###############################
+        elif model_name == "FILM_TEST":
+            test_film(seed, config['film_config'])
 
-            # test_resnet(seed, config['resnet_config'])
-            # test_tabular(seed, config['tabular_config'])
-            # 1) corr 2) concat
-            # test_supervised_multimodal(seed, config['supervised_config'])
-            # test_daft(seed, config['daft_config'])
-            # test_film(seed, config['film_config'])
-            # 1) corr 2) concat
-            # test_triplet(seed, config['triplet_center_config'])
+        elif model_name == "RESNET":
+            config_name = 'resnet_config'
+            result = main_resnet(seed, config['resnet_config'])
 
-            ########################## TEST ABLATION ###############################
+            results.append(result)
 
-            # test_modality_specific_center(
-            #     seed, config['modality_specific_center_config'])
-            # test_cross_modal_center(
-            #     seed, config['cross_modal_center_config'])
-            # 1 (concat) # 2 (corr)
-            # test_center_loss(seed, config['center_loss_config'])
+        elif model_name == "RESNET_TEST":
+            test_resnet(seed, config['resnet_config'])
+
+        elif model_name == "TABULAR":
+            config_name = 'tabular_config'
+            result = main_tabular(seed, config['tabular_config'])
+
+            results.append(result)
+
+        elif model_name == "TABULAR_TEST":
+            test_tabular(seed, config['tabular_config'])
+
+        elif model_name == "SUPERVISED_CONCAT":
+            config_name = 'supervised_config'
+            config['supervised_config']['correlation'] = False
+            result = main_supervised_multimodal(
+                seed, config['supervised_config'])
+
+            results.append(result)
+
+        elif model_name == "SUPERVISED_CONCAT_TEST":
+            config['supervised_config']['correlation'] = False
+            test_supervised_multimodal(seed, config['supervised_config'])
+
+        elif model_name == "SUPERVISED_CORR":
+            config_name = 'supervised_config'
+            config['supervised_config']['correlation'] = True
+            result = main_supervised_multimodal(
+                seed, config['supervised_config'])
+
+            results.append(result)
+
+        elif model_name == "SUPERVISED_CORR_TEST":
+            config['supervised_config']['correlation'] = True
+            test_supervised_multimodal(seed, config['supervised_config'])
+
+        elif model_name == "TRIPLET_CONCAT":
+            config_name = 'triplet_config'
+            config['triplet_config']['correlation'] = False
+            result = main_triplet(
+                seed, config['triplet_config'])
+
+            results.append(result)
+
+        elif model_name == "TRIPLET_CONCAT_TEST":
+            config['triplet_config']['correlation'] = False
+            test_triplet(seed, config['triplet_config'])
+
+        elif model_name == "TRIPLET_CORR":
+            config_name = 'triplet_config'
+            config['triplet_config']['correlation'] = True
+            result = main_triplet(
+                seed, config['triplet_config'])
+
+            results.append(result)
+
+        elif model_name == "TRIPLET_CORR_TEST":
+            config['triplet_config']['correlation'] = True
+            test_triplet(seed, config['triplet_config'])
+
+        elif model_name == "MODALITY_SPECIFIC":
+            config_name = 'modality_specific_center_config'
+            result = main_modality_specific_center(
+                seed, config['modality_specific_center_config'])
+
+            results.append(result)
+
+        elif model_name == "MODALITY_SPECIFIC_TEST":
+            test_modality_specific_center(
+                seed, config['modality_specific_center_config'])
+
+        elif model_name == "CROSS_MODAL":
+            config_name = 'cross_modal_center_config'
+            result = main_cross_modal_center(
+                seed, config['cross_modal_center_config'])
+
+            results.append(result)
+
+        elif model_name == "CROSS_MODAL_TEST":
+            test_cross_modal_center(seed, config['cross_modal_center_config'])
+
+        elif model_name == "CENTER_LOSS_CONCAT":
+            config_name = 'center_loss_config'
+            config['center_loss_config']['correlation'] = False
+            result = main_center_loss(
+                seed, config['center_loss_config'])
+
+            results.append(result)
+
+        elif model_name == "CENTER_LOSS_CONCAT_TEST":
+            config['center_loss_config']['correlation'] = False
+            test_center_loss(seed, config['center_loss_config'])
+
+        elif model_name == "CENTER_LOSS_CORR":
+            config_name = 'center_loss_config'
+            config['center_loss_config']['correlation'] = True
+            result = main_center_loss(
+                seed, config['center_loss_config'])
+
+            results.append(result)
+
+        elif model_name == "CENTER_LOSS_CORR_TEST":
+            config['center_loss_config']['correlation'] = True
+            test_center_loss(seed, config['center_loss_config'])
 
     if run_test_epoch:
         avg_best_epoch_filenames = find_best_epoch(results)
 
-        config["daft_config"]["checkpoint"] = {
+        config[config_name]["checkpoint"] = {
             seed: file for seed, file in zip(seed_list, avg_best_epoch_filenames)
         }
 
@@ -1375,9 +1562,49 @@ def main(model_name="OTHER", run_test_epoch=False):
 
 
 if __name__ == '__main__':
-    model_name = "DAFT"
+    import os
+    os.environ['CUBLAS_WORKSPACE_CONFIG'] = ':4096:8'
 
-    main(model_name, run_test_epoch=True)
+    # model_name = ["SUPERVISED_CORR", "SUPERVISED_CONCAT", "FILM",
+    #               "DAFT", "CENTER_LOSS_CONCAT", "CENTER_LOSS_CORR", "MODALITY_SPECIFIC", "CROSS_MODAL"]
+    model_name = ["SUPERVISED_CONCAT"]
+    print('the models to run', model_name)
+    for model in model_name:
+        main(model, run_test_epoch=True)
+##############################################################################
 
+    # main_resnet(seed, config['resnet_config'])
+    # main_tabular(seed, config['tabular_config'])
+    # main_daft(seed, config['daft_config'])
+    # main_supervised_multimodal(seed, config['supervised_config'])
+    # main_film(seed, config['film_config'])
+    # main_triplet(seed, config['triplet_center_config'])
+
+    ######################### ABLATION ###########################
+    # main_modality_specific_center(
+    #     seed, config['modality_specific_center_config'])
+    # main_cross_modal_center(
+    #     seed, config['cross_modal_center_config'])
+    # main_center_loss(seed, config['center_loss_config'])
+
+    ########################## TEST ###############################
+
+    # test_resnet(seed, config['resnet_config'])
+    # test_tabular(seed, config['tabular_config'])
+    # 1) corr 2) concat
+    # test_supervised_multimodal(seed, config['supervised_config'])
+    # test_daft(seed, config['daft_config'])
+    # test_film(seed, config['film_config'])
+    # 1) corr 2) concat
+    # test_triplet(seed, config['triplet_center_config'])
+
+    ########################## TEST ABLATION ###############################
+
+    # test_modality_specific_center(
+    #     seed, config['modality_specific_center_config'])
+    # test_cross_modal_center(
+    #     seed, config['cross_modal_center_config'])
+    # 1 (concat) # 2 (corr)
+    # test_center_loss(seed, config['center_loss_config'])
 
 ##############################################################################

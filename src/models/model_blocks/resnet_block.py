@@ -17,12 +17,12 @@ class ConvBnReLU(nn.Module):
         super().__init__()
         self.conv = nn.Conv3d(in_channels, out_channels, kernel_size,
                               stride=stride, padding=padding, bias=False)
-        # self.bn = nn.BatchNorm3d(out_channels, momentum=bn_momentum)
+        self.bn = nn.BatchNorm3d(out_channels, momentum=bn_momentum)
         self.relu = nn.ReLU(inplace=True)
 
     def forward(self, x):
         out = self.conv(x)
-        # out = self.bn(out)
+        out = self.bn(out)
         out = self.relu(out)
         return out
 
@@ -31,19 +31,16 @@ class ResBlock(nn.Module):
     def __init__(self, in_channels, out_channels, bn_momentum=0.05, stride=1):
         super().__init__()
         self.conv1 = conv3d(in_channels, out_channels, stride=stride)
-        self.bn1 = nn.BatchNorm3d(out_channels, momentum=1.0)
-        # self.bn1 = nn.GroupNorm(4, out_channels)
+        self.bn1 = nn.BatchNorm3d(out_channels, momentum=bn_momentum)
         self.conv2 = conv3d(out_channels, out_channels)
-        self.bn2 = nn.BatchNorm3d(out_channels, momentum=1.0)
-        # self.bn2 = nn.GroupNorm(4, out_channels)
+        self.bn2 = nn.BatchNorm3d(out_channels, momentum=bn_momentum)
         self.relu = nn.ReLU(inplace=True)
 
         if stride != 1 or in_channels != out_channels:
             self.downsample = nn.Sequential(
                 conv3d(in_channels, out_channels,
                        kernel_size=1, stride=stride),
-                # nn.BatchNorm3d(out_channels, momentum=1.0),
-                # nn.GroupNorm(4, out_channels)
+                nn.BatchNorm3d(out_channels, momentum=bn_momentum),
             )
         else:
             self.downsample = None

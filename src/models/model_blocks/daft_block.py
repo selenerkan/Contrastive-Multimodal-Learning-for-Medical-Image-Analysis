@@ -138,7 +138,7 @@ class FilmBlock(FilmBase):
         out_channels: int,
         bn_momentum: float = 0.1,
         stride: int = 2,
-        ndim_non_img: int = 11,  # Adapt it to the data
+        ndim_non_img: int = 11,
         location: int = 0,
         activation: str = "linear",
         scale: bool = True,
@@ -280,12 +280,12 @@ class DAFTBlock(FilmBase):
         out_channels: int,
         bn_momentum: float = 0.1,
         stride: int = 2,
-        ndim_non_img: int = 11,  # was 15 before
+        ndim_non_img: int = 11,
         location: int = 0,
         activation: str = "linear",
         scale: bool = True,
         shift: bool = True,
-        bottleneck_dim: int = 32,
+        bottleneck_dim: int = 7,
     ) -> None:
 
         super().__init__(
