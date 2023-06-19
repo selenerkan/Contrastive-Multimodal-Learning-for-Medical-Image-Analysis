@@ -4,6 +4,7 @@ from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.callbacks import ModelCheckpoint
 import os
 from sklearn.neighbors import KNeighborsClassifier
+from torch import nn
 import torchmetrics
 import random
 from adni_dataset import AdniDataModule
@@ -872,7 +873,7 @@ def main_triplet(seed, config=None):
     return os.path.join(dirpath, filename_prefix), loss_history_by_epoch
 
 
-def test_triplet(seed, config=None):
+def test_triplet(seed, config=None, **kwargs):
     '''
     main function to run the test loop for TRIPLET MODEL 
     '''
@@ -884,7 +885,7 @@ def test_triplet(seed, config=None):
     if config['correlation']:
         corr = 'CORRELATION'
 
-    wandb.init(group='TEST_TRIPLET_'+corr,
+    wandb.init(group='TEST_'+kwargs.get('finetune_method', '')+'TRIPLET_'+corr,
                project="adni_final_results", config=config)
     wandb_logger = WandbLogger()
 
@@ -894,6 +895,8 @@ def test_triplet(seed, config=None):
     checkpoints = wandb.config.checkpoint
     wandb.log({'checkpoints': checkpoints})
     checkpoint = checkpoints[str(seed)]
+    wandb.log({'checkpoint': checkpoint})
+    wandb.log({'train_dataset_percent': kwargs.get('finetune_percent', '')})
 
     # get the model
     model = TripletModel(
@@ -1123,6 +1126,87 @@ def test_film(seed, config=None):
     trainer.test(model, dataloaders=test_dataloader,
                  ckpt_path=checkpoint)
     wandb.finish()
+
+
+def main_triplet_finetune(seed, config, percent, checkpoints, zero_shot):
+    '''
+    main function to run the test loop for TRIPLET MODEL 
+    '''
+    print('YOU ARE RUNNING ZERO SHOT LEARNING FOR TRIPLET MODEL ')
+    print(config)
+
+    corr = 'CONCAT'
+    if config['correlation']:
+        corr = 'CORRELATION'
+
+    name = 'SEMI_SUPER_'
+    if zero_shot:
+        name = 'ZERO_SHOT_'
+
+    run = wandb.init(group=name+'TRIPLET_'+corr,
+                     project="adni_final_results", config=config)
+    wandb_logger = WandbLogger()
+
+    checkpoint = checkpoints[str(seed)]
+    wandb.log({'checkpoint': checkpoint})
+    wandb.log({'train_dataset_percent': percent})
+
+    # get the model
+    model = TripletModel.load_from_checkpoint(checkpoint)
+    # change the final classification layers of the model
+    model.fc7 = nn.Linear(32, 3)
+
+    if zero_shot:
+        # freeze layers
+        layers = ['resnet', 'fc1', 'fc2', 'fc3', 'fc4', 'fc5', 'fc6']
+        for layer, param in model.named_parameters():
+            if param.requires_grad and layer.split('.')[0] in layers:
+                print('Layer: ', layer, ' is frozen')
+                param.requires_grad = False
+
+    wandb.watch(model, log="all")
+
+    # load the data
+    data = AdniDataModule(batch_size=wandb.config.batch_size)
+    data.prepare_zero_shot_data(seed=seed, percent=percent)
+    data.set_triplet_loss_dataloader()
+    train_dataloader = data.train_dataloader()
+    val_dataloader = data.val_dataloader()
+
+    accelerator = 'cpu'
+    devices = None
+    if torch.cuda.is_available():
+        accelerator = 'gpu'
+        devices = 1
+
+    # save the checkpoint in a different folder
+    # use datetime value in the file name
+    date_time = datetime.now()
+    dt_string = date_time.strftime("%d.%m.%Y-%H.%M")
+    filename_prefix = dt_string + '_ADNI_SEED=' + str(seed) + '_lr=' + str(
+        wandb.config.learning_rate) + '_wd=' + str(wandb.config.weight_decay)
+    dirpath = os.path.join(CHECKPOINT_DIR,  'TRIPLET', name,
+                           corr, dt_string, 'train')
+    checkpoint_callback = ModelCheckpoint(
+        dirpath=dirpath,
+        filename=filename_prefix + '-{epoch:03d}',
+        monitor='val_macro_acc',
+        save_top_k=10,
+        mode='max'
+    )
+
+    # Add learning rate scheduler monitoring
+    lr_monitor = LearningRateMonitor(logging_interval='epoch')
+    trainer = Trainer(accelerator=accelerator, devices=devices,
+                      max_epochs=10, logger=wandb_logger, callbacks=[checkpoint_callback, lr_monitor], deterministic=False)
+    trainer.fit(model, train_dataloaders=train_dataloader,
+                val_dataloaders=val_dataloader)
+
+    loss_history_by_epoch = get_loss_history_from_wandb(run)
+
+    wandb.finish()
+
+    return os.path.join(dirpath, filename_prefix), loss_history_by_epoch
 
 
 def run_grid_search(network):
@@ -1400,14 +1484,31 @@ def find_best_epoch(results):
         in filenames
     ]
     print(avg_best_epoch_filenames)
-    with open("best_epoch_checkpoints.json", "a") as f:
-        import json
-        json.dump(avg_best_epoch_filenames, f)
+    with open("best_epoch_checkpoints.txt", "a") as f:
+        content = ", ".join(avg_best_epoch_filenames) + "\n\n"
+        f.write(content)
 
     return avg_best_epoch_filenames
 
 
-def main(model_name="OTHER", run_test_epoch=False):
+def get_filenames(results):
+    print(results)
+    filenames, loss_histories = list(zip(*results))
+
+    avg_best_epoch_filenames = [
+        name + f'-epoch={10:03d}.ckpt'
+        for name
+        in filenames
+    ]
+    print(avg_best_epoch_filenames)
+    with open("best_epoch_checkpoints.txt", "a") as f:
+        content = ", ".join(avg_best_epoch_filenames) + "\n\n"
+        f.write(content)
+
+    return avg_best_epoch_filenames
+
+
+def main(model_name="OTHER", run_test_epoch=False, **kwargs):
     # RUN MODELS FOR EVERY SEED
     results = []
 
@@ -1494,6 +1595,23 @@ def main(model_name="OTHER", run_test_epoch=False):
             config['triplet_config']['correlation'] = False
             test_triplet(seed, config['triplet_config'])
 
+        elif model_name == "FINETUNE_TRIPLET_CORR":
+            config_name = 'triplet_config'
+            config['triplet_config']['correlation'] = True
+            percent = kwargs.get('finetune_percent', None)
+            checkpoints = kwargs.get('finetune_checkpoints', None)
+            zero_shot = kwargs.get('finetune_zero_shot', None)
+
+            result = main_triplet_finetune(
+                seed, config['triplet_config'], checkpoints=checkpoints, zero_shot=zero_shot, percent=percent)
+
+            results.append(result)
+
+        elif model_name == "FINETUNE_TRIPLET_CORR_TEST":
+            config['triplet_config']['correlation'] = True
+            test_triplet(seed, config['triplet_config'], finetune_method=kwargs.get(
+                'finetune_method', None), finetune_percent=kwargs.get('finetune_percent', ''))
+
         elif model_name == "TRIPLET_CORR":
             config_name = 'triplet_config'
             config['triplet_config']['correlation'] = True
@@ -1560,17 +1678,43 @@ def main(model_name="OTHER", run_test_epoch=False):
 
         main(model_name=model_name + "_TEST", run_test_epoch=False)
 
+    if kwargs.get('test_finetune', False):
+        avg_best_epoch_filenames = get_filenames(results)
+
+        config[config_name]["checkpoint"] = {
+            seed: file for seed, file in zip(seed_list, avg_best_epoch_filenames)
+        }
+
+        main(model_name=kwargs.get(
+            'test_finetune_function', None), run_test_epoch=False, finetune_method=kwargs.get('finetune_method', False), finetune_percent=kwargs.get('finetune_percent', ''))
+
 
 if __name__ == '__main__':
     import os
     os.environ['CUBLAS_WORKSPACE_CONFIG'] = ':4096:8'
 
-    # model_name = ["SUPERVISED_CORR", "SUPERVISED_CONCAT", "FILM",
-    #               "DAFT", "CENTER_LOSS_CONCAT", "CENTER_LOSS_CORR", "MODALITY_SPECIFIC", "CROSS_MODAL"]
-    model_name = ["SUPERVISED_CONCAT"]
+    model_name = ["FINETUNE_TRIPLET_CORR"]
     print('the models to run', model_name)
+    root = r'/vol/aimspace/users/erks/experiments/adni_checkpoints/TRIPLET/CORRELATION'
+    checkpoints = {'1997': root+r"/05.06.2023-21.18/train/05.06.2023-21.18_ADNI_SEED=1997_lr=0.01_wd=0-epoch=028.ckpt",
+                   '25': root+r"/05.06.2023-23.50/train/05.06.2023-23.50_ADNI_SEED=25_lr=0.01_wd=0-epoch=028.ckpt",
+                   '12': root+r"/06.06.2023-04.24/train/06.06.2023-04.24_ADNI_SEED=12_lr=0.01_wd=0-epoch=028.ckpt",
+                   '1966': root+r"/06.06.2023-08.58/train/06.06.2023-08.58_ADNI_SEED=1966_lr=0.01_wd=0-epoch=028.ckpt",
+                   '3297': root+r"/06.06.2023-10.52/train/06.06.2023-10.52_ADNI_SEED=3297_lr=0.01_wd=0-epoch=028.ckpt"}
     for model in model_name:
-        main(model, run_test_epoch=True)
+        main(model, run_test_epoch=False, test_finetune=True,
+             finetune_method='SEMI_SUPERVISED_', test_finetune_function='FINETUNE_TRIPLET_CORR_TEST', finetune_percent=0.01, finetune_checkpoints=checkpoints, finetune_zero_shot=False)
+        # main(model, run_test_epoch=False, test_finetune=True,
+        #      finetune_method='SEMI_SUPERVISED_', test_finetune_function='FINETUNE_TRIPLET_CORR_TEST', finetune_percent=0.1, finetune_checkpoints=checkpoints, finetune_zero_shot=False)
+        # main(model, run_test_epoch=False, test_finetune=True,
+        #      finetune_method='ZERO_SHOT_', test_finetune_function='FINETUNE_TRIPLET_CORR_TEST', finetune_percent=0.01, finetune_checkpoints=checkpoints, finetune_zero_shot=True)
+        # main(model, run_test_epoch=False, test_finetune=True,
+        #      finetune_method='ZERO_SHOT_', test_finetune_function='FINETUNE_TRIPLET_CORR_TEST', finetune_percent=0.1, finetune_checkpoints=checkpoints, finetune_zero_shot=True)
+
+    # model_name = ["SUPERVISED_CONCAT"]
+    # print('the models to run', model_name)
+    # for model in model_name:
+    #     main(model, run_test_epoch=True)
 ##############################################################################
 
     # main_resnet(seed, config['resnet_config'])

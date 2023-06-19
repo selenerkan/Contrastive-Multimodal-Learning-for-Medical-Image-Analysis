@@ -305,6 +305,56 @@ class AdniDataModule(pl.LightningDataModule):
         print('number of patients in val: ', len(self.val_df))
         print('patient IDs in val: ', self.val_df.p_id.unique())
 
+    def prepare_zero_shot_data(self, seed, percent):
+
+        # read .csv to load the data
+        self.train_data = pd.read_csv(root_dir + train_dir)
+        self.test_df = pd.read_csv(root_dir + test_dir)
+        self.percent = percent
+
+        # ----------------------------------------
+        # split the data by patient ID
+        train_patient_label_list = self.train_data.groupby(
+            'p_id')['label_numeric'].first()
+        train_patient_label_df = pd.DataFrame(train_patient_label_list)
+        train_patient_label_df = train_patient_label_df.reset_index()
+
+        # get stritified split for train and val
+        ss = StratifiedSampler(torch.FloatTensor(
+            train_patient_label_df.label_numeric), test_size=0.2, seed=seed)
+        train_indices, val_indices = ss.gen_sample_array()
+
+        only_train_df = train_patient_label_df.loc[train_indices]
+
+        # split the train set again to keep only x% data
+        ss2 = StratifiedSampler(torch.FloatTensor(
+            only_train_df.label_numeric), test_size=self.percent, seed=seed)
+        train_remaining_indices, train_final_indices = ss.gen_sample_array()
+
+        # store indices of train, test, valin a dictionary
+        indices = {'train': train_final_indices,
+                   'val': val_indices
+                   }
+
+        # get the patient ids using the generated indices
+        self.train_patients = train_patient_label_df.iloc[indices['train']]
+        self.val_patients = train_patient_label_df.iloc[indices['val']]
+
+        # split the train data again to keep only x% of it
+
+        # prepare the train, test, validation datasets using the subjects assigned to them
+        # prepare train dataframe
+        self.train_df = self.train_data[self.train_data['p_id'].isin(
+            self.train_patients.p_id)].reset_index(drop=True)
+        # prepare val dataframe
+        self.val_df = self.train_data[self.train_data['p_id'].isin(
+            self.val_patients.p_id)].reset_index(drop=True)
+
+        print('number of patients in train: ', len(self.train_df))
+        print('patient IDs in train: ', self.train_df.p_id.unique())
+        print('number of patients in val: ', len(self.val_df))
+        print('patient IDs in val: ', self.val_df.p_id.unique())
+
         # ----------------------------------------
     def set_supervised_multimodal_dataloader(self):
 
