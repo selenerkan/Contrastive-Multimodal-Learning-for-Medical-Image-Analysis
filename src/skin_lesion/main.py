@@ -322,7 +322,7 @@ def main_multiloss(seed, config=None):
     if config['correlation']:
         corr = 'CORRELATION'
 
-    wandb.init(group='CENTER_CROSS_ENT_'+corr,
+    wandb.init(group='(NO-LR)CENTER_CROSS_ENT_'+corr,
                project="final_multimodal_training",  config=config)
     wandb_logger = WandbLogger()
 
@@ -1145,21 +1145,24 @@ def main_contrastive_center_cross_ent(seed, config=None):
     wandb.finish()
 
 
-def main_triplet_center_cross_entropy(seed=1997, config=None):
+def main_triplet_center_cross_entropy(seed, config=None):
     '''
     main function to run the multimodal architecture with triplet + center + cross entropy loss
     '''
 
     print('YOU ARE RUNNING MULTIMODAL NETWORK WITH TRIPLET + CENTER + CROSS ENT. LOSS FOR HAM DATASET')
-    print('THIS MODEL IS ALWAYS WITH CORRELATION')
     print(config)
 
-    wandb.init(group='TRIPLET_CENTER_CROSS_LOSS_HAM',
+    corr = 'CONCAT'
+    if config['correlation']:
+        corr = 'CORRELATION'
+
+    wandb.init(group='TRIPLET_'+corr,
                project="final_multimodal_training",  config=config)
     wandb_logger = WandbLogger()
 
     model = TripletCenterModel(
-        seed, learning_rate=wandb.config.learning_rate, weight_decay=wandb.config.weight_decay, alpha_center=wandb.config.alpha_center, alpha_triplet=wandb.config.alpha_triplet)
+        seed, learning_rate=wandb.config.learning_rate, weight_decay=wandb.config.weight_decay, alpha_center=wandb.config.alpha_center, alpha_triplet=wandb.config.alpha_triplet, correlation=wandb.config.correlation)
     wandb.watch(model, log="all")
 
     # load the data
@@ -1182,7 +1185,7 @@ def main_triplet_center_cross_entropy(seed=1997, config=None):
     dt_string = date_time.strftime("%d.%m.%Y-%H.%M")
     checkpoint_callback = ModelCheckpoint(
         dirpath=os.path.join(
-            CHECKPOINT_DIR, 'triplet_center_cross/training'),
+            CHECKPOINT_DIR, 'TRIPLET', corr, dt_string, 'training'),
         filename=dt_string+'HAM_SEED='+str(seed)+'_lr='+str(wandb.config.learning_rate)+'_wd=' +
         str(wandb.config.weight_decay)+'-{epoch:03d}',
         monitor='val_macro_acc',
@@ -1199,10 +1202,14 @@ def main_triplet_center_cross_entropy(seed=1997, config=None):
 
 
 def test_triplet_center_cross_ent(seed, config):
-    print('YOU ARE RUNNING FILM FOR HAM DATASET')
+    print('YOU ARE RUNNING TRIPLET MODEL FOR HAM DATASET')
     print(config)
 
-    wandb.init(group='TEST_TRIPLET_CENTER_CROSS',
+    corr = 'CONCAT'
+    if config['correlation']:
+        corr = 'CORRELATION'
+
+    wandb.init(group='TEST_TRIPLET_'+corr,
                project="final_multimodal_training", config=config)
     wandb_logger = WandbLogger()
 
@@ -1211,7 +1218,7 @@ def test_triplet_center_cross_ent(seed, config):
 
     # get the model
     model = TripletCenterModel(
-        seed, learning_rate=wandb.config.learning_rate, weight_decay=wandb.config.weight_decay, alpha_center=wandb.config.alpha_center, alpha_triplet=wandb.config.alpha_triplet)
+        seed, learning_rate=wandb.config.learning_rate, weight_decay=wandb.config.weight_decay, alpha_center=wandb.config.alpha_center, alpha_triplet=wandb.config.alpha_triplet, correlation=wandb.config.correlation)
     wandb.watch(model, log="all")
 
     # load the data
@@ -1322,16 +1329,17 @@ if __name__ == '__main__':
         np.random.seed(SEED)
         torch.use_deterministic_algorithms(True)
 
-        main_deneme(seed, config['modality_center_config'])
         # main_film(seed, config['film_config'])
         # main_supervised_multimodal(seed, config['supervised_config'])
         # main_resnet(seed, config['resnet_config'])
         # main_tabular(seed, config['tabular_config'])
         # main_daft(seed, config['daft_config'])
+        main_triplet_center_cross_entropy(
+            seed, config['triplet_center_config'])  # 1) runtriület with concatenation
 
         #############################  ABLATION  ###########################
 
-        # main_multiloss(seed, config['multiloss_config'])
+        # main_multiloss(seed, config['multiloss_config']) # 2) run multiloss model without any lr scheduler
         # main_cross_modal_center(seed, config['cross_modal_center_config'])
         # main_modality_center(seed, config['modality_center_config'])
         # main_contrastive_pretrain(seed, config['contrastive_pretrain_config'])

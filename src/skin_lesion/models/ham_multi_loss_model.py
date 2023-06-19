@@ -210,14 +210,14 @@ class MultiLossModel(LightningModule):
             {'params': center_params[0][1], 'lr': 1e-4}
         ], lr=self.lr, weight_decay=self.wd)
 
-        # UNCOMMENT FOR LR SCHEDULER
-        scheduler = MultiStepLR(optimizer,
-                                # List of epoch indices
-                                milestones=[23, 33],
-                                gamma=0.5)  # Multiplicative factor of learning rate decay
+        # # UNCOMMENT FOR LR SCHEDULER
+        # scheduler = MultiStepLR(optimizer,
+        #                         # List of epoch indices
+        #                         milestones=[23, 33],
+        #                         gamma=0.5)  # Multiplicative factor of learning rate decay
 
-        return [optimizer], [scheduler]
-        # return optimizer
+        # return [optimizer], [scheduler]
+        return optimizer
 
     def training_step(self, batch, batch_idx):
 

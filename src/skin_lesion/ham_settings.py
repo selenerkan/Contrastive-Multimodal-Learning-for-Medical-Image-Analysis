@@ -28,6 +28,7 @@ config = {
         'weight_decay': 0,
         'alpha_center': 0.01,
         'alpha_triplet': 0.2,
+        'correlation': False,
         'checkpoint': {
             '1997': CHECKPOINT_DIR + r'triplet_center_cross/training/25.05.2023-16.52HAM_SEED=1997_lr=0.0001_wd=0-epoch=039.ckpt',
             '25': CHECKPOINT_DIR + r'triplet_center_cross/training/25.05.2023-17.39HAM_SEED=25_lr=0.0001_wd=0-epoch=039.ckpt',
@@ -73,7 +74,7 @@ config = {
         'weight_decay': 0,
         'alpha_center': 0.01,
         'dropout': 0,
-        'correlation': False,
+        'correlation': True,
         'checkpoint_concat': {
             '1997': CHECKPOINT_DIR + r'CENTER_CROSS_ENT/train/CONCAT/27.05.2023-23.29_HAM_SEED=1997_lr=0.0001_wd=0-epoch=039.ckpt',
             '25': CHECKPOINT_DIR + r'CENTER_CROSS_ENT/train/CONCAT/27.05.2023-23.52_HAM_SEED=25_lr=0.0001_wd=0-epoch=039.ckpt',
