@@ -40,10 +40,10 @@ class Triplet_Loss_Dataset(Dataset):
         # keep relevant features in the tabular data
         self.features = features.copy()
         self.features.remove('label')
-        
+
         # Save target and predictors
         self.target = target
-        
+
         # IMAGE DATA
         self.imge_base_dir = image_base_dir
         self.transform = transform
@@ -52,11 +52,11 @@ class Triplet_Loss_Dataset(Dataset):
 
         return len(self.tabular_data)
 
-    def load_pairs(self,idx):
+    def load_pairs(self, idx):
         # remove the data belongs to the sample individual
         label_anchor = self.tabular_data[self.target].iloc[idx]
         lesion_id = self.tabular_data['lesion_id'].iloc[idx]
-        tabular = self.tabular_data[self.tabular_data['lesion_id']!=lesion_id]
+        tabular = self.tabular_data[self.tabular_data['lesion_id'] != lesion_id]
 
         # get the positive and negative pair names
         # dont get the images form the same person as positive pairs?
@@ -64,32 +64,32 @@ class Triplet_Loss_Dataset(Dataset):
                                  == label_anchor].drop_duplicates()
         negative_pairs = tabular[tabular.label
                                  != label_anchor].drop_duplicates()
-        
-        # pick a random positive and negative image
-        pos_idx=int(torch.randint(len(positive_pairs), (1,)))
-        neg_idx=int(torch.randint(len(negative_pairs), (1,)))    
 
-        positive_img_name=positive_pairs['image_id'].iloc[pos_idx]
+        # pick a random positive and negative image
+        pos_idx = int(torch.randint(len(positive_pairs), (1,)))
+        neg_idx = int(torch.randint(len(negative_pairs), (1,)))
+
+        positive_img_name = positive_pairs['image_id'].iloc[pos_idx]
         pos_img_folder_name = positive_pairs.dx.iloc[pos_idx]
         pos_img_path = os.path.join(
             self.imge_base_dir, pos_img_folder_name, positive_img_name + '.jpg')
-        
-        negative_img_name=negative_pairs['image_id'].iloc[neg_idx]
+
+        negative_img_name = negative_pairs['image_id'].iloc[neg_idx]
         neg_img_folder_name = negative_pairs.dx.iloc[neg_idx]
         neg_img_path = os.path.join(
             self.imge_base_dir, neg_img_folder_name, negative_img_name + '.jpg')
-        
+
         positive_image = Image.open(pos_img_path)
         positive_image = positive_image.convert("RGB")
         negative_image = Image.open(neg_img_path)
         negative_image = negative_image.convert("RGB")
-        
+
         # get the tabular data for given index
         positive_tab = positive_pairs[self.features].iloc[pos_idx].values
         negative_tab = negative_pairs[self.features].iloc[neg_idx].values
 
         return positive_image, positive_tab, negative_image, negative_tab
-    
+
     def __getitem__(self, idx):
 
         # Convert idx from tensor to list due to pandas bug (that arises when using pytorch's random_split)
@@ -105,12 +105,13 @@ class Triplet_Loss_Dataset(Dataset):
         img_name = self.tabular_data['image_id'][idx]
         img_path = os.path.join(
             self.imge_base_dir, img_folder_name, img_name + '.jpg')
-        
+
         # load all three images
         image = Image.open(img_path)
         image = image.convert("RGB")
 
-        positive_image, positive_tab, negative_image, negative_tab = self.load_pairs(idx)
+        positive_image, positive_tab, negative_image, negative_tab = self.load_pairs(
+            idx)
 
         if self.transform:
             transformed_images = self.transform(image)
@@ -342,7 +343,7 @@ class HAMDataModule(pl.LightningDataModule):
         # prepare val dataframe
         self.val_df = self.train_data[self.train_data['lesion_id'].isin(
             self.val_patients.lesion_id)].reset_index(drop=True)
-        
+
         # # ONLY FOR OVERFITTING ON ONE IMAGE
         # self.train_df = self.train_df.groupby(
         #     'label').apply(lambda x: x.sample(5)).droplevel(0).reset_index(drop=True)
@@ -350,7 +351,56 @@ class HAMDataModule(pl.LightningDataModule):
         #     'label').apply(lambda x: x.sample(5)).droplevel(0).reset_index(drop=True)
         # self.test_df = self.test_df.groupby(
         #     'label').apply(lambda x: x.sample(5)).droplevel(0).reset_index(drop=True)
-        
+
+        print('number of patients in train: ', len(self.train_df))
+        print('patient IDs in train: ', self.train_df.lesion_id.unique())
+        print('number of patients in val: ', len(self.val_df))
+        print('patient IDs in val: ', self.val_df.lesion_id.unique())
+
+    def prepare_zero_shot_data(self, seed, percent):
+
+        # read train and test data
+        self.train_data = pd.read_csv(root_dir + train_dir)
+        self.test_df = pd.read_csv(root_dir + test_dir)
+        self.percent = percent
+
+        # ----------------------------------------
+        # split the data by patient ID
+        train_patient_label_list = self.train_data.groupby(
+            'lesion_id')['label'].first()
+        train_patient_label_df = pd.DataFrame(train_patient_label_list)
+        train_patient_label_df = train_patient_label_df.reset_index()
+
+        # get stritified split for train and val
+        ss = StratifiedSampler(torch.FloatTensor(
+            train_patient_label_df.label), test_size=0.2, seed=seed)
+        train_indices, val_indices = ss.gen_sample_array()
+
+        only_train_df = pd.DataFrame(
+            train_patient_label_df.iloc[train_indices])
+
+        # split the train set again to keep only x% data
+        ss2 = StratifiedSampler(torch.FloatTensor(
+            only_train_df.label), test_size=self.percent, seed=seed)
+        train_remaining_indices, train_final_indices = ss2.gen_sample_array()
+
+        # store indices of train, test, valin a dictionary
+        indices = {'train': train_final_indices,
+                   'val': val_indices
+                   }
+
+        # get the patient ids using the generated indices
+        self.train_patients = train_patient_label_df.iloc[indices['train']]
+        self.val_patients = train_patient_label_df.iloc[indices['val']]
+
+        # prepare the train, test, validation datasets using the subjects assigned to them
+        # prepare train dataframe
+        self.train_df = self.train_data[self.train_data['lesion_id'].isin(
+            self.train_patients.lesion_id)].reset_index(drop=True)
+        # prepare val dataframe
+        self.val_df = self.train_data[self.train_data['lesion_id'].isin(
+            self.val_patients.lesion_id)].reset_index(drop=True)
+
         print('number of patients in train: ', len(self.train_df))
         print('patient IDs in train: ', self.train_df.lesion_id.unique())
         print('number of patients in val: ', len(self.val_df))

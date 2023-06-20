@@ -324,12 +324,16 @@ class AdniDataModule(pl.LightningDataModule):
             train_patient_label_df.label_numeric), test_size=0.2, seed=seed)
         train_indices, val_indices = ss.gen_sample_array()
 
-        only_train_df = train_patient_label_df.loc[train_indices]
+        only_train_df = pd.DataFrame(
+            train_patient_label_df.iloc[train_indices])
+        print(only_train_df)
+        print(len(only_train_df))
+        print(only_train_df.label_numeric)
 
         # split the train set again to keep only x% data
         ss2 = StratifiedSampler(torch.FloatTensor(
             only_train_df.label_numeric), test_size=self.percent, seed=seed)
-        train_remaining_indices, train_final_indices = ss.gen_sample_array()
+        train_remaining_indices, train_final_indices = ss2.gen_sample_array()
 
         # store indices of train, test, valin a dictionary
         indices = {'train': train_final_indices,
@@ -339,8 +343,6 @@ class AdniDataModule(pl.LightningDataModule):
         # get the patient ids using the generated indices
         self.train_patients = train_patient_label_df.iloc[indices['train']]
         self.val_patients = train_patient_label_df.iloc[indices['val']]
-
-        # split the train data again to keep only x% of it
 
         # prepare the train, test, validation datasets using the subjects assigned to them
         # prepare train dataframe

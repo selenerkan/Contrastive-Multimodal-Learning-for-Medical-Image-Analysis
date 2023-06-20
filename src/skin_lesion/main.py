@@ -5,7 +5,8 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 import os
 from ham_settings import csv_dir, CHECKPOINT_DIR, seed_list, config, SEED
 from models.ham_supervised_model import SupervisedModel
-from models.image_model import BaselineModel
+from torch import nn
+from models.previous.image_model import BaselineModel
 from models.resnet_model import ResnetModel
 from models.tabular_model import TabularModel
 from models.ham_multi_loss_model import MultiLossModel
@@ -21,10 +22,10 @@ from models.ham_daft_model import DaftModel
 from models.ham_film_model import FilmModel
 from models.ham_cross_modal_center import CrossModalCenterModel
 from models.ham_modality_specific_center import ModalityCenterModel
-from models.ham_contrastive_pretrain_model import HamContrastiveModel
+from models.previous.ham_contrastive_pretrain_model import HamContrastiveModel
 from models.ham_triplet_center_cross_ent import TripletCenterModel
-from models.ham_contrastive_center_cross_ent_model import HamContrastiveCenterCrossModel
-from models.multiloss import deneme
+from models.previous.ham_contrastive_center_cross_ent_model import HamContrastiveCenterCrossModel
+from models.previous.multiloss import deneme
 
 
 def main_baseline(config=None):
@@ -1243,6 +1244,131 @@ def test_triplet_center_cross_ent(seed, config):
     wandb.finish()
 
 
+def main_triplet_finetune(seed, config, percent, zero_shot):
+    '''
+    main function to run the test loop for TRIPLET MODEL 
+    '''
+    print('YOU ARE RUNNING ZERO SHOT LEARNING FOR TRIPLET MODEL ')
+    print(config)
+
+    corr = 'CONCAT'
+    if config['correlation']:
+        corr = 'CORRELATION'
+
+    name = 'SEMI_SUPER_'
+    if zero_shot:
+        name = 'ZERO_SHOT_'
+
+    run = wandb.init(group=name+'TRIPLET_'+corr,
+                     project="final_multimodal_training", config=config)
+    wandb_logger = WandbLogger()
+
+    checkpoints = wandb.config.checkpoint
+    checkpoint = checkpoints[str(seed)]
+    wandb.log({'checkpoint': checkpoint})
+    wandb.log({'train_dataset_percent': percent})
+
+    # get the model
+    model = TripletCenterModel.load_from_checkpoint(checkpoint)
+    # change the final classification layers of the model
+    model.fc8 = nn.Linear(32, 7)
+
+    if zero_shot:
+        # freeze layers
+        layers = ['resnet', 'fc1', 'fc2', 'fc3', 'fc4', 'fc5', 'fc6', 'fc7']
+        for layer, param in model.named_parameters():
+            if param.requires_grad and layer.split('.')[0] in layers:
+                print('Layer: ', layer, ' is frozen')
+                param.requires_grad = False
+
+    wandb.watch(model, log="all")
+
+    # load the data
+    data = HAMDataModule(
+        csv_dir, age=wandb.config.age, batch_size=wandb.config.batch_size)
+    data.prepare_zero_shot_data(seed=seed, percent=percent)
+    data.set_triplet_dataloader()
+    train_dataloader = data.train_dataloader()
+    val_dataloader = data.val_dataloader()
+
+    accelerator = 'cpu'
+    devices = None
+    if torch.cuda.is_available():
+        accelerator = 'gpu'
+        devices = 1
+
+    # save the checkpoint in a different folder
+    # use datetime value in the file name
+    date_time = datetime.now()
+    dt_string = date_time.strftime("%d.%m.%Y-%H.%M")
+    filename_prefix = dt_string + '_HAM_SEED=' + str(seed) + '_lr=' + str(
+        wandb.config.learning_rate) + '_wd=' + str(wandb.config.weight_decay)
+    dirpath = os.path.join(CHECKPOINT_DIR,  'TRIPLET', name,
+                           corr, dt_string, 'train')
+    checkpoint_callback = ModelCheckpoint(
+        dirpath=dirpath,
+        filename=filename_prefix + '-{epoch:03d}',
+        monitor='val_macro_acc',
+        save_top_k=10,
+        mode='max'
+    )
+
+    # Add learning rate scheduler monitoring
+    lr_monitor = LearningRateMonitor(logging_interval='epoch')
+    trainer = Trainer(accelerator=accelerator, devices=devices,
+                      max_epochs=10, logger=wandb_logger, callbacks=[checkpoint_callback, lr_monitor], deterministic=True)
+    trainer.fit(model, train_dataloaders=train_dataloader,
+                val_dataloaders=val_dataloader)
+
+    wandb.finish()
+
+    return os.path.join(dirpath, filename_prefix)
+
+
+def test_triplet_finetune(seed, config, percent, finetune_method, checkpoints):
+    print('YOU ARE RUNNING TRIPLET MODEL FOR HAM DATASET')
+    print(config)
+
+    corr = 'CONCAT'
+    if config['correlation']:
+        corr = 'CORRELATION'
+
+    wandb.init(group='TEST_'+finetune_method+'_TRIPLET_'+corr,
+               project="final_multimodal_training", config=config)
+    wandb_logger = WandbLogger()
+
+    checkpoint = checkpoints[str(seed)]
+    wandb.log({'checkpoints': checkpoints})
+    wandb.log({'checkpoint': checkpoint})
+    wandb.log({'train_dataset_percent': percent})
+
+    # get the model
+    model = TripletCenterModel(
+        seed, learning_rate=wandb.config.learning_rate, weight_decay=wandb.config.weight_decay, alpha_center=wandb.config.alpha_center, alpha_triplet=wandb.config.alpha_triplet, correlation=wandb.config.correlation)
+    wandb.watch(model, log="all")
+
+    # load the data
+    data = HAMDataModule(
+        csv_dir, age=wandb.config.age, batch_size=wandb.config.batch_size)
+    data.prepare_data(seed)
+    data.set_triplet_dataloader()
+    test_dataloader = data.test_dataloader()
+
+    accelerator = 'cpu'
+    devices = None
+    if torch.cuda.is_available():
+        accelerator = 'gpu'
+        devices = 1
+
+    # Add learning rate scheduler monitoring
+    lr_monitor = LearningRateMonitor(logging_interval='epoch')
+    trainer = Trainer(accelerator=accelerator, devices=devices,
+                      max_epochs=wandb.config.max_epochs, logger=wandb_logger, callbacks=[lr_monitor], deterministic=True)
+    trainer.test(model, dataloaders=test_dataloader,
+                 ckpt_path=checkpoint)
+    wandb.finish()
+
+
 def main_deneme(seed, config=None):
     '''
     main function to run the multimodal architecture
@@ -1295,7 +1421,62 @@ def main_deneme(seed, config=None):
     wandb.finish()
 
 
+def get_filenames(results):
+    print(results)
+    filenames = list(*results)
+
+    avg_best_epoch_filenames = [
+        name + f'-epoch={10:03d}.ckpt'
+        for name
+        in filenames
+    ]
+    print(avg_best_epoch_filenames)
+    with open("best_epoch_checkpoints.txt", "a") as f:
+        content = ", ".join(avg_best_epoch_filenames) + "\n\n"
+        f.write(content)
+
+    return avg_best_epoch_filenames
+
+
+def main(percent, zero_shot, training, **kwargs):
+    results = []
+    for seed in seed_list:
+        seed_everything(SEED, workers=True)
+        torch.manual_seed(SEED)
+        np.random.seed(SEED)
+        torch.cuda.manual_seed(SEED)
+        random.seed(SEED)
+        np.random.seed(SEED)
+        torch.use_deterministic_algorithms(True)
+
+        if training:
+            result = main_triplet_finetune(
+                seed, config=config['triplet_center_config'], percent=percent, zero_shot=zero_shot)
+            results.append(result)
+        else:
+            test_triplet_finetune(seed, config=config['triplet_center_config'], percent=percent, finetune_method=kwargs.get(
+                'finetune_method', None), checkpoints=kwargs.get(
+                'checkpoints', None))
+
+    if training:
+        # get the filenames
+        avg_best_epoch_filenames = get_filenames(results)
+        new_checkpoints = {
+            seed: file for seed, file in zip(seed_list, avg_best_epoch_filenames)
+        }
+
+        main(percent=percent, zero_shot=zero_shot, training=False, finetune_method=kwargs.get(
+            'finetune_method', None), checkpoints=new_checkpoints)
+
+
 if __name__ == '__main__':
+
+    percent = 0.01
+    zero_shot = False
+    training = True
+    finetune_method = 'SEMI_SUPERVISED_'
+
+    main(percent, zero_shot, training, finetune_method=finetune_method)
 
     # set the seed of the environment
     # Function that sets seed for pseudo-random number generators in: pytorch, numpy, python.random
@@ -1312,52 +1493,46 @@ if __name__ == '__main__':
 
     # RUN MODELS FOR EVERY SEED
 
-    for seed in seed_list:
-        # seed_everything(seed, workers=True)
-        # torch.manual_seed(seed)
-        # np.random.seed(seed)
-        # torch.cuda.manual_seed(seed)
-        # random.seed(seed)
-        # np.random.seed(seed)
-        # torch.use_deterministic_algorithms(True)
+    # for seed in seed_list:
+    #     seed_everything(SEED, workers=True)
+    #     torch.manual_seed(SEED)
+    #     np.random.seed(SEED)
+    #     torch.cuda.manual_seed(SEED)
+    #     random.seed(SEED)
+    #     np.random.seed(SEED)
+    #     torch.use_deterministic_algorithms(True)
 
-        seed_everything(SEED, workers=True)
-        torch.manual_seed(SEED)
-        np.random.seed(SEED)
-        torch.cuda.manual_seed(SEED)
-        random.seed(SEED)
-        np.random.seed(SEED)
-        torch.use_deterministic_algorithms(True)
+    #     # main_film(seed, config['film_config'])
+    #     # main_supervised_multimodal(seed, config['supervised_config'])
+    #     # main_resnet(seed, config['resnet_config'])
+    #     # main_tabular(seed, config['tabular_config'])
+    #     # main_daft(seed, config['daft_config'])
+    #     # main_triplet_center_cross_entropy(
+    #     #     seed, config['triplet_center_config'])  # 1) runtriület with concatenation
+    #     main_triplet_finetune(
+    #         seed, config=config['triplet_center_config'], percent=0.01)
 
-        # main_film(seed, config['film_config'])
-        # main_supervised_multimodal(seed, config['supervised_config'])
-        # main_resnet(seed, config['resnet_config'])
-        # main_tabular(seed, config['tabular_config'])
-        # main_daft(seed, config['daft_config'])
-        main_triplet_center_cross_entropy(
-            seed, config['triplet_center_config'])  # 1) runtriület with concatenation
+    #############################  ABLATION  ###########################
 
-        #############################  ABLATION  ###########################
+    # main_multiloss(seed, config['multiloss_config']) # 2) run multiloss model without any lr scheduler
+    # main_cross_modal_center(seed, config['cross_modal_center_config'])
+    # main_modality_center(seed, config['modality_center_config'])
+    # main_contrastive_pretrain(seed, config['contrastive_pretrain_config'])
+    # main_contrastive_center_cross_ent(
+    #     seed, config=config['contrastive_center_cross_config'])
 
-        # main_multiloss(seed, config['multiloss_config']) # 2) run multiloss model without any lr scheduler
-        # main_cross_modal_center(seed, config['cross_modal_center_config'])
-        # main_modality_center(seed, config['modality_center_config'])
-        # main_contrastive_pretrain(seed, config['contrastive_pretrain_config'])
-        # main_contrastive_center_cross_ent(
-        #     seed, config=config['contrastive_center_cross_config'])
+    ###########################  TEST  ##################################
+    # test_resnet(seed, config=config['resnet_config'])
+    # test_tabular(seed, config=config['tabular_config'])
+    # test_supervised_multimodal(seed, config['supervised_config'])  # CONCAT
+    # test_daft(seed, config['daft_config'])
+    # test_film(seed, config['film_config'])
+    # test_triplet_center_cross_ent(seed, cinfig['triplet_center_config']
 
-        ###########################  TEST  ##################################
-        # test_resnet(seed, config=config['resnet_config'])
-        # test_tabular(seed, config=config['tabular_config'])
-        # test_supervised_multimodal(seed, config['supervised_config'])  # CONCAT
-        # test_daft(seed, config['daft_config'])
-        # test_film(seed, config['film_config'])
-        # test_triplet_center_cross_ent(seed, cinfig['triplet_center_config']
+    #########################  TEST - ABLATION  ##############################
 
-        #########################  TEST - ABLATION  ##############################
-
-        # test_multiloss(seed, config['multiloss_config'])  # CONCAT + CORR
-        # test_cross_modal_center(seed, config['cross_modal_center_config'])
-        # test_modality_center(seed, config['modality_center_config'])
-        # test_supervised_multimodal(seed, config['supervised_config'])  # CORRELATION
-        # ADD CONTRASTIVE PRETRAIN
+    # test_multiloss(seed, config['multiloss_config'])  # CONCAT + CORR
+    # test_cross_modal_center(seed, config['cross_modal_center_config'])
+    # test_modality_center(seed, config['modality_center_config'])
+    # test_supervised_multimodal(seed, config['supervised_config'])  # CORRELATION
+    # ADD CONTRASTIVE PRETRAIN

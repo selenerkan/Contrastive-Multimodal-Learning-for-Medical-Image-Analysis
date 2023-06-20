@@ -1143,7 +1143,7 @@ def main_triplet_finetune(seed, config, percent, checkpoints, zero_shot):
     if zero_shot:
         name = 'ZERO_SHOT_'
 
-    run = wandb.init(group=name+'TRIPLET_'+corr,
+    run = wandb.init(group='TRIPLET_'+name+corr,
                      project="adni_final_results", config=config)
     wandb_logger = WandbLogger()
 
