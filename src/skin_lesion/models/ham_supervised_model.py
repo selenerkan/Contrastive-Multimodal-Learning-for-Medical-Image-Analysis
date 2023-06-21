@@ -20,7 +20,7 @@ class SupervisedModel(LightningModule):
     Resnet Model Class including the training, validation and testing steps
     '''
 
-    def __init__(self, learning_rate=0.013, weight_decay=0.01, correlation=False):
+    def __init__(self, learning_rate=0.013, weight_decay=0.01, correlation=True):
         super().__init__()
         self.register_buffer('class_weights', torch.tensor([1.5565749235474007,
                                                            1.0,

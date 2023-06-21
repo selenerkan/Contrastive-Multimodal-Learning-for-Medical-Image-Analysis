@@ -373,20 +373,12 @@ class HAMDataModule(pl.LightningDataModule):
 
         # get stritified split for train and val
         ss = StratifiedSampler(torch.FloatTensor(
-            train_patient_label_df.label), test_size=0.2, seed=seed)
+            train_patient_label_df.label), test_size=self.percent, seed=seed)
         train_indices, val_indices = ss.gen_sample_array()
 
-        only_train_df = pd.DataFrame(
-            train_patient_label_df.iloc[train_indices])
-
-        # split the train set again to keep only x% data
-        ss2 = StratifiedSampler(torch.FloatTensor(
-            only_train_df.label), test_size=self.percent, seed=seed)
-        train_remaining_indices, train_final_indices = ss2.gen_sample_array()
-
         # store indices of train, test, valin a dictionary
-        indices = {'train': train_final_indices,
-                   'val': val_indices
+        indices = {'train': val_indices,
+                   'val': train_indices
                    }
 
         # get the patient ids using the generated indices
@@ -401,8 +393,21 @@ class HAMDataModule(pl.LightningDataModule):
         self.val_df = self.train_data[self.train_data['lesion_id'].isin(
             self.val_patients.lesion_id)].reset_index(drop=True)
 
+        # # check the number of samples in each class
+        # df_check_train = self.train_df.groupby(
+        #     'label').count()['lesion_id'].copy()
+        # df_check_val = self.val_df.groupby('label').count()['lesion_id'].copy()
+        # for i in len(df_check_train):
+        #     if df_check_train.iloc[i]['lesion_id'] < 2:
+        #         class_subset_val = df_check_val[df_check_val['label'] == df_check_train.iloc[i]['label']].reset_index()
+        #         pos_idx = int(torch.randint(len(class_subset_val), (1,)))
+        #         pass
+
         print('number of patients in train: ', len(self.train_df))
         print('patient IDs in train: ', self.train_df.lesion_id.unique())
+        print('# samples in each class (TRAIN): ',
+              self.train_df.groupby('label').count())
+        print('number of patients in val: ', len(self.val_df))
         print('number of patients in val: ', len(self.val_df))
         print('patient IDs in val: ', self.val_df.lesion_id.unique())
 

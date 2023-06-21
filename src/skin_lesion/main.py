@@ -1244,7 +1244,7 @@ def test_triplet_center_cross_ent(seed, config):
     wandb.finish()
 
 
-def main_triplet_finetune(seed, config, percent, zero_shot):
+def main_finetune(seed, config, percent, zero_shot):
     '''
     main function to run the test loop for TRIPLET MODEL 
     '''
@@ -1259,7 +1259,7 @@ def main_triplet_finetune(seed, config, percent, zero_shot):
     if zero_shot:
         name = 'ZERO_SHOT_'
 
-    run = wandb.init(group=name+'TRIPLET_'+corr,
+    run = wandb.init(group=name+'FINETUNE_'+corr,
                      project="final_multimodal_training", config=config)
     wandb_logger = WandbLogger()
 
@@ -1269,7 +1269,17 @@ def main_triplet_finetune(seed, config, percent, zero_shot):
     wandb.log({'train_dataset_percent': percent})
 
     # get the model
-    model = TripletCenterModel.load_from_checkpoint(checkpoint)
+    model_ckpt = TripletCenterModel.load_from_checkpoint(checkpoint)
+    model = SupervisedModel(learning_rate=wandb.config.learning_rate,
+                            weight_decay=wandb.config.weight_decay, correlation=wandb.config.correlation)
+    model.resnet = model_ckpt.resnet
+    model.fc1 = model_ckpt.fc1
+    model.fc2 = model_ckpt.fc2
+    model.fc3 = model_ckpt.fc3
+    model.fc4 = model_ckpt.fc4
+    model.fc5 = model_ckpt.fc5
+    model.fc6 = model_ckpt.fc6
+    model.fc7 = model_ckpt.fc7
     # change the final classification layers of the model
     model.fc8 = nn.Linear(32, 7)
 
@@ -1287,7 +1297,7 @@ def main_triplet_finetune(seed, config, percent, zero_shot):
     data = HAMDataModule(
         csv_dir, age=wandb.config.age, batch_size=wandb.config.batch_size)
     data.prepare_zero_shot_data(seed=seed, percent=percent)
-    data.set_triplet_dataloader()
+    data.set_supervised_multimodal_dataloader()
     train_dataloader = data.train_dataloader()
     val_dataloader = data.val_dataloader()
 
@@ -1303,7 +1313,7 @@ def main_triplet_finetune(seed, config, percent, zero_shot):
     dt_string = date_time.strftime("%d.%m.%Y-%H.%M")
     filename_prefix = dt_string + '_HAM_SEED=' + str(seed) + '_lr=' + str(
         wandb.config.learning_rate) + '_wd=' + str(wandb.config.weight_decay)
-    dirpath = os.path.join(CHECKPOINT_DIR,  'TRIPLET', name,
+    dirpath = os.path.join(CHECKPOINT_DIR,  'FINETUNE', name,
                            corr, dt_string, 'train')
     checkpoint_callback = ModelCheckpoint(
         dirpath=dirpath,
@@ -1325,15 +1335,15 @@ def main_triplet_finetune(seed, config, percent, zero_shot):
     return os.path.join(dirpath, filename_prefix)
 
 
-def test_triplet_finetune(seed, config, percent, finetune_method, checkpoints):
-    print('YOU ARE RUNNING TRIPLET MODEL FOR HAM DATASET')
+def test_finetune(seed, config, percent, finetune_method, checkpoints):
+    print('YOU ARE RUNNING TEST FINETUNE FOR HAM DATASET')
     print(config)
 
     corr = 'CONCAT'
     if config['correlation']:
         corr = 'CORRELATION'
 
-    wandb.init(group='TEST_'+finetune_method+'_TRIPLET_'+corr,
+    wandb.init(group='TEST_FINETUNE_'+finetune_method+corr,
                project="final_multimodal_training", config=config)
     wandb_logger = WandbLogger()
 
@@ -1343,15 +1353,15 @@ def test_triplet_finetune(seed, config, percent, finetune_method, checkpoints):
     wandb.log({'train_dataset_percent': percent})
 
     # get the model
-    model = TripletCenterModel(
-        seed, learning_rate=wandb.config.learning_rate, weight_decay=wandb.config.weight_decay, alpha_center=wandb.config.alpha_center, alpha_triplet=wandb.config.alpha_triplet, correlation=wandb.config.correlation)
+    model = SupervisedModel(learning_rate=wandb.config.learning_rate,
+                            weight_decay=wandb.config.weight_decay, correlation=wandb.config.correlation)
     wandb.watch(model, log="all")
 
     # load the data
     data = HAMDataModule(
         csv_dir, age=wandb.config.age, batch_size=wandb.config.batch_size)
     data.prepare_data(seed)
-    data.set_triplet_dataloader()
+    data.set_supervised_multimodal_dataloader()
     test_dataloader = data.test_dataloader()
 
     accelerator = 'cpu'
@@ -1377,7 +1387,7 @@ def main_deneme(seed, config=None):
     print('YOU ARE RUNNING SEED MULTI LOSS MODEL CENTER + CROSS ENTROPY LOSSES FOR HAM DATASET')
     print(config)
 
-    wandb.init(group='denemr_modal_spec',
+    wandb.init(group='deneme_modal_spec',
                project="final_multimodal_training",  config=config)
     wandb_logger = WandbLogger()
 
@@ -1423,10 +1433,10 @@ def main_deneme(seed, config=None):
 
 def get_filenames(results):
     print(results)
-    filenames = list(*results)
+    filenames = list(results)
 
     avg_best_epoch_filenames = [
-        name + f'-epoch={10:03d}.ckpt'
+        name + f'-epoch={9:03d}.ckpt'
         for name
         in filenames
     ]
@@ -1450,11 +1460,11 @@ def main(percent, zero_shot, training, **kwargs):
         torch.use_deterministic_algorithms(True)
 
         if training:
-            result = main_triplet_finetune(
+            result = main_finetune(
                 seed, config=config['triplet_center_config'], percent=percent, zero_shot=zero_shot)
             results.append(result)
         else:
-            test_triplet_finetune(seed, config=config['triplet_center_config'], percent=percent, finetune_method=kwargs.get(
+            test_finetune(seed, config=config['triplet_center_config'], percent=percent, finetune_method=kwargs.get(
                 'finetune_method', None), checkpoints=kwargs.get(
                 'checkpoints', None))
 
@@ -1462,7 +1472,7 @@ def main(percent, zero_shot, training, **kwargs):
         # get the filenames
         avg_best_epoch_filenames = get_filenames(results)
         new_checkpoints = {
-            seed: file for seed, file in zip(seed_list, avg_best_epoch_filenames)
+            str(seed): file for seed, file in zip(seed_list, avg_best_epoch_filenames)
         }
 
         main(percent=percent, zero_shot=zero_shot, training=False, finetune_method=kwargs.get(
@@ -1471,12 +1481,14 @@ def main(percent, zero_shot, training, **kwargs):
 
 if __name__ == '__main__':
 
-    percent = 0.01
-    zero_shot = False
+    percents = [0.03, 0.1, 0.03, 0.1]
+    zero_shots = [False, False, True, True]
     training = True
-    finetune_method = 'SEMI_SUPERVISED_'
+    finetune_methods = ['SEMI_SUPERVISED_',
+                        'SEMI_SUPERVISED_', 'ZERO_SHOT_', 'ZERO_SHOT_']
 
-    main(percent, zero_shot, training, finetune_method=finetune_method)
+    for percent, zero_shot, finetune_method in zip(percents, zero_shots, finetune_methods):
+        main(percent, zero_shot, training, finetune_method=finetune_method)
 
     # set the seed of the environment
     # Function that sets seed for pseudo-random number generators in: pytorch, numpy, python.random
