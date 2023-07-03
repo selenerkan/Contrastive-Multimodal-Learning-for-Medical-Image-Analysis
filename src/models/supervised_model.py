@@ -19,11 +19,15 @@ class MultiModModel(LightningModule):
     Resnet Model Class including the training, validation and testing steps
     '''
 
-    def __init__(self, learning_rate=0.013, weight_decay=0.01, correlation=False):
+    def __init__(self, learning_rate=0.013, weight_decay=0.01, correlation=True):
 
         super().__init__()
         self.save_hyperparameters()
 
+        self.register_buffer('class_weights', torch.tensor([1.0,
+                                                           1.9413680781758957,
+                                                           0.47304832713754646,
+                                                           0.6704161979752531,]))
         self.lr = learning_rate
         self.wd = weight_decay
         self.num_classes = 3
@@ -58,7 +62,8 @@ class MultiModModel(LightningModule):
         self.fc6 = nn.Linear(concatenation_dimension, 32)
         self.fc7 = nn.Linear(32, self.num_classes)  # classification head
 
-        self.cross_ent_loss_function = nn.CrossEntropyLoss()
+        self.cross_ent_loss_function = nn.CrossEntropyLoss(
+            weight=self.class_weights)
 
         # TRACK METRICS
 

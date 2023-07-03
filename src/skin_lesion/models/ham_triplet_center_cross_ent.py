@@ -19,7 +19,7 @@ class TripletCenterModel(LightningModule):
     Uses ResNet for the image data, concatenates image and tabular data at the end
     '''
 
-    def __init__(self, seed, learning_rate=0.013, weight_decay=0.01, alpha_center=0.01, alpha_triplet=0, correlation=False):
+    def __init__(self, seed, learning_rate=0.013, weight_decay=0.01, alpha_center=0.01, alpha_triplet=0, correlation=True):
 
         super().__init__()
         self.use_gpu = False

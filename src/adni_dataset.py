@@ -321,24 +321,28 @@ class AdniDataModule(pl.LightningDataModule):
 
         # get stritified split for train and val
         ss = StratifiedSampler(torch.FloatTensor(
-            train_patient_label_df.label_numeric), test_size=0.2, seed=seed)
+            train_patient_label_df.label_numeric), test_size=self.percent, seed=seed)
         train_indices, val_indices = ss.gen_sample_array()
 
-        only_train_df = pd.DataFrame(
-            train_patient_label_df.iloc[train_indices])
-        print(only_train_df)
-        print(len(only_train_df))
-        print(only_train_df.label_numeric)
+        # store indices of train, test, valin a dictionary
+        indices = {'train': val_indices,
+                   'val': train_indices
+                   }
+        # only_train_df = pd.DataFrame(
+        #     train_patient_label_df.iloc[train_indices])
+        # print(only_train_df)
+        # print(len(only_train_df))
+        # print(only_train_df.label_numeric)
 
         # split the train set again to keep only x% data
-        ss2 = StratifiedSampler(torch.FloatTensor(
-            only_train_df.label_numeric), test_size=self.percent, seed=seed)
-        train_remaining_indices, train_final_indices = ss2.gen_sample_array()
+        # ss2 = StratifiedSampler(torch.FloatTensor(
+        #     only_train_df.label_numeric), test_size=self.percent, seed=seed)
+        # train_remaining_indices, train_final_indices = ss2.gen_sample_array()
 
-        # store indices of train, test, valin a dictionary
-        indices = {'train': train_final_indices,
-                   'val': val_indices
-                   }
+        # # store indices of train, test, valin a dictionary
+        # indices = {'train': train_final_indices,
+        #            'val': val_indices
+        #            }
 
         # get the patient ids using the generated indices
         self.train_patients = train_patient_label_df.iloc[indices['train']]
@@ -354,6 +358,8 @@ class AdniDataModule(pl.LightningDataModule):
 
         print('number of patients in train: ', len(self.train_df))
         print('patient IDs in train: ', self.train_df.p_id.unique())
+        print('# samples in each class (TRAIN): ',
+              self.train_df.groupby('label_numeric').count())
         print('number of patients in val: ', len(self.val_df))
         print('patient IDs in val: ', self.val_df.p_id.unique())
 
