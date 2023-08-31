@@ -39,18 +39,35 @@ If the patient has only null values for a specific feature, these values are fil
 Patients having too many null values in various features are removed
 
 
-## 3. Model
+## 3. Models
 
 There are three baseline models implemented for the priject.
 
-1. 3D Convolutional Network (only for image data)
-2. ResNet Network (only for image data)
-3. Multimodal Network (for both Image and tabular data)
+1. ResNet Network (only for image data)
+2. Dense Network (only tabular data)
+3. Multimodal Network (for both Image and tabular data / baseline)
+4. DAFT
+5. FiLM
+6. Proposed Network (Supervised contrastive multimodal learning / triplet loss, center loss, cross entropy loss / cross correlation)
 
-### 3.1 Convolutional Network
+P.S. the architecture details change depending on the dataset. Details can be checked in the codebase
 
-### 3.2 ResNet Network
+### 3.1 ResNet Network
+- ResNet architecture for the image modalities
+- Used as a baseline in the research
+- Cross entropy loss is utilized
+
+### 3.2 Dense Network
+- Network containing multiple FC layers for processing the tabular data
+- Used as a baseline
+- Cross entropy loss is utilized
 
 ### 3.3 Multimodal Network
+- Resnet and Dense network gathered together to process multimodal data
+- Modalities are combined using concatenation
+- Cross entropy loss is utilized
 
-Multimodal Network takes both an image and a tabular data input. Image data is feed to the same ResNet Model used in 2.2. Image representations that are retrieved from this block concatenated to the related tabular feature vector.
+### 3.4 Proposed Network
+- Uses Resnet and the Dense network to process multi modalities
+- Data types are combined using cross correlation
+- Triplet loss, Center loss, Cross entropy loss are utilized
