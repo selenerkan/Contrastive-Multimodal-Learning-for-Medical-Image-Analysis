@@ -55,22 +55,28 @@ There are three baseline models implemented for the priject.
 
 P.S. the architecture details change depending on the dataset. Details can be checked in the codebase
 
-### 3.1 ResNet Network
+### 3.1 ResNet Network (ADNI: [for file see here](src/models/resnet_model.py), HAM10K: [for file see here](src/skin_lesion/models/resnet_model.py))
 - ResNet architecture for the image modalities
 - Used as a baseline in the research
 - Cross entropy loss is utilized
 
-### 3.2 Dense Network
+### 3.2 Dense Network (ADNI: [for file see here](src/models/tabular_model.py), HAM10K: [for file see here](src/skin_lesion/models/tabular_model.py))
 - Network containing multiple FC layers for processing the tabular data
 - Used as a baseline
 - Cross entropy loss is utilized
 
-### 3.3 Multimodal Network
+### 3.3 Multimodal Network (ADNI: [for file see here](src/models/supervised_model.py), HAM10K: [for file see here](src/skin_lesion/models/ham_supervised_model.py))
 - Resnet and Dense network gathered together to process multimodal data
 - Modalities are combined using concatenation
 - Cross entropy loss is utilized
 
-### 3.4 Proposed Network
+### 3.4 DAFT (ADNI: [for file see here](src/models/daft_model.py), HAM10K: [for file see here](src/skin_lesion/models/ham_daft_model.py))
+- See paper: https://www.sciencedirect.com/science/article/pii/S1053811922006218
+  
+### 3.5 FiLM (ADNI: [for file see here](src/models/film_model.py), HAM10K: [for file see here](src/skin_lesion/models/ham_film_model.py))
+- See paper: https://arxiv.org/abs/1709.07871
+  
+### 3.6 Proposed Network (ADNI: [for file see here](src/models/triplet_model.py), HAM10K: [for file see here](src/skin_lesion/models/ham_triplet_center_cross_ent.py))
 - Uses Resnet and the Dense network to process multi modalities
 - Data types are combined using cross correlation
 - Triplet loss, Center loss, Cross entropy loss are utilized
