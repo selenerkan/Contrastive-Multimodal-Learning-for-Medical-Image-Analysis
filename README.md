@@ -49,8 +49,8 @@ There are three baseline models implemented for the priject.
 1. ResNet Network (only for image data)
 2. Dense Network (only tabular data)
 3. Multimodal Network (for both Image and tabular data / baseline)
-4. DAFT
-5. FiLM
+4. DAFT (see paper: https://www.sciencedirect.com/science/article/pii/S1053811922006218)
+5. FiLM (see paper: https://arxiv.org/abs/1709.07871)
 6. Proposed Network (Supervised contrastive multimodal learning / triplet loss, center loss, cross entropy loss / cross correlation)
 
 P.S. the architecture details change depending on the dataset. Details can be checked in the codebase
