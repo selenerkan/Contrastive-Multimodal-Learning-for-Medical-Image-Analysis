@@ -20,7 +20,7 @@ The dataset contains both image and tabular modalities. There are around 1700 di
 
 ## 2. Preprocessing
 
-### 2.1 ADNI Preprocessing
+### 2.1 ADNI Image Preprocessing
 
 The following preprocessing used for all the MRI images: https://github.com/quqixun/BrainPrep
 
@@ -32,7 +32,10 @@ The implementation includes the following preprocessing steps:
 
 After preprocessing every image has the shape of (64, 64, 64)
 
-### 2.2 Tabular data Preprocessing
+### 2.2 HAM10K Image Preprocessing
+- Images are reshaped to (3,224,224) dimesions and normalized using meand and standard deviation
+
+### 2.3 Tabular data Preprocessing (Both Datasets)
 
 For the tabular modalities of the datasets missing values are filled with the average value of the corresponding patient. 
 If the patient has only null values for a specific feature, these values are filled with the average value of the column.
